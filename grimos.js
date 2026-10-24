@@ -476,5 +476,7 @@ setTheme(THEMES.includes(localStorage.grimTheme) ? localStorage.grimTheme : 'cya
 if (localStorage.grimFlicker === '1' || (localStorage.grimFlicker == null && !RM)) document.body.classList.add('flicker');
 refreshColors(); updateModes();
 say('GRIM/OS grimsh 2.6 — type "help". press ? for keys.');
+say('motd: every track is free to download — type "get <track#>" or "get --list".');
+document.querySelectorAll('.getlink').forEach(b => b.addEventListener('click', e => { e.preventDefault(); const c = $('#cmd'); jump('shell'); c.value = b.dataset.get; c.focus({preventScroll: true}); c.setSelectionRange(c.value.length, c.value.length); }));
 load().then(() => requestAnimationFrame(frame));
 })();

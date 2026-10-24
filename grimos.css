@@ -197,3 +197,7 @@ body.photos-open{overflow:hidden}
 .cbtns{display:flex;gap:1em;align-items:center;flex-wrap:wrap}
 .cstatus.ok{color:var(--hi)}.cstatus.err{color:#ff5a5a}.cstatus.busy{color:var(--dim)}
 body.standalone .solo{display:flex;justify-content:center;padding:3em 1em}
+
+.gettip{margin:.4em 0 0;font-size:.82em;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.getlink{all:unset;cursor:pointer;color:var(--fg);text-decoration:underline dotted;text-underline-offset:2px}
+.getlink:hover,.getlink:focus-visible{color:var(--hi);outline:1px dotted var(--hi)}
