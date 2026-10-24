@@ -361,3 +361,7 @@ body.nocolor .sx-bad{text-decoration:none}
 .helpout .hf{padding-left:2ch;word-break:break-word}
 .helpout .hf b{font-weight:bold;color:var(--a3)}
 .theme-silicon #topbar,.theme-nightshift #topbar,.theme-neon #topbar{z-index:52}
+/* record area blends into the panel in every theme */
+#ring{background:transparent}
+.ringwrap,.ringwrap .cover{background:transparent}
+.theme-silicon #spec .h,.theme-nightshift #spec .h,.theme-neon #spec .h{color:transparent}
