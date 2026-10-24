@@ -47,7 +47,7 @@ async function load() {
  const si = s == null ? -1 : /^\d+$/.test(s) ? (flat[+s - 1] ? +s - 1 : -1) : flat.findIndex(t => sl(t.title) === sl(s) || (t.aliases || []).includes(sl(s)));
  const at = parseInt(new URLSearchParams(location.search).get('at'), 10); if (si >= 0 && at > 0) pendingAt = {i: si, t: at};
  if (si >= 0) select(si);
- else { const d = flat.findIndex(t => /^redline$/i.test(t.title)); if (d >= 0) { cur = d; audio.preload = 'metadata'; audio.src = flat[d].file; setRecord(flat[d]); loadWave(flat[d]); select(d); updateNP(); } }
+ else { const d = flat.findIndex(t => /^redline$/i.test(t.title)); if (d >= 0) { cur = d; audio.preload = 'none'; lazySrc = flat[d].file; setRecord(flat[d]); loadWave(flat[d]); select(d); updateNP(); } }
 }
 
 /* ---------- playlist ---------- */
@@ -97,7 +97,7 @@ function effRepeat() { const t = flat[cur]; if (t && isLoopAlbum(t)) return loop
 window.tgTrack = function (kind, title) { try { const gc = window.goatcounter; if (!gc || typeof gc.count !== 'function') return;
  const slug = String(title || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled';
  gc.count({path: kind + '/' + slug, title: String(title || ''), event: true}); } catch (e) {} };
-let pendingAt = null;
+let pendingAt = null, lazySrc = null; // default track: no audio bytes until the first play
 const playedOnce = {}; let ringAgc = .1, secret = null;
 const curT = () => secret || flat[cur];
 function play(i) {
@@ -105,6 +105,7 @@ function play(i) {
  if (i == null || !flat[i]) i = sel >= 0 && flat[sel] ? sel : 0;
  ensureCtx();
  if (i !== cur || !playedOnce[i]) { playedOnce[i] = 1; window.tgTrack('play', flat[i].title); }
+ if (lazySrc) { if (i === cur) audio.src = lazySrc; lazySrc = null; audio.preload = 'metadata'; }
  if (i !== cur) { cur = i; audio.src = flat[i].file; setRecord(flat[i]); loadWave(flat[i]); }
  if (pendingAt && pendingAt.i === i) { const t0 = pendingAt.t; pendingAt = null; const go = () => { try { audio.currentTime = Math.min(t0, (audio.duration || t0 + 1) - 1); } catch {} }; audio.readyState >= 1 ? go() : audio.addEventListener('loadedmetadata', go, {once: true}); }
  setMediaMeta(flat[i]); trackMood(flat[i]);
