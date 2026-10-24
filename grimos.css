@@ -17,6 +17,10 @@ body{background:radial-gradient(ellipse at center,var(--bg) 60%,#000 100%)}
 /* CRT filter: scanlines + vignette/curvature + glow + flicker; body.nocrt turns all off */
 #crt::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0,rgba(0,0,0,0) 2px,rgba(0,0,0,.22) 3px)}
 #crt::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:51;box-shadow:inset 0 0 140px 30px rgba(0,0,0,.8),inset 0 0 0 6px #000;border-radius:28px/22px}
+:root{--corner:#000}
+@media (prefers-color-scheme:light){:root{--corner:#fff}}
+html{background:var(--corner)}
+body:not(.nocrt)::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;border-radius:28px/22px;box-shadow:0 0 0 80px var(--corner)}
 body.flicker:not(.nocrt) #crt{animation:flick 6s infinite}
 body.nocrt #crt{text-shadow:none;background:none}
 body.nocrt #crt::before,body.nocrt #crt::after{display:none}
