@@ -92,7 +92,7 @@
   <section id="player" class="win" tabindex="-1" aria-labelledby="t-player">
     <h2 class="wt" id="t-player"><span>─[ GRIMAMP v1 :: ascii audio terminal ]─</span></h2>
     <div class="np">
-      <pre id="cover" class="cover" aria-hidden="true"></pre>
+      <div class="ringwrap"><canvas id="ring" aria-hidden="true"></canvas><pre id="cover" class="cover" aria-hidden="true"></pre></div>
       <div class="npinfo">
         <div id="nptitle" aria-live="polite">▶ select a track</div>
         <div id="npalbum" class="dim">—</div>
@@ -108,9 +108,8 @@
       </div>
     </div>
     <div class="viz">
-      <div class="vizbox vb-spec"><div class="lbl">SPECTRUM · log</div><pre id="spec" aria-hidden="true"></pre></div>
-      <div class="vizbox vb-scope"><div class="lbl">OSCILLOSCOPE</div><canvas id="scope" aria-hidden="true"></canvas></div>
       <div class="vizbox vb-wave"><div class="lbl">WAVEFORM · click to seek</div><canvas id="wave" role="slider" tabindex="0" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></canvas></div>
+      <div class="vizbox vb-spec"><div class="lbl">SPECTRUM · log</div><pre id="spec" aria-hidden="true"></pre></div>
     </div>
     <audio id="audio" preload="metadata"></audio>
   </section>

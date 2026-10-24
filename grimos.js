@@ -212,7 +212,7 @@ wave.addEventListener('pointermove', e => dragging && waveSeek(e));
 wave.addEventListener('pointerup', () => dragging = false);
 
 /* ---------- visuals loop ---------- */
-const specEl = $('#spec'), scope = $('#scope'), sg = scope.getContext('2d');
+const specEl = $('#spec'), ring = $('#ring'), rg = ring.getContext('2d');
 const BLK = ' ▁▂▃▄▅▆▇█'; let peaks = [], fbuf, tbuf, idle = 0;
 let cw = 0, NBc = 32;
 function measure() { const m = document.createElement('span'); m.textContent = '█'.repeat(20); specEl.appendChild(m); cw = m.getBoundingClientRect().width / 20 || 8; m.remove();
@@ -231,23 +231,23 @@ const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(6, Math.f
  // spectrum
  let s = '';
  for (let b = 0; b < NB; b++) { peaks[b] = Math.max((peaks[b] || 0) - .012, vals[b]); }
- for (let r = ROWS - 1; r >= 0; r--) { let line = '';
+ s += '─'.repeat(NB) + '\n'; const TOP = '▔▔▀▀▀██'; // bars hang down from the top edge
+ for (let r = 0; r < ROWS; r++) { let line = '';
   for (let b = 0; b < NB; b++) { const v = vals[b] * ROWS - r, pk = Math.floor(peaks[b] * ROWS - .001);
-   let ch = v >= 1 ? (r >= ROWS - 2 ? '<span class="h">█</span>' : '█') : v > 0 ? BLK[Math.round(v * 8)] : ' ';
-   if (ch === ' ' && pk === r && peaks[b] > .06) ch = '<span class="p">▔</span>';
+   let ch = v >= 1 ? (r < 2 ? '<span class="h">█</span>' : '█') : v > .12 ? TOP[Math.min(6, Math.floor(v * 7))] : ' ';
+   if (ch === ' ' && pk === r && peaks[b] > .06) ch = '<span class="p">▁</span>';
    line += ch; }
-  s += line + '\n'; }
- s += '─'.repeat(NB);
+  s += line + (r < ROWS - 1 ? '\n' : ''); }
  specEl.innerHTML = s;
- // scope
- fitCanvas(scope); const W = scope.width, H = scope.height;
- sg.fillStyle = 'rgba(0,0,0,.35)'; sg.fillRect(0, 0, W, H);
- sg.strokeStyle = colors.dim; sg.globalAlpha = .3; sg.lineWidth = 1; sg.beginPath(); for (let i = 1; i < 8; i++) { sg.moveTo(i * W / 8, 0); sg.lineTo(i * W / 8, H); } sg.moveTo(0, H / 2); sg.lineTo(W, H / 2); sg.stroke(); sg.globalAlpha = 1;
- sg.strokeStyle = colors.fg; sg.lineWidth = 1.6 * devicePixelRatio; sg.shadowColor = colors.fg; sg.shadowBlur = 8; sg.beginPath();
- if (an && playing) { tbuf = tbuf || new Uint8Array(an.fftSize); an.getByteTimeDomainData(tbuf); let st = 0; for (let i = 1; i < tbuf.length / 2; i++) if (tbuf[i - 1] < 128 && tbuf[i] >= 128) { st = i; break; }
-  const len = tbuf.length / 2; for (let i = 0; i < len; i++) { const x = i / len * W, y = (tbuf[st + i] / 255) * H; i ? sg.lineTo(x, y) : sg.moveTo(x, y); } }
- else { for (let x = 0; x <= W; x += 4) { const y = H / 2 + Math.sin(x / 30 + idle * 3) * 2; x ? sg.lineTo(x, y) : sg.moveTo(x, y); } }
- sg.stroke(); sg.shadowBlur = 0;
+ // round oscilloscope ring around the record (amplitude clamped to the padding gap)
+ fitCanvas(ring); { const W = ring.width, H = ring.height, d = devicePixelRatio, pad = parseFloat(getComputedStyle(ring.parentElement).paddingLeft) * d || 22 * d;
+  const cx = W / 2, cy = H / 2, rx = W / 2 - pad / 2, ry = H / 2 - pad / 2, amp = pad / 2 - 2 * d; rg.clearRect(0, 0, W, H);
+  rg.strokeStyle = colors.dim; rg.globalAlpha = .35; rg.lineWidth = d; rg.beginPath(); rg.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); rg.stroke(); rg.globalAlpha = 1;
+  const live = an && playing; if (live) { tbuf = tbuf || new Uint8Array(an.fftSize); an.getByteTimeDomainData(tbuf); }
+  const N = 240; for (const [col, lw, blur] of [[colors.fg, 2.6, 10], [colors.hi, 1.1, 0]]) { rg.strokeStyle = col; rg.lineWidth = lw * d; rg.shadowColor = col; rg.shadowBlur = blur * d; rg.beginPath();
+   for (let i = 0; i <= N; i++) { const t = i % N, a = t / N * Math.PI * 2 - Math.PI / 2; let v = live ? (tbuf[Math.floor(t / N * (tbuf.length - 1))] - 128) / 128 : Math.sin(t / 6 + idle * 3) * .06;
+    v = Math.tanh(v * 1.6); const o = Math.max(-1, Math.min(1, v)) * amp, x = cx + Math.cos(a) * (rx + o), y = cy + Math.sin(a) * (ry + o); i ? rg.lineTo(x, y) : rg.moveTo(x, y); }
+   rg.closePath(); rg.stroke(); } rg.shadowBlur = 0; }
  drawWave(); spinRecord(performance.now());
  requestAnimationFrame(frame);
 }

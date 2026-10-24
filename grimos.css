@@ -79,14 +79,16 @@ kbd{font:inherit;color:var(--bg);background:var(--br);padding:0 .25em;margin-rig
 .np>*,.npinfo>*,.transport,.viz>*{min-width:0;max-width:100%;box-sizing:border-box}
 #player,#tracks,#links,#shell,#fetch,#man{min-width:0;box-sizing:border-box}
 .transport{overflow:hidden}
-.viz{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);grid-template-areas:"spec scope" "wave wave";gap:10px;margin-top:10px}
+.viz{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"wave" "spec";gap:10px;margin-top:10px}
 .vizbox{border:1px solid var(--fg);padding:2px 6px 6px;min-width:0;display:flex;flex-direction:column}
-.vb-spec{grid-area:spec}.vb-scope{grid-area:scope}.vb-wave{grid-area:wave}
+.vb-spec{grid-area:spec}.vb-wave{grid-area:wave}
 .lbl{color:var(--bg);background:var(--fg);align-self:flex-start;padding:0 .4em;font-size:.8em;text-shadow:none;margin:4px 0 4px}
 #spec{margin:0;font:13px/12px "IBM Plex Mono",monospace;white-space:pre;overflow:hidden;width:100%;height:110px;color:var(--fg)}
 #spec .p{color:var(--acc)}#spec .h{color:var(--br)}
 canvas{display:block;width:100%;background:rgba(0,0,0,.4)}
-#scope{flex:1;min-height:96px;height:110px}
+.ringwrap{position:relative;flex:none;padding:22px;box-sizing:content-box;contain:layout}
+#ring{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.ringwrap .cover{position:relative;z-index:1}
 #wave{cursor:pointer;height:56px;touch-action:none}
 .plhead{display:flex;gap:.4em;margin-top:10px;align-items:center}
 .plhead label{color:var(--br)}
@@ -135,7 +137,8 @@ input{font:inherit;color:var(--hi);background:transparent;border:none;border-bot
  #desk{grid-template-columns:1fr;grid-template-areas:"fetch" "player" "tracks" "links" "man" "shell";padding:12px 6px}
  html,body{font-size:18px}
  .logo{font-size:7.5px}
- .viz{grid-template-columns:1fr;grid-template-areas:"spec" "scope" "wave"}
+ .viz{grid-template-columns:1fr;grid-template-areas:"wave" "spec"}
+ .ringwrap{padding:16px}
  .np{flex-direction:column;align-items:center}
  .cover{font-size:8px;line-height:8px;height:152px}
  #keys{display:none}
@@ -148,7 +151,7 @@ input{font:inherit;color:var(--hi);background:transparent;border:none;border-bot
  #tools{margin-left:auto;font-size:.85em}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-#scope{flex:none}
+
 @media (min-width:1100px){
  .fetchbody{flex-wrap:nowrap}
  .info{flex:1;min-width:0}
@@ -219,3 +222,4 @@ body.standalone .solo{display:flex;justify-content:center;padding:3em 1em}
 body.standalone .solo .iwin{height:calc(100vh - 6em);width:min(1100px,100%);display:flex;flex-direction:column}
 
 #matrix.fx-intro{z-index:101;transition:opacity .15s linear}
+.np{flex-wrap:wrap;justify-content:center}.npinfo{flex:1 1 230px}
