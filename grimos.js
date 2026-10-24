@@ -5,7 +5,7 @@ const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const FALLBACK = {artist:'tomGRIM',albums:[{id:'ember-hours',title:'Ember Hours',type:'album',year:null,blurb:'',cover:'assets/cover-web.jpg',tracks:[
  {title:'Graveyard Over the Fire',file:'assets/track1.mp3'},{title:'Kickflip My Heart',file:'assets/track2.mp3'},{title:'Telling Me',file:'assets/track3.mp3'}]}]};
 const audio = $('#audio');
-let data, flat = [], view = [], cur = -1, sel = 0, repeat = 'off', shuffle = false, vol = .8, actx, an, anL, anR, waveCache = {}, coverCache = {};
+let groups = 0, data, flat = [], view = [], cur = -1, sel = 0, repeat = 'off', shuffle = false, vol = .8, actx, an, waveCache = {};
 const loopOverride = {};
 audio.volume = vol;
 const fmt = s => { s = Math.max(0, Math.floor(s || 0)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
@@ -31,10 +31,16 @@ setInterval(() => { $('#clock').textContent = new Date().toLocaleTimeString([], 
 async function load() {
  try { const r = await fetch('tracks.json', {cache:'no-cache'}); if (!r.ok) throw 0; data = await r.json(); if (!data.albums?.length) throw 0;
   data.albums.forEach(a => { if (a.id === 'ember-hours' && !(a.tracks || []).length) a.tracks = FALLBACK.albums[0].tracks; });
-  if (!data.albums.some(a => (a.tracks || []).length)) throw 0; }
+  if (!data.albums.some(a => (a.tracks || []).length)) throw 0;
+  data.albums.forEach(a => { if (a.id === 'elements' && (!a.year || a.year > 2009)) a.year = 2009; });
+  const rank = a => ({album: 0, ep: 0, single: 1, loops: 2})[a.type || 'album'] ?? 1;
+  data.albums = data.albums.map((a, i) => [a, i]).sort((x, y) => rank(x[0]) - rank(y[0]) || x[1] - y[1]).map(x => x[0]); }
  catch { data = FALLBACK; }
  flat = [];
- data.albums.forEach((al, ai) => (al.tracks || []).forEach((t, ti) => flat.push({...t, al, ai, ti})));
+ let gi = -1, lastSingle = false;
+ data.albums.forEach((al, ai) => { const single = al.type === 'single'; if (!(single && lastSingle)) gi++; lastSingle = single;
+  (al.tracks || []).forEach((t, ti) => flat.push({...t, al, ai: gi, ti, single})); });
+ groups = gi + 1; let sc = 0; flat.forEach(t => { if (t.single) t.ti = sc++; });
  renderList(); updateModes();
  const s = new URLSearchParams(location.search).get('t'); if (s && flat[+s]) select(+s);
 }
@@ -46,9 +52,11 @@ function renderList(q = '') {
  flat.forEach((t, i) => {
   if (q && !(t.title + ' ' + t.al.title).toLowerCase().includes(q)) return;
   if (t.ai !== last) { last = t.ai; const al = t.al, key = String.fromCharCode(65 + t.ai);
-   html += `<li class="div" role="presentation" id="al-${t.ai}">══[${key}]═ ${esc(al.title.toUpperCase())} <small>${al.year ? al.year + ' · ' : ''}${al.type === 'loops' ? 'loop pack' : 'album'} · ${al.tracks.length} trk</small> ════════════════════════════</li>`; }
+   if (t.single) { const n = flat.filter(x => x.ai === t.ai).length;
+    html += `<li class="div" role="presentation" id="al-${t.ai}">══[${key}]═ SINGLES <small>${n} trk</small> ════════════════════════════</li>`; }
+   else html += `<li class="div" role="presentation" id="al-${t.ai}">══[${key}]═ ${esc(al.title.toUpperCase())} <small>${al.year ? al.year + ' · ' : ''}${al.type === 'loops' ? 'loop pack' : al.type || 'album'} · ${al.tracks.length} trk</small> ════════════════════════════</li>`; }
   view.push(i);
-  html += `<li class="tr" role="option" id="tr-${i}" data-i="${i}" aria-selected="false"><span class="n">${String(t.ti + 1).padStart(2, '0')}</span><span class="t">${esc(t.title)}</span><span class="dim">${t.bpm ? Math.round(t.bpm) + 'bpm ' : ''}${t.duration_sec ? fmt(t.duration_sec) : ''}</span></li>`;
+  html += `<li class="tr" role="option" id="tr-${i}" data-i="${i}" aria-selected="false"><span class="n">${String(t.ti + 1).padStart(2, '0')}</span><span class="t">${esc(t.title)}${t.special ? ' <span class="star" title="special feature">★ special</span>' : ''}${t.single && t.al.year ? ' <span class="dim">(' + t.al.year + ')</span>' : ''}</span><span class="dim">${t.bpm ? Math.round(t.bpm) + 'bpm ' : ''}${t.duration_sec ? fmt(t.duration_sec) : ''}</span></li>`;
  });
  pl.innerHTML = html || '<li class="dim">no matches</li>';
  mark();
@@ -67,15 +75,14 @@ function ensureCtx() {
  actx = new (window.AudioContext || window.webkitAudioContext)();
  const src = actx.createMediaElementSource(audio);
  an = actx.createAnalyser(); an.fftSize = 2048; an.smoothingTimeConstant = .75;
- const sp = actx.createChannelSplitter(2); anL = actx.createAnalyser(); anR = actx.createAnalyser(); anL.fftSize = anR.fftSize = 1024;
- src.connect(an); an.connect(actx.destination); src.connect(sp); sp.connect(anL, 0); sp.connect(anR, 1);
+ src.connect(an); an.connect(actx.destination);
 }
 const isLoopAlbum = t => t && t.al.type === 'loops';
 function effRepeat() { const t = flat[cur]; if (t && isLoopAlbum(t)) return loopOverride[t.ai] ?? 'one'; return repeat; }
 function play(i) {
  if (i == null || !flat[i]) i = sel >= 0 && flat[sel] ? sel : 0;
  ensureCtx();
- if (i !== cur) { cur = i; audio.src = flat[i].file; drawCover(flat[i]); loadWave(flat[i]); }
+ if (i !== cur) { cur = i; audio.src = flat[i].file; setRecord(flat[i]); loadWave(flat[i]); }
  audio.play().catch(err => say('play blocked: ' + err.message));
  select(i); updateNP();
 }
@@ -94,7 +101,7 @@ audio.addEventListener('error', () => say('error: cannot load ' + (flat[cur]?.fi
 audio.addEventListener('timeupdate', () => { $('#tcur').textContent = fmt(audio.currentTime); });
 function updateNP() {
  const t = flat[cur];
- $('#nptitle').textContent = t ? (audio.paused ? '❚❚ ' : '▶ ') + t.title : '▶ select a track';
+ $('#nptitle').textContent = t ? (audio.paused ? '❚❚ ' : '▶ ') + t.title + (t.special ? ' ★' : '') : '▶ select a track';
  $('#npalbum').textContent = t ? `${data.artist || 'tomGRIM'} — ${t.al.title}${t.al.year ? ' (' + t.al.year + ')' : ''}${t.bpm ? ' · ' + Math.round(t.bpm) + ' bpm' : ''}` : '—';
  $('#tdur').textContent = fmt(audio.duration || t?.duration_sec);
  const b = $('#bplay'); b.textContent = audio.paused ? '▶ PLAY' : '❚❚ PAUSE'; b.setAttribute('aria-label', audio.paused ? 'Play' : 'Pause');
@@ -121,18 +128,36 @@ $('#bplay').onclick = toggle; $('#bnext').onclick = () => next(1); $('#bprev').o
 $('#brep').onclick = cycleRepeat; $('#bshuf').onclick = () => { shuffle = !shuffle; updateModes(); };
 $('#volup').onclick = () => setVol(vol + .05); $('#voldn').onclick = () => setVol(vol - .05);
 
-/* ---------- ascii cover ---------- */
-const RAMP = ' .:-=+*#%@';
-function drawCover(t) {
- const el = $('#cover'), url = t.al.cover; if (!url) { el.textContent = ''; return; }
- if (coverCache[url]) { el.textContent = coverCache[url]; return; }
- const img = new Image(); img.onload = () => {
-  const W = 40, H = 20, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
-  g.drawImage(img, 0, 0, W, H); const d = g.getImageData(0, 0, W, H).data; let s = '';
-  for (let y = 0; y < H; y++) { for (let x = 0; x < W; x++) { const k = (y * W + x) * 4, l = (d[k] * .3 + d[k + 1] * .59 + d[k + 2] * .11) / 255; s += RAMP[Math.min(9, Math.floor(l * 10))]; } s += '\n'; }
-  coverCache[url] = s; el.textContent = s; };
- img.src = url;
+/* ---------- ascii vinyl ---------- */
+const coverEl = $('#cover');
+const PALS = [['#ff7a3d', '@%#*+=-:. ', 2, 3], ['#7dffa0', '§&$%#oO0o:', 3, 5], ['#c58cff', '@#S%?*+;:,', 1, 4], ['#ffd23f', '░▒▓█▓▒░·∙ ', 4, 2], ['#ff4a8a', '╳╱╲┼═║~≈-.', 5, 6], ['#5fb8ff', '◉●○◌∘°·.:;', 2, 7]];
+let rec = {ang: 0, spd: 0, pal: PALS[0], label: 'TG', title: '', seed: 0}, recLast = 0;
+function hash(str) { let h = 7; for (const c of str) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
+function setRecord(t) { const h = hash(t.al.id || t.al.title); rec.pal = PALS[h % PALS.length]; rec.seed = h; rec.label = t.single ? 'S' : (t.al.title.replace(/[^A-Za-z0-9]/g, '')[0] || 'T').toUpperCase(); rec.title = (t.single ? t.title : t.al.title).toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 9); coverEl.style.setProperty('--rec', rec.pal[0]); drawRecord(); }
+function drawRecord() {
+ const W = 37, H = 19, cx = (W - 1) / 2, cy = (H - 1) / 2, [, chars, arms, tight] = rec.pal, a = rec.ang; let out = '';
+ for (let y = 0; y < H; y++) { let line = '';
+  for (let x = 0; x < W; x++) { const dx = (x - cx) / cx, dy = (y - cy) / cy, r = Math.hypot(dx, dy); let th = Math.atan2(dy, dx);
+   if (r > 1.0) { line += ' '; continue; }
+   if (r > .955) { line += '<span class="g">' + (y === 0 || y === H - 1 ? '─' : '·') + '</span>'; continue; }
+   if (r < .3) { // label
+    const row = y - Math.round(cy), lw = rec.title.length, col = x - Math.round(cx);
+    if (r < .06) { line += '<span class="g">●</span>'; continue; }
+    if (row === -2 && col === 0) { line += '<span class="l">' + esc(rec.label) + '</span>'; continue; }
+    if (row === 2 && Math.abs(col) <= lw / 2 && lw) { const ch = rec.title[col + Math.floor(lw / 2)]; line += '<span class="l">' + esc(ch || ' ') + '</span>'; continue; }
+    const s2 = Math.sin((th + a) * 2) > .6; line += '<span class="a">' + (s2 ? '▓' : r > .25 ? '░' : ' ') + '</span>'; continue; }
+   const sp = Math.sin(th * arms - r * tight * 6.283 + a * arms), groove = Math.sin(r * 58 + (rec.seed % 7));
+   const shine = Math.cos(th - a - 0.9) ; // rotating highlight
+   let v = (sp * .5 + .5) * .7 + (groove > .55 ? .3 : 0); if (shine > .93) v = 1;
+   const ch = chars[Math.min(chars.length - 1, Math.floor((1 - v) * chars.length))];
+   line += sp > .82 ? '<span class="a">' + esc(ch) + '</span>' : esc(ch); }
+  out += line + '\n'; }
+ coverEl.innerHTML = out;
 }
+function spinRecord(now) { const dt = Math.min(.1, (now - recLast) / 1000 || 0); if (now - recLast < 50) return; recLast = now; // ~20fps
+ const target = (actx && !audio.paused && !RM) ? 3.49 : 0; rec.spd += (target - rec.spd) * Math.min(1, dt * (target ? 3 : 1.6)); if (rec.spd < .002) rec.spd = 0;
+ if (rec.spd || !coverEl.innerHTML) { rec.ang += rec.spd * dt; drawRecord(); } }
+rec.title = 'TOMGRIM'; drawRecord();
 
 /* ---------- waveform ---------- */
 const wave = $('#wave'), wg = wave.getContext('2d');
@@ -168,36 +193,33 @@ wave.addEventListener('pointermove', e => dragging && waveSeek(e));
 wave.addEventListener('pointerup', () => dragging = false);
 
 /* ---------- visuals loop ---------- */
-const specEl = $('#spec'), vuEl = $('#vu'), scope = $('#scope'), sg = scope.getContext('2d');
-const BLK = ' ▁▂▃▄▅▆▇█'; let peaks = [], vuPeak = [0, 0], vuHold = [0, 0], fbuf, tbuf, lbuf, idle = 0;
-let cw = 0; function bars() { if (!cw) { const m = document.createElement('span'); m.textContent = '█'.repeat(20); specEl.appendChild(m); cw = m.getBoundingClientRect().width / 20 || 8; m.remove(); } const w = specEl.clientWidth || 300; return Math.max(16, Math.min(72, Math.floor(w / cw) - 1)); }
-addEventListener('resize', () => cw = 0);
+const specEl = $('#spec'), scope = $('#scope'), sg = scope.getContext('2d');
+const BLK = ' ▁▂▃▄▅▆▇█'; let peaks = [], fbuf, tbuf, idle = 0;
+let cw = 0, NBc = 32;
+function measure() { const m = document.createElement('span'); m.textContent = '█'.repeat(20); specEl.appendChild(m); cw = m.getBoundingClientRect().width / 20 || 8; m.remove();
+ const w = specEl.clientWidth || 300; NBc = Math.max(12, Math.floor(w / cw)); specEl.style.letterSpacing = ((w - NBc * cw) / NBc) + 'px'; }
+new ResizeObserver(measure).observe(specEl);
 function frame() {
- const playing = actx && !audio.paused; const NB = bars(), ROWS = 8; let vals = new Array(NB).fill(0);
+const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(6, Math.floor((specEl.clientHeight || 100) / 12) - 1); let vals = new Array(NB).fill(0);
  if (an) { fbuf = fbuf || new Uint8Array(an.frequencyBinCount); an.getByteFrequencyData(fbuf);
-  const n = fbuf.length; for (let b = 0; b < NB; b++) { const lo = Math.floor(Math.pow(n * .7, b / NB)), hi = Math.max(lo + 1, Math.floor(Math.pow(n * .7, (b + 1) / NB))); let m = 0; for (let k = lo; k < hi; k++) m = Math.max(m, fbuf[k]); vals[b] = m / 255; } }
+  const n = fbuf.length, nyq = (actx.sampleRate || 44100) / 2, f0 = 30, f1 = Math.min(16000, nyq);
+  for (let b = 0; b < NB; b++) { const fa = f0 * Math.pow(f1 / f0, b / NB), fb = f0 * Math.pow(f1 / f0, (b + 1) / NB);
+   const lo = fa / nyq * n, hi = fb / nyq * n; let m = 0;
+   if (hi - lo < 1) { const k = Math.floor(lo), fr = lo - k; m = fbuf[k] * (1 - fr) + (fbuf[k + 1] || 0) * fr; }
+   else for (let k = Math.floor(lo); k < Math.ceil(hi); k++) m = Math.max(m, fbuf[k]);
+   const tilt = 1 + .5 * b / NB; vals[b] = Math.min(1, m / 255 * tilt); } }
  if (!playing) { idle += .03; vals = vals.map((v, b) => Math.max(v * .9, .04 + .03 * Math.sin(idle + b * .4))); }
  // spectrum
  let s = '';
  for (let b = 0; b < NB; b++) { peaks[b] = Math.max((peaks[b] || 0) - .012, vals[b]); }
  for (let r = ROWS - 1; r >= 0; r--) { let line = '';
   for (let b = 0; b < NB; b++) { const v = vals[b] * ROWS - r, pk = Math.floor(peaks[b] * ROWS - .001);
-   let ch = v >= 1 ? '█' : v > 0 ? BLK[Math.round(v * 8)] : ' ';
+   let ch = v >= 1 ? (r >= ROWS - 2 ? '<span class="h">█</span>' : '█') : v > 0 ? BLK[Math.round(v * 8)] : ' ';
    if (ch === ' ' && pk === r && peaks[b] > .06) ch = '<span class="p">▔</span>';
    line += ch; }
   s += line + '\n'; }
  s += '─'.repeat(NB);
  specEl.innerHTML = s;
- // VU
- let lv = '';
- [anL, anR].forEach((a, c) => { let rms = 0, pk = 0;
-  if (a && playing) { lbuf = lbuf || new Float32Array(a.fftSize); a.getFloatTimeDomainData(lbuf); for (const x of lbuf) { rms += x * x; pk = Math.max(pk, Math.abs(x)); } rms = Math.sqrt(rms / lbuf.length); }
-  const db = 20 * Math.log10(Math.max(rms, 1e-5)), lvl = Math.max(0, Math.min(1, (db + 48) / 48));
-  vuPeak[c] = Math.max(vuPeak[c] * .93, lvl); if (lvl >= vuHold[c]) vuHold[c] = lvl; else vuHold[c] = Math.max(0, vuHold[c] - .004);
-  const W = 26, n = Math.round(vuPeak[c] * W), h = Math.min(W - 1, Math.round(vuHold[c] * W));
-  let bar = ''; for (let i = 0; i < W; i++) { const cls = i > W * .85 ? 'r' : i > W * .65 ? 'y' : ''; const ch = i < n ? '█' : i === h ? '┃' : '·'; bar += cls && (i < n || i === h) ? `<span class="${cls}">${ch}</span>` : ch; }
-  lv += (c ? 'R ' : 'L ') + bar + ' ' + (db < -60 ? ' -∞' : String(Math.round(db)).padStart(3)) + 'dB\n'; });
- vuEl.innerHTML = lv + '  -48   -30   -18  -9 -3 0';
  // scope
  fitCanvas(scope); const W = scope.width, H = scope.height;
  sg.fillStyle = 'rgba(0,0,0,.35)'; sg.fillRect(0, 0, W, H);
@@ -207,7 +229,7 @@ function frame() {
   const len = tbuf.length / 2; for (let i = 0; i < len; i++) { const x = i / len * W, y = (tbuf[st + i] / 255) * H; i ? sg.lineTo(x, y) : sg.moveTo(x, y); } }
  else { for (let x = 0; x <= W; x += 4) { const y = H / 2 + Math.sin(x / 30 + idle * 3) * 2; x ? sg.lineTo(x, y) : sg.moveTo(x, y); } }
  sg.stroke(); sg.shadowBlur = 0;
- drawWave();
+ drawWave(); spinRecord(performance.now());
  requestAnimationFrame(frame);
 }
 
@@ -215,12 +237,39 @@ function frame() {
 const out = $('#out'), cmd = $('#cmd'); const hist = []; let hp = 0;
 function say(html, raw) { const d = document.createElement('div'); if (raw) d.innerHTML = html; else d.textContent = html; out.appendChild(d); out.scrollTop = out.scrollHeight; }
 const LINKS = [['spotify','https://open.spotify.com/artist/1tBp2oza76uuM5bC3fx8Vg'],['apple-music','https://music.apple.com/us/artist/tomgrim/1705139904'],['youtube','https://www.youtube.com/@ig3.productions'],['soundcloud','https://soundcloud.com/thomasgrim']];
-const THEMES = ['green', 'amber', 'cyan'];
-function setTheme(t) { if (!THEMES.includes(t)) return say('usage: theme green|amber|cyan'); document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + t); localStorage.grimTheme = t; refreshColors(); say('theme → ' + t); }
+const THEMES = ['cyan', 'green', 'amber', 'red', 'gray', 'fire', 'ice'];
+const themeSel = $('#themesel'); themeSel.innerHTML = THEMES.map(t => `<option value="${t}">${t}</option>`).join('');
+const curTheme = () => (document.body.className.match(/theme-(\w+)/) || [])[1] || 'cyan';
+function setTheme(t, quiet) { if (t === 'grey' || t === 'grayscale') t = 'gray'; if (!THEMES.includes(t)) return say('usage: theme ' + THEMES.join('|'));
+ document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + t); localStorage.grimTheme = t; themeSel.value = t; refreshColors(); if (!quiet) say('theme → ' + t); }
+themeSel.addEventListener('change', () => setTheme(themeSel.value));
+function setCrt(on, quiet) { document.body.classList.toggle('nocrt', !on); localStorage.grimCrt = on ? '1' : '0'; const b = $('#bcrt'); b.textContent = 'CRT:' + (on ? 'on' : 'off'); b.setAttribute('aria-pressed', on); if (!quiet) say('crt filter: ' + (on ? 'on' : 'off')); }
+$('#bcrt').onclick = () => setCrt(document.body.classList.contains('nocrt'));
+/* matrix rain */
+let mx = null;
+function matrix() { if (mx) return; const c = document.createElement('canvas'); c.id = 'matrix'; c.setAttribute('aria-label', 'matrix rain, press any key to exit'); document.body.appendChild(c);
+ const g = c.getContext('2d'), fs = 16, chars = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄ0123456789TOMGRIM♪♫'; let cols, drops;
+ const size = () => { c.width = innerWidth; c.height = innerHeight; cols = Math.ceil(c.width / fs); drops = Array.from({length: cols}, () => Math.random() * -40); }; size();
+ let last = 0; const stop = () => { if (!mx) return; cancelAnimationFrame(mx.raf); c.remove(); removeEventListener('keydown', onKey, true); mx = null; say('wake up, tom… the bassline has you.'); };
+ const onKey = e => { e.preventDefault(); e.stopImmediatePropagation(); stop(); };
+ const tick = now => { mx.raf = requestAnimationFrame(tick); if (now - last < 50) return; last = now;
+  g.fillStyle = 'rgba(0,0,0,.08)'; g.fillRect(0, 0, c.width, c.height); g.font = fs + 'px monospace';
+  for (let i = 0; i < cols; i++) { const y = drops[i] * fs; g.fillStyle = colors.hi; g.fillText(chars[Math.random() * chars.length | 0], i * fs, y); g.fillStyle = colors.fg; g.fillText(chars[Math.random() * chars.length | 0], i * fs, y - fs);
+   if (y > c.height && Math.random() > .975) drops[i] = 0; drops[i] += 1; } };
+ mx = {raf: requestAnimationFrame(tick)}; c.addEventListener('pointerdown', stop); setTimeout(() => addEventListener('keydown', onKey, true), 50);
+ if (RM) { g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height); g.fillStyle = colors.fg; g.font = '24px monospace'; g.fillText('MATRIX (reduced motion) — any key to exit', 20, 60); cancelAnimationFrame(mx.raf); } }
+function cowsay(t) { t = (t || 'moo. drop the bass.').slice(0, 200); const w = Math.min(36, Math.max(...t.split(' ').map(x => x.length), 4)); const lines = []; let l = '';
+ t.split(/\s+/).forEach(word => { if ((l + ' ' + word).trim().length > w) { lines.push(l.trim()); l = word; } else l += ' ' + word; }); if (l.trim()) lines.push(l.trim());
+ const W = Math.max(...lines.map(x => x.length)); let b = ' ' + '_'.repeat(W + 2) + '\n';
+ lines.forEach((x, i) => { const [o, c] = lines.length === 1 ? ['<', '>'] : i === 0 ? ['/', '\\'] : i === lines.length - 1 ? ['\\', '/'] : ['|', '|']; b += `${o} ${x.padEnd(W)} ${c}\n`; });
+ b += ' ' + '-'.repeat(W + 2) + '\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\  ♪♫  )\\/\\\n                ||----w |\n                ||     ||'; say(b); }
 const CMDS = {
- help: () => say('commands: help ls albums play <n> pause next prev bio links contact clear theme <green|amber|cyan> repeat shuffle vol <0-100> whoami fetch'),
- ls: () => flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}  [${t.al.title}]`)),
- albums: () => data.albums.forEach((a, i) => say(`[${String.fromCharCode(65 + i)}] ${a.title}${a.year ? ' (' + a.year + ')' : ''} — ${a.type || 'album'}, ${a.tracks.length} tracks${a.blurb ? ' · ' + a.blurb : ''}`)),
+ help: () => say('commands: help ls albums play <n|name> pause next prev bio links contact clear theme <' + THEMES.join('|') + '> themes crt on|off repeat shuffle vol <0-100> whoami fetch\nfun:      matrix (digital rain, any key exits) · cowsay <text>'),
+ themes: () => say('themes: ' + THEMES.map(t => t === curTheme() ? '[' + t + ']' : t).join(' ')),
+ crt: a => { a = (a || '').trim(); if (a === 'on' || a === 'off') setCrt(a === 'on'); else if (!a) setCrt(document.body.classList.contains('nocrt')); else say('usage: crt on|off'); },
+ matrix: () => matrix(), cowsay: a => cowsay(a),
+ ls: () => flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}${t.special ? ' ★' : ''}  [${t.single ? 'single' : t.al.title}]`)),
+ albums: () => data.albums.forEach((a, i) => say(`[${String.fromCharCode(65 + (flat.find(t => t.al === a)?.ai ?? i))}] ${a.title}${a.year ? ' (' + a.year + ')' : ''} — ${a.type || 'album'}, ${a.tracks.length} tracks${a.blurb ? ' · ' + a.blurb : ''}`)),
  play: a => { if (!a) return toggle(); const n = parseInt(a, 10); if (n >= 1 && n <= flat.length) { play(n - 1); say('playing ' + flat[n - 1].title); } else { const i = flat.findIndex(t => t.title.toLowerCase().includes(a.toLowerCase())); i >= 0 ? (play(i), say('playing ' + flat[i].title)) : say('no such track: ' + a); } },
  pause: () => audio.pause(), next: () => next(1), prev: () => next(-1), repeat: cycleRepeat, shuffle: () => { shuffle = !shuffle; updateModes(); say('shuffle: ' + shuffle); },
  vol: a => { setVol((+a || 0) / 100); say('volume ' + Math.round(vol * 100) + '%'); },
@@ -239,9 +288,19 @@ cmd.addEventListener('keydown', e => { if (e.key === 'ArrowUp') { hp = Math.max(
 /* ---------- navigation ---------- */
 const SECTIONS = ['fetch', 'man', 'player', 'links', 'shell'];
 function jump(id) { const el = document.getElementById(id); if (!el) return; el.scrollIntoView({behavior: RM ? 'auto' : 'smooth', block: 'start'}); document.querySelectorAll('.win').forEach(w => w.classList.toggle('focus', w === el));
- document.querySelectorAll('#topbar button').forEach(b => b.classList.toggle('on', b.dataset.jump === id));
+ document.querySelectorAll('#topbar nav button').forEach(b => { b.classList.toggle('on', b.dataset.jump === id); b.setAttribute('aria-current', b.dataset.jump === id); });
  if (id === 'shell') cmd.focus({preventScroll: true}); else if (id === 'player') pl.focus({preventScroll: true}); else el.focus({preventScroll: true}); }
 document.querySelectorAll('[data-jump]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); jump(b.dataset.jump); }));
+const ICONS = { // 8x8 pixel glyphs
+ fetch: ['11111111','10000001','10110101','10000001','10111101','10000001','11111111','00111100'],
+ man: ['01111100','01000110','01011111','01000001','01011101','01000001','01011101','01111111'],
+ player: ['00111100','01000010','10011001','10100101','10100101','10011001','01000010','00111100'],
+ links: ['00000000','01100110','10011001','10011001','10011001','10011001','01100110','00000000'],
+ shell: ['11111111','10000001','10100001','10010001','10100001','10001101','10000001','11111111']};
+document.querySelectorAll('#topbar nav button').forEach(b => { const m = ICONS[b.dataset.ico]; if (!m) return; let r = ''; m.forEach((row, y) => [...row].forEach((v, x) => { if (v === '1') r += `<rect x="${x}" y="${y}" width="1" height="1"/>`; }));
+ b.insertAdjacentHTML('afterbegin', `<svg class="ico" viewBox="0 0 8 8" aria-hidden="true" shape-rendering="crispEdges">${r}</svg>`); });
+const navIO = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting && en.intersectionRatio > .5) document.querySelectorAll('#topbar nav button').forEach(b => { if (!document.querySelector('.win.focus')) { b.classList.toggle('on', b.dataset.jump === en.target.id); } }); }), {threshold: [.5]});
+SECTIONS.forEach(id => navIO.observe(document.getElementById(id)));
 const search = $('#search');
 search.addEventListener('input', () => renderList(search.value));
 search.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'ArrowDown') { e.preventDefault(); if (view.length) select(view[0]); pl.focus(); if (e.key === 'Enter' && view.length) play(view[0]); } });
@@ -271,14 +330,15 @@ document.addEventListener('keydown', e => {
  else if (k === '/') { e.preventDefault(); jump('player'); search.focus(); }
  else if (k === ':' || k === '`') { e.preventDefault(); jump('shell'); }
  else if (k === '?') showHelp(help.hidden);
- else if (k === 't') setTheme(THEMES[(THEMES.indexOf(localStorage.grimTheme || 'green') + 1) % 3]);
+ else if (k === 't') setTheme(THEMES[(THEMES.indexOf(curTheme()) + 1) % THEMES.length]);
+ else if (k === 'f') setCrt(document.body.classList.contains('nocrt'));
  else if (k === 'c') { document.body.classList.toggle('flicker'); localStorage.grimFlicker = document.body.classList.contains('flicker') ? 1 : ''; }
  else if (/^[1-5]$/.test(k)) jump(SECTIONS[+k - 1]);
  else if (/^[A-Z]$/.test(k)) { const ai = k.charCodeAt(0) - 65, i = flat.findIndex(t => t.ai === ai); if (i >= 0) { if (search.value) { search.value = ''; renderList(); } select(i); jump('player'); document.getElementById('al-' + ai)?.scrollIntoView({block: 'nearest'}); } }
 });
 
 /* ---------- init ---------- */
-if (localStorage.grimTheme && THEMES.includes(localStorage.grimTheme)) document.body.className = 'theme-' + localStorage.grimTheme;
+setTheme(THEMES.includes(localStorage.grimTheme) ? localStorage.grimTheme : 'cyan', true); setCrt(localStorage.grimCrt !== '0', true);
 if (localStorage.grimFlicker === '1' || (localStorage.grimFlicker == null && !RM)) document.body.classList.add('flicker');
 refreshColors(); updateModes();
 say('GRIM/OS grimsh 2.6 — type "help". press ? for keys.');
