@@ -80,9 +80,14 @@ function ensureCtx() {
 }
 const isLoopAlbum = t => t && t.al.type === 'loops';
 function effRepeat() { const t = flat[cur]; if (t && isLoopAlbum(t)) return loopOverride[t.ai] ?? (repeat === 'off' ? 'one' : repeat); return repeat; }
+window.tgTrack = function (kind, title) { try { const gc = window.goatcounter; if (!gc || typeof gc.count !== 'function') return;
+ const slug = String(title || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled';
+ gc.count({path: kind + '/' + slug, title: String(title || ''), event: true}); } catch (e) {} };
+const playedOnce = {};
 function play(i) {
  if (i == null || !flat[i]) i = sel >= 0 && flat[sel] ? sel : 0;
  ensureCtx();
+ if (i !== cur || !playedOnce[i]) { playedOnce[i] = 1; window.tgTrack('play', flat[i].title); }
  if (i !== cur) { cur = i; audio.src = flat[i].file; setRecord(flat[i]); loadWave(flat[i]); }
  audio.play().catch(err => say('play blocked: ' + err.message));
  select(i); updateNP();
@@ -407,11 +412,11 @@ document.addEventListener('keydown', e => {
 });
 
 /* ---------- modals: mail / irc ---------- */
-window.tgTrack = window.tgTrack || function (event, label) { /* analytics hook stub: no-op */ };
+
 let openM = null, mLast = null;
 const ircNick = 'grim_guest' + String(Math.random() * 10000 | 0).padStart(4, '0'), ircURL = `https://kiwiirc.com/nextclient/irc.libera.chat/?nick=${ircNick}#tomgrim`;
-function openModal(id) { closeModal(); const m = $('#' + id + 'm'); if (!m) return; mLast = document.activeElement; m.hidden = false; openM = m;
- if (id === 'irc') { const f = $('#ircf'); if (!f.src) f.src = ircURL; $('#ircpop').href = ircURL; $('#ircnick').textContent = 'nick: ' + ircNick; window.tgTrack('irc', ircNick); $('#ircpop').focus(); }
+function openModal(id) { closeModal(); const m = $('#' + id + 'm'); if (!m) return; window.tgTrack('view', id); mLast = document.activeElement; m.hidden = false; openM = m;
+ if (id === 'irc') { const f = $('#ircf'); if (!f.src) f.src = ircURL; $('#ircpop').href = ircURL; $('#ircnick').textContent = 'nick: ' + ircNick; $('#ircpop').focus(); }
  else m.querySelector('input[name=name]').focus(); }
 function closeModal() { if (!openM) return; openM.hidden = true; openM = null; mLast?.focus?.(); }
 document.querySelectorAll('.modal').forEach(m => { m.addEventListener('click', e => { if (e.target === m) closeModal(); }); m.querySelector('.mclose').onclick = closeModal; });
@@ -442,7 +447,7 @@ async function getCmd(a) { a = (a || '').trim();
  const i = findTrack(a); if (i < 0) return say(`get: ${a}: No such file or directory (try 'get --list')`); getTrack(i); }
 
 /* ---------- photos ---------- */
-function openPhotos() { const p = $('#photos'); p.hidden = false; document.body.classList.add('photos-open'); if (location.hash !== '#photos') history.pushState(null, '', '#photos'); p.scrollTop = 0; $('#phback').focus(); }
+function openPhotos() { const p = $('#photos'); if (p.hidden) window.tgTrack('view', 'photos'); p.hidden = false; document.body.classList.add('photos-open'); if (location.hash !== '#photos') history.pushState(null, '', '#photos'); p.scrollTop = 0; $('#phback').focus(); }
 function closePhotos(fromPop) { const p = $('#photos'); if (p.hidden) return; p.hidden = true; document.body.classList.remove('photos-open'); if (!fromPop && location.hash === '#photos') history.back(); }
 $('#phback').onclick = () => closePhotos();
 addEventListener('popstate', () => location.hash === '#photos' ? openPhotos() : closePhotos(true));
