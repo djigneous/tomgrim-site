@@ -1,0 +1,41 @@
+{
+  "artist": "tomGRIM",
+  "albums": [
+    {
+      "id": "ember-hours",
+      "title": "Ember Hours",
+      "type": "album",
+      "year": 2026,
+      "blurb": "The debut tomGRIM EP: three slow-burning tracks.",
+      "cover": "assets/cover-web.jpg",
+      "tracks": []
+    },
+    {
+      "id": "elements",
+      "title": "ELEMENTS",
+      "type": "album",
+      "year": 2026,
+      "blurb": "Five remastered ign3ous-era cuts, the original elements before 2023's Elements II.",
+      "cover": "assets/covers/elements.jpg",
+      "tracks": []
+    },
+    {
+      "id": "night-signals",
+      "title": "Night Signals",
+      "type": "album",
+      "year": 2026,
+      "blurb": "Breakbeat, electro and late-night downtempo transmissions from the Lehigh Valley.",
+      "cover": "assets/covers/night-signals.jpg",
+      "tracks": []
+    },
+    {
+      "id": "phosphor-cache",
+      "title": "Phosphor Cache",
+      "type": "loops",
+      "year": 2026,
+      "blurb": "A loop pack cut from the tomGRIM vault. Bar-snapped seamless loops for listening on repeat.",
+      "cover": "assets/covers/phosphor-cache.jpg",
+      "tracks": []
+    }
+  ]
+}
