@@ -183,6 +183,54 @@
           "duration_sec": 243.3,
           "bpm": 99,
           "original": "upliftingisharrange.mp3"
+        },
+        {
+          "title": "Eyes On You",
+          "file": "assets/audio/night-signals/06-eyes-on-you.mp3",
+          "duration_sec": 240.0,
+          "bpm": null,
+          "year": 2026,
+          "original": "ig3-eyes-on-you-006-ARGMT.mp3"
+        },
+        {
+          "title": "Pixelated",
+          "file": "assets/audio/night-signals/07-pixelated.mp3",
+          "duration_sec": 107.5,
+          "bpm": null,
+          "year": 2025,
+          "original": "2025-1-2-believeit.wav"
+        },
+        {
+          "title": "Disappear",
+          "file": "assets/audio/night-signals/08-disappear.mp3",
+          "duration_sec": 300.5,
+          "bpm": null,
+          "year": 2023,
+          "original": "loveyou3.wav"
+        },
+        {
+          "title": "Alive",
+          "file": "assets/audio/night-signals/09-alive.mp3",
+          "duration_sec": 267.2,
+          "bpm": null,
+          "year": 2024,
+          "original": "NOTHGIN2-RED.O.mp3"
+        },
+        {
+          "title": "Back Then",
+          "file": "assets/audio/night-signals/10-back-then.mp3",
+          "duration_sec": 172.5,
+          "bpm": null,
+          "year": 2024,
+          "original": "real love-arrange3.wav"
+        },
+        {
+          "title": "Pulling Me Down",
+          "file": "assets/audio/night-signals/11-pulling-me-down.mp3",
+          "duration_sec": 150.3,
+          "bpm": null,
+          "year": 2026,
+          "original": "mobyroll3-arngmnt1.mp3"
         }
       ]
     },
@@ -718,6 +766,34 @@
           "bpm": null,
           "year": 2023,
           "original": "MAGUNT-BACK IN SCHOOL.mp3 (title tag MAG-AUG23)"
+        },
+        {
+          "title": "Afterwards",
+          "file": "assets/audio/soundtracks/02-afterwards.mp3",
+          "duration_sec": 104.5,
+          "bpm": null,
+          "year": 2025,
+          "original": "UNTSCHE-08-27-25 version2.mp3"
+        }
+      ]
+    },
+    {
+      "id": "remixes",
+      "title": "Remixes",
+      "type": "remix",
+      "year": 2023,
+      "blurb": "tomGRIM remixes and reworks.",
+      "cover": "assets/covers/remixes.jpg",
+      "tracks": [
+        {
+          "title": "Radiohead - Climbing Up The Walls (tomGRIM 8bit Remix)",
+          "file": "assets/audio/remixes/01-climbing-up-the-walls.mp3",
+          "duration_sec": 258.7,
+          "bpm": 148,
+          "year": 2023,
+          "original": "radiohead-climbinguothewalls-tgremix.mp3",
+          "id3_title": "Climbing Up The Walls (tomGRIM 8bit Remix)",
+          "id3_artist": "Radiohead"
         }
       ]
     }

@@ -83,8 +83,10 @@ function effRepeat() { const t = flat[cur]; if (t && isLoopAlbum(t)) return loop
 window.tgTrack = function (kind, title) { try { const gc = window.goatcounter; if (!gc || typeof gc.count !== 'function') return;
  const slug = String(title || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled';
  gc.count({path: kind + '/' + slug, title: String(title || ''), event: true}); } catch (e) {} };
-const playedOnce = {}; let ringAgc = .1;
+const playedOnce = {}; let ringAgc = .1, secret = null;
+const curT = () => secret || flat[cur];
 function play(i) {
+ secret = null;
  if (i == null || !flat[i]) i = sel >= 0 && flat[sel] ? sel : 0;
  ensureCtx();
  if (i !== cur || !playedOnce[i]) { playedOnce[i] = 1; window.tgTrack('play', flat[i].title); }
@@ -101,17 +103,17 @@ function next(d = 1) {
  else i = ((cur < 0 ? sel : cur) + d + flat.length) % flat.length;
  play(i);
 }
-audio.addEventListener('ended', () => { const r = effRepeat(); if (r === 'one') { audio.currentTime = 0; audio.play(); } else if (r === 'all' || shuffle || cur < flat.length - 1) next(1); });
+audio.addEventListener('ended', () => { if (secret) { secret = null; return next(1); } const r = effRepeat(); if (r === 'one') { audio.currentTime = 0; audio.play(); } else if (r === 'all' || shuffle || cur < flat.length - 1) next(1); });
 audio.addEventListener('play', updateNP); audio.addEventListener('pause', updateNP);
 audio.addEventListener('loadedmetadata', updateNP);
-audio.addEventListener('error', () => say('error: cannot load ' + (flat[cur]?.file || '')));
+audio.addEventListener('error', () => say('error: cannot load ' + (curT()?.file || '')));
 audio.addEventListener('timeupdate', () => { $('#tcur').textContent = fmt(audio.currentTime); });
-const COVERS = ['ember-hours', 'elements', 'night-signals', 'phosphor-cache', 'get-out', 'soundtracks'];
+const COVERS = ['ember-hours', 'elements', 'night-signals', 'phosphor-cache', 'get-out', 'soundtracks', 'remixes'];
 let lastMeta = '';
 function artFor(t) { const id = t && COVERS.includes(t.al.id) ? t.al.id : 'tomgrim-default', base = new URL('assets/covers/', location.href).href;
  return [96, 192, 256, 512].map(s => ({src: `${base}${id}-${s}.png`, sizes: `${s}x${s}`, type: 'image/png'})); }
-function setMediaMeta(t, force) { if (!t) return; audio.title = `${t.title} — tomGRIM`; if (!('mediaSession' in navigator) || !window.MediaMetadata) return; const key = t.file; if (key === lastMeta && !force && navigator.mediaSession.metadata) return; lastMeta = key;
- navigator.mediaSession.metadata = new MediaMetadata({title: t.title, artist: 'tomGRIM', album: t.single ? 'Single' : t.al.title, artwork: artFor(t)}); }
+function setMediaMeta(t, force) { if (!t) return; audio.title = `${t.id3_title || t.title} — ${t.id3_artist || 'tomGRIM'}`; if (!('mediaSession' in navigator) || !window.MediaMetadata) return; const key = t.file; if (key === lastMeta && !force && navigator.mediaSession.metadata) return; lastMeta = key;
+ navigator.mediaSession.metadata = new MediaMetadata({title: t.id3_title || t.title, artist: t.id3_artist || 'tomGRIM', album: t.single ? 'Single' : t.al.title, artwork: artFor(t)}); }
 function posState() { try { if ('mediaSession' in navigator && audio.duration && isFinite(audio.duration)) navigator.mediaSession.setPositionState({duration: audio.duration, playbackRate: audio.playbackRate, position: Math.min(audio.currentTime, audio.duration)}); } catch {} }
 if ('mediaSession' in navigator) { const ms = navigator.mediaSession, h = (a, f) => { try { ms.setActionHandler(a, f); } catch {} };
  h('play', () => play(cur < 0 ? sel : cur)); h('pause', () => audio.pause()); h('nexttrack', () => next(1)); h('previoustrack', () => next(-1));
@@ -119,10 +121,10 @@ if ('mediaSession' in navigator) { const ms = navigator.mediaSession, h = (a, f)
  h('seekbackward', e => seek(-(e.seekOffset || 10))); h('seekforward', e => seek(e.seekOffset || 10));
  audio.addEventListener('loadedmetadata', posState); audio.addEventListener('seeked', posState);
  audio.addEventListener('play', () => { ms.playbackState = 'playing'; posState(); });
- audio.addEventListener('playing', () => { setMediaMeta(flat[cur], true); ms.playbackState = 'playing'; posState(); });
+ audio.addEventListener('playing', () => { setMediaMeta(curT(), true); ms.playbackState = 'playing'; posState(); });
  audio.addEventListener('durationchange', posState); audio.addEventListener('pause', () => { ms.playbackState = 'paused'; }); }
 function updateNP() {
- const t = flat[cur];
+ const t = curT();
  $('#nptitle').textContent = t ? (audio.paused ? '❚❚ ' : '▶ ') + t.title + (t.special ? ' ★' : '') : '▶ select a track';
  $('#npalbum').textContent = t ? `${data.artist || 'tomGRIM'} — ${t.al.title}${t.al.year ? ' (' + t.al.year + ')' : ''}${t.bpm ? ' · ' + Math.round(t.bpm) + ' bpm' : ''}` : '—';
  $('#tdur').textContent = fmt(audio.duration || t?.duration_sec);
@@ -201,7 +203,7 @@ function refreshColors() { colors = {fg:css('--fg'), dim:css('--dim'), hi:css('-
 function fitCanvas(c) { const w = c.clientWidth * devicePixelRatio | 0, h = c.clientHeight * devicePixelRatio | 0; if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } }
 function drawWave() {
  fitCanvas(wave); const W = wave.width, H = wave.height; wg.clearRect(0, 0, W, H);
- const t = flat[cur], p = t && waveCache[t.file], pos = audio.duration ? audio.currentTime / audio.duration : 0;
+ const t = curT(), p = t && waveCache[t.file], pos = audio.duration ? audio.currentTime / audio.duration : 0;
  if (p && p.length) { const bw = W / p.length;
   for (let i = 0; i < p.length; i++) { const h = Math.max(1, p[i] * H * .95); wg.fillStyle = i / p.length < pos ? colors.fg : colors.dim; wg.fillRect(i * bw, (H - h) / 2, Math.max(1, bw - .5), h); } }
  else { wg.fillStyle = colors.dim; wg.font = 14 * devicePixelRatio + 'px monospace'; wg.fillText(t ? (p === 'loading' ? 'decoding waveform…' : 'waveform n/a') : 'no track loaded', 8, H / 2 + 5); }
@@ -348,7 +350,7 @@ const CMDS = {
  man: a => CMDS.bio(), whoami: () => say('tomGRIM — formerly dj ign3ous. Lehigh Valley, PA.'), fetch: () => jump('fetch'), grimfetch: () => jump('fetch'),
  links: () => LINKS.forEach(([n, u]) => say(`${n.padEnd(12)} <a href="${u}" target="_blank" rel="noopener">${u}</a>`, true)),
  contact: () => { say('opening mail client…'); openModal('mail'); }, mail: () => CMDS.contact(), irc: () => { say('opening irc #tomgrim on irc.unrealircd.org…'); openModal('irc'); }, chat: () => CMDS.irc(),
- get: a => getCmd(a), wget: a => getCmd(a), curl: a => getCmd((a || '').replace(/(^|\s)(-O|--remote-name|-L|-s)(?=\s|$)/g, ' ').trim()),
+ zach: () => zach(), get: a => getCmd(a), wget: a => getCmd(a), curl: a => getCmd((a || '').replace(/(^|\s)(-O|--remote-name|-L|-s)(?=\s|$)/g, ' ').trim()),
  clear: () => { out.innerHTML = ''; }, theme: a => setTheme((a || '').trim()),
  sudo: () => say('tom is not in the sudoers file. This incident will be reported to the bassline.'), exit: () => say('there is no exit. only the next track.'),
 };
@@ -415,6 +417,15 @@ document.addEventListener('keydown', e => {
  else if (/^[A-Z]$/.test(k)) { const ai = k.charCodeAt(0) - 65, i = flat.findIndex(t => t.ai === ai); if (i >= 0) { if (search.value) { search.value = ''; renderList(); } select(i); jump('player'); document.getElementById('al-' + ai)?.scrollIntoView({block: 'nearest'}); } }
 });
 
+
+/* ---------- ??? ---------- */
+const ZX = [['YXNzZXRzL2Jpbi9kNGU3YTkxYy5tcDM=']];
+function zach() { const f = atob(ZX[0][0]), t = {title: 'Screw Detention', id3_artist: 'Zach feat. Lori', file: f, al: {id: 'x', title: 'Zach feat. Lori', year: 2026}, single: false};
+ const art = [' _____   _    ____ _   _ ', '|__  /  / \\  / ___| | | |', '  / /  / _ \\| |   | |_| |', ' / /_ / ___ \\ |___|  _  |', '/____/_/   \\_\\____|_| |_|  feat. LORI', '', '  >> unlocking /home/zach/secret …', '  >> ACCESS GRANTED: SCREW DETENTION'];
+ let k = 0; const step = () => { if (k < art.length) { say(art[k++]); setTimeout(step, RM ? 0 : 110); } else go(); };
+ const go = () => { ensureCtx(); secret = t; audio.src = f; setRecord({al: {id: 'zach-lori', title: 'ZACH'}, title: 'SCREW DETENTION', single: true}); loadWave(t); setMediaMeta(t, true);
+  audio.play().then(() => window.tgTrack('play', 'secret')).catch(err => say('play blocked: ' + err.message)); updateNP(); if (!RM) try { glitch({intro: 500}); } catch (e) {} };
+ step(); }
 /* ---------- modals: mail / irc ---------- */
 
 let openM = null, mLast = null;
