@@ -76,11 +76,21 @@ function moveSel(d) { const p = view.indexOf(sel); const n = view[Math.max(0, Ma
 /* ---------- audio graph ---------- */
 function ensureCtx() {
  if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
- actx = new (window.AudioContext || window.webkitAudioContext)();
+ const AC = window.AudioContext || window.webkitAudioContext; try { actx = new AC({latencyHint: 'playback'}); } catch { actx = new AC(); }
+ // background-audio fix: Android Chrome suspends/interrupts the context when the tab is backgrounded; since the <audio> is routed
+ // through createMediaElementSource, its output dies with the context while the element keeps "playing". Resume whenever we should be audible.
+ actx.onstatechange = () => { if (actx.state !== 'running' && !audio.paused) wakeCtx(); };
  const src = actx.createMediaElementSource(audio);
  an = actx.createAnalyser(); an.fftSize = 2048; an.smoothingTimeConstant = .75;
  an.connect(actx.destination); fxInit(src);
 }
+function wakeCtx() { if (actx && actx.state !== 'running' && actx.state !== 'closed') actx.resume().catch(() => {}); }
+document.addEventListener('visibilitychange', () => { if (!audio.paused) wakeCtx(); msState(); });
+addEventListener('pageshow', () => { if (!audio.paused) wakeCtx(); }); addEventListener('focus', () => { if (!audio.paused) wakeCtx(); });
+audio.addEventListener('playing', wakeCtx);
+setInterval(() => { if (!audio.paused) wakeCtx(); }, 2000); // watchdog (throttled to ~1/min when hidden, still harmless)
+function msState() { if ('mediaSession' in navigator) { navigator.mediaSession.playbackState = audio.paused ? (audio.currentTime ? 'paused' : 'none') : 'playing'; posState(); } }
+['play', 'pause', 'playing', 'ratechange', 'durationchange'].forEach(ev => audio.addEventListener(ev, () => msState()));
 const isLoopAlbum = t => t && t.al.type === 'loops';
 function effRepeat() { const t = flat[cur]; if (t && isLoopAlbum(t)) return loopOverride[t.ai] ?? (repeat === 'off' ? 'one' : repeat); return repeat; }
 window.tgTrack = function (kind, title) { try { const gc = window.goatcounter; if (!gc || typeof gc.count !== 'function') return;
@@ -502,7 +512,7 @@ const SAVERS = {matrix: () => matrix(), fire: () => fire(), starfield: () => sta
 const saver = {on: localStorage.grimSaver !== 'off', sec: +localStorage.grimSaverSec || 60, fx: localStorage.grimSaverFx || 'random', last: Date.now(), active: false, started: 0};
 function saverStop() { if (!saver.active) return; saver.active = false; if (fxs && fxs.saver) fxs.stop(); else if (mx && mx.saver) mx.stop(); }
 ['mousemove', 'keydown', 'touchstart', 'wheel', 'scroll', 'pointerdown'].forEach(ev => addEventListener(ev, e => { saver.last = Date.now(); if (saver.active && Date.now() - saver.started > 400) { saverStop(); if (ev === 'keydown') { e.preventDefault(); e.stopImmediatePropagation(); } } }, {capture: true, passive: ev !== 'keydown'}));
-setInterval(() => { if (dead) return; if (saver.active && !fxs && !mx) saver.active = false;
+setInterval(() => { if (dead || document.hidden) return; if (saver.active && !fxs && !mx) saver.active = false;
  if (!saver.on || saver.active || fxs || mx || !booted || Date.now() - saver.last < saver.sec * 1000) return;
  const ae = document.activeElement, busy = openM || !$('#photos').hidden || !$('#lb').hidden || !$('#help').hidden || (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.value);
  if (busy) return; const names = Object.keys(SAVERS), pick = mood && SAVERS.fire ? 'fire' : SAVERS[saver.fx] ? saver.fx : names[Math.random() * names.length | 0];
@@ -886,7 +896,7 @@ function cueFxStop() { if (cue.fx) { cue.fx = false; if (fxs && fxs.cue) fxs.sto
 function cueClear() { cueFxStop(); cueBlack(0); cue.dismissed = false; }
 function cueDismiss() { cue.dismissed = true; cueFxStop(); cueBlack(0); }
 ['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, e => { if (cue.el && !cue.fx && !cue.dismissed) { cueDismiss(); if (ev === 'keydown') { e.preventDefault(); e.stopImmediatePropagation(); } } }, {capture: true}));
-setInterval(() => { if (!mood || dead) return; const t = audio.currentTime;
+setInterval(() => { if (!mood || dead || document.hidden) return; const t = audio.currentTime;
  if (cue.fx && !(fxs && fxs.cue)) { cue.fx = false; cue.dismissed = true; cueBlack(0); } // user closed the fire
  if (t < CUE_B) { if (cue.fx || cue.el) cueFxStop(), cueBlack(0); cue.dismissed = false; return; }
  if (cue.dismissed) return;
