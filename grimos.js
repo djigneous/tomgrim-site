@@ -2,10 +2,10 @@
 'use strict';
 const $ = s => document.querySelector(s);
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const FALLBACK = {artist:'tomGRIM',albums:[{id:'ember-hours',title:'Ember Hours',type:'album',year:null,blurb:'',cover:'assets/cover-web.jpg',tracks:[
+const FALLBACK = {artist:'tomGRIM',albums:[{id:'ember-hours',title:'Ember Hours',type:'album',year:null,blurb:'',cover:'assets/covers/ember-hours.jpg',tracks:[
  {title:'Graveyard Over the Fire',file:'assets/track1.mp3'},{title:'Kickflip My Heart',file:'assets/track2.mp3'},{title:'Telling Me',file:'assets/track3.mp3'}]}]};
 const audio = $('#audio');
-let groups = 0, data, flat = [], view = [], cur = -1, sel = 0, repeat = 'off', shuffle = false, vol = .8, actx, an, waveCache = {};
+let groups = 0, data, flat = [], view = [], cur = -1, sel = 0, repeat = 'all', shuffle = true, vol = .8, actx, an, waveCache = {};
 const loopOverride = {};
 audio.volume = vol;
 const fmt = s => { s = Math.max(0, Math.floor(s || 0)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
@@ -79,7 +79,7 @@ function ensureCtx() {
  src.connect(an); an.connect(actx.destination);
 }
 const isLoopAlbum = t => t && t.al.type === 'loops';
-function effRepeat() { const t = flat[cur]; if (t && isLoopAlbum(t)) return loopOverride[t.ai] ?? 'one'; return repeat; }
+function effRepeat() { const t = flat[cur]; if (t && isLoopAlbum(t)) return loopOverride[t.ai] ?? (repeat === 'off' ? 'one' : repeat); return repeat; }
 function play(i) {
  if (i == null || !flat[i]) i = sel >= 0 && flat[sel] ? sel : 0;
  ensureCtx();
@@ -91,7 +91,7 @@ function toggle() { if (cur < 0 || audio.paused) play(cur < 0 ? sel : cur); else
 function next(d = 1) {
  if (!flat.length) return;
  let i;
- if (shuffle) { do i = Math.floor(Math.random() * flat.length); while (flat.length > 1 && i === cur); }
+ if (shuffle) { const inLoops = isLoopAlbum(flat[cur]), pool = flat.map((t, k) => k).filter(k => k !== cur && (inLoops || !isLoopAlbum(flat[k]))); i = pool.length ? pool[Math.floor(Math.random() * pool.length)] : (cur + 1) % flat.length; }
  else i = ((cur < 0 ? sel : cur) + d + flat.length) % flat.length;
  play(i);
 }
@@ -100,6 +100,19 @@ audio.addEventListener('play', updateNP); audio.addEventListener('pause', update
 audio.addEventListener('loadedmetadata', updateNP);
 audio.addEventListener('error', () => say('error: cannot load ' + (flat[cur]?.file || '')));
 audio.addEventListener('timeupdate', () => { $('#tcur').textContent = fmt(audio.currentTime); });
+const COVERS = ['ember-hours', 'elements', 'night-signals', 'phosphor-cache', 'get-out'];
+let lastMeta = '';
+function artFor(t) { const id = t && COVERS.includes(t.al.id) ? t.al.id : 'tomgrim-default', base = new URL('assets/covers/', location.href).href;
+ return [96, 192, 256, 512].map(s => ({src: `${base}${id}-${s}.png`, sizes: `${s}x${s}`, type: 'image/png'})); }
+function setMediaMeta(t) { if (!('mediaSession' in navigator) || !t || !window.MediaMetadata) return; const key = t.file; if (key === lastMeta) return; lastMeta = key;
+ navigator.mediaSession.metadata = new MediaMetadata({title: t.title, artist: 'tomGRIM', album: t.single ? 'Single' : t.al.title, artwork: artFor(t)}); }
+function posState() { try { if ('mediaSession' in navigator && audio.duration && isFinite(audio.duration)) navigator.mediaSession.setPositionState({duration: audio.duration, playbackRate: audio.playbackRate, position: Math.min(audio.currentTime, audio.duration)}); } catch {} }
+if ('mediaSession' in navigator) { const ms = navigator.mediaSession, h = (a, f) => { try { ms.setActionHandler(a, f); } catch {} };
+ h('play', () => play(cur < 0 ? sel : cur)); h('pause', () => audio.pause()); h('nexttrack', () => next(1)); h('previoustrack', () => next(-1));
+ h('seekto', e => { if (e.fastSeek && 'fastSeek' in audio) audio.fastSeek(e.seekTime); else audio.currentTime = e.seekTime; posState(); });
+ h('seekbackward', e => seek(-(e.seekOffset || 10))); h('seekforward', e => seek(e.seekOffset || 10));
+ audio.addEventListener('loadedmetadata', posState); audio.addEventListener('seeked', posState);
+ audio.addEventListener('play', () => { ms.playbackState = 'playing'; posState(); }); audio.addEventListener('pause', () => { ms.playbackState = 'paused'; }); }
 function updateNP() {
  const t = flat[cur];
  $('#nptitle').textContent = t ? (audio.paused ? '❚❚ ' : '▶ ') + t.title + (t.special ? ' ★' : '') : '▶ select a track';
@@ -108,7 +121,7 @@ function updateNP() {
  const b = $('#bplay'); b.textContent = audio.paused ? '▶ PLAY' : '❚❚ PAUSE'; b.setAttribute('aria-label', audio.paused ? 'Play' : 'Pause');
  document.title = t && !audio.paused ? `▶ ${t.title} · tomGRIM` : 'tomGRIM :: GRIM/OS terminal';
  mark(); updateModes();
- if ('mediaSession' in navigator && t) navigator.mediaSession.metadata = new MediaMetadata({title:t.title, artist:data.artist || 'tomGRIM', album:t.al.title, artwork:t.al.cover ? [{src:t.al.cover}] : []});
+ setMediaMeta(t);
 }
 function updateModes() {
  const t = flat[cur], r = effRepeat();
