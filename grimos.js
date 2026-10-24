@@ -529,6 +529,7 @@ function knobsBuild() { const box = $('#fxknobs'); if (!box) return; const NS = 
    if (nv != null) { e.preventDefault(); e.stopPropagation(); fxSet(k, nv); } });
   knobDraw(k); } }
 knobsBuild();
+{ const np = $('.np'); const fit = () => { const w = np.clientWidth; np.classList.toggle('narrow', w < 600); }; new ResizeObserver(fit).observe(np); fit(); }
 function fxCmd(a) { a = (a || '').trim().toLowerCase(); const show = () => say('fx: ' + Object.keys(FXK).map(k => `${k} ${Math.round(fxv[k])} (${fxFmt(k, fxv[k])})`).join(' · ') + '\nusage: fx reset · fx <filter|res|verb|crush> <value>   (filter -100..100, others 0..100)');
  if (!a) return show(); if (a === 'reset') { Object.keys(FXK).forEach(k => fxSet(k, FXK[k].def)); return say('fx: all knobs reset (bypass).'); }
  const m = a.match(/^(filter|res|verb|reverb|crush)\s+(-?\d+(\.\d+)?)$/); if (!m) return show(); const k = m[1] === 'reverb' ? 'verb' : m[1]; fxSet(k, +m[2]); say(`fx: ${k} → ${Math.round(fxv[k])} (${fxFmt(k, fxv[k])})`); }
