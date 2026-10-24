@@ -18,7 +18,7 @@ body{background:radial-gradient(ellipse at center,var(--bg) 60%,#000 100%)}
 #crt::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0,rgba(0,0,0,0) 2px,rgba(0,0,0,.22) 3px)}
 #crt::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:51;box-shadow:inset 0 0 140px 30px rgba(0,0,0,.8),inset 0 0 0 6px #000;border-radius:28px/22px}
 :root{--corner:#000}
-@media (prefers-color-scheme:light){:root{--corner:#fff}}
+/* corners stay a dark bezel even in Android light mode (was #fff → white bars) */
 html{background:var(--corner)}
 body:not(.nocrt)::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;border-radius:28px/22px;box-shadow:0 0 0 80px var(--corner)}
 body.flicker:not(.nocrt) #crt{animation:flick 6s infinite}
@@ -365,3 +365,5 @@ body.nocolor .sx-bad{text-decoration:none}
 #ring{background:transparent}
 .ringwrap,.ringwrap .cover{background:transparent}
 .theme-silicon #spec .h,.theme-nightshift #spec .h,.theme-neon #spec .h{color:transparent}
+/* spectrum: no pale band across the top rows (bars hang from the top, so the old .h highlight read as a solid white bar) */
+#spec .h{color:inherit!important}

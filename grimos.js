@@ -83,7 +83,10 @@ function ensureCtx() {
  actx.onstatechange = () => { if (actx.state !== 'running' && !audio.paused) wakeCtx(); };
  const src = actx.createMediaElementSource(audio);
  an = actx.createAnalyser(); an.fftSize = 2048; an.smoothingTimeConstant = .75;
- an.connect(actx.destination); fxInit(src);
+ an.connect(actx.destination);
+ // spectrum tap: pre-FX/pre-limiter, float dB, volume-compensated + AGC below (was the output analyser in bytes with maxDecibels -30 → loud masters pegged)
+ san = actx.createAnalyser(); san.fftSize = 2048; san.smoothingTimeConstant = .6; san.minDecibels = -100; san.maxDecibels = 0; src.connect(san); const sink = actx.createGain(); sink.gain.value = 0; san.connect(sink); sink.connect(actx.destination);
+ fxInit(src);
 }
 function wakeCtx() { if (actx && actx.state !== 'running' && actx.state !== 'closed') actx.resume().catch(() => {}); }
 document.addEventListener('visibilitychange', () => { if (!audio.paused) wakeCtx(); msState(); });
@@ -250,20 +253,27 @@ window.__wave = () => ({armed, label: waveLbl.textContent, t: audio.currentTime}
 
 /* ---------- visuals loop ---------- */
 const specEl = $('#spec'), ring = $('#ring'), rg = ring.getContext('2d');
-const BLK = ' ▁▂▃▄▅▆▇█'; let peaks = [], fbuf, tbuf, idle = 0;
+const BLK = ' ▁▂▃▄▅▆▇█'; let peaks = [], fbuf, tbuf, idle = 0, san = null, ffb = null, agc = -30;
 let cw = 0, NBc = 32;
 function measure() { const m = document.createElement('span'); m.textContent = '█'.repeat(20); specEl.appendChild(m); cw = m.getBoundingClientRect().width / 20 || 8; m.remove();
  const w = specEl.clientWidth || 300; NBc = Math.max(12, Math.floor(w / cw)); specEl.style.letterSpacing = ((w - NBc * cw) / NBc) + 'px'; }
 new ResizeObserver(measure).observe(specEl);
 function frame() {
 const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(6, Math.floor((specEl.clientHeight || 100) / 12) - 1); let vals = new Array(NB).fill(0);
- if (an) { fbuf = fbuf || new Uint8Array(an.frequencyBinCount); an.getByteFrequencyData(fbuf);
-  const n = fbuf.length, nyq = (actx.sampleRate || 44100) / 2, f0 = 30, f1 = Math.min(16000, nyq);
+ if (san && playing) { ffb = ffb || new Float32Array(san.frequencyBinCount); san.getFloatFrequencyData(ffb);
+  const n = ffb.length, nyq = (actx.sampleRate || 44100) / 2, f0 = 30, f1 = Math.min(16000, nyq);
+  const vc = audio.volume > .001 ? -20 * Math.log10(audio.volume) : 0; // undo the volume slider (no-op on iOS where volume is fixed at 1)
+  const db = new Array(NB); let fmax = -200;
   for (let b = 0; b < NB; b++) { const fa = f0 * Math.pow(f1 / f0, b / NB), fb = f0 * Math.pow(f1 / f0, (b + 1) / NB);
-   const lo = fa / nyq * n, hi = fb / nyq * n; let m = 0;
-   if (hi - lo < 1) { const k = Math.floor(lo), fr = lo - k; m = fbuf[k] * (1 - fr) + (fbuf[k + 1] || 0) * fr; }
-   else for (let k = Math.floor(lo); k < Math.ceil(hi); k++) m = Math.max(m, fbuf[k]);
-   const tilt = 1 + .5 * b / NB; vals[b] = Math.min(1, m / 255 * tilt); } }
+   const lo = fa / nyq * n, hi = fb / nyq * n; let m = -200;
+   if (hi - lo < 1) { const k = Math.floor(lo), fr = lo - k; m = ffb[k] * (1 - fr) + (ffb[k + 1] ?? ffb[k]) * fr; }
+   else for (let k = Math.floor(lo); k < Math.ceil(hi); k++) m = Math.max(m, ffb[k]);
+   m += vc + 4.5 * Math.log2(fa / 200 + 1) * .5; // gentle treble tilt in dB (pink-noise-ish), not a multiplier
+   db[b] = m; if (m > fmax) fmax = m; }
+  if (isFinite(fmax)) agc = fmax > agc ? agc + (fmax - agc) * .5 : Math.max(-60, agc - .12); // fast attack, slow release
+  const top = agc + 4, range = 58; // ~4 dB headroom above the recent peak
+  for (let b = 0; b < NB; b++) vals[b] = Math.max(0, Math.min(1, (db[b] - (top - range)) / range)) ** 1.35; }
+ window.__specStat = vals; window.__specDbg = () => ({san: !!san, agc, ff: ffb && Array.from(ffb.slice(0, 6))});
  if (!playing) { idle += .03; vals = vals.map((v, b) => Math.max(v * .9, .04 + .03 * Math.sin(idle + b * .4))); }
  // spectrum
  let s = '';
@@ -579,7 +589,7 @@ function fxRoute() { const g = fxg; if (!g) return; const c = g.c, now = c.curre
   else { const q = Math.pow(2, Math.round(bits) - 1); if (g.fbq !== q) { g.fbq = q; const N = 4096, cv = new Float32Array(N); for (let i = 0; i < N; i++) { const x = i / (N - 1) * 2 - 1; cv[i] = Math.round(x * q) / q; } g.crushFb.curve = cv; } } }
  if (vOn) { const w = fxv.verb / 100; g.dry.gain.setTargetAtTime(1 - w * .5, now, .02); g.wet.gain.setTargetAtTime(w * .9, now, .02); }
  if (!wire) return;
- [g.src, g.filt, g.fcomp, g.dry, g.wet, g.conv, g.sum, g.lim, g.crush, g.crushFb].forEach(n => { try { n && n.disconnect(); } catch {} });
+ [g.src, g.filt, g.fcomp, g.dry, g.wet, g.conv, g.sum, g.lim, g.crush, g.crushFb].forEach(n => { try { n && n.disconnect(); } catch {} }); if (san) g.src.connect(san); // keep the spectrum tap alive across re-routing
  if (!fOn && !vOn && !cOn) { g.src.connect(an); return; } // true bypass: untouched signal
  let head = g.src;
  if (fOn) { head.connect(g.filt); g.filt.connect(g.fcomp); head = g.fcomp; }
@@ -926,3 +936,5 @@ say('motd: every track is free to download — type <button class="getlink" data
 document.querySelectorAll('.getlink').forEach(b => b.addEventListener('click', e => { e.preventDefault(); const c = $('#cmd'); jump('shell'); if (b.dataset.run) { c.value = b.dataset.run; $('#prompt').requestSubmit(); return; } c.value = b.dataset.get; c.focus({preventScroll: true}); c.setSelectionRange(c.value.length, c.value.length); }));
 load().then(() => requestAnimationFrame(frame));
 })();
+// Android address bar / status bar follows the active theme (was a fixed white #ffffff in light mode)
+(() => { const m = document.querySelector('meta[name=theme-color]'); if (!m) return; const upd = () => { const c = getComputedStyle(document.body).getPropertyValue('--bg').trim(); if (c) m.content = c; }; upd(); new MutationObserver(upd).observe(document.body, {attributes: true, attributeFilter: ['class']}); })();
