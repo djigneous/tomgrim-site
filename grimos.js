@@ -275,27 +275,28 @@ let mx = null;
 function matrix() { if (mx || fxs) return; const c = document.createElement('canvas'); c.id = 'matrix'; c.setAttribute('aria-label', 'matrix rain, press any key to exit'); document.body.appendChild(c);
  const g = c.getContext('2d'), fs = 16, chars = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄ0123456789TOMGRIM♪♫'; let cols, drops;
  const size = () => { c.width = innerWidth; c.height = innerHeight; cols = Math.ceil(c.width / fs); drops = Array.from({length: cols}, () => Math.random() * -40); }; size();
- let last = 0; const stop = () => { if (!mx) return; cancelAnimationFrame(mx.raf); c.remove(); removeEventListener('keydown', onKey, true); mx = null; say('wake up, tom… the bassline has you.'); };
+ let last = 0; const stop = () => { if (!mx) return; cancelAnimationFrame(mx.raf); c.remove(); removeEventListener('keydown', onKey, true); const sv = mx.saver; mx = null; if (!sv) say('wake up, tom… the bassline has you.'); };
  const onKey = e => { e.preventDefault(); e.stopImmediatePropagation(); stop(); };
  const tick = now => { mx.raf = requestAnimationFrame(tick); if (now - last < 50) return; last = now;
   g.fillStyle = 'rgba(0,0,0,.08)'; g.fillRect(0, 0, c.width, c.height); g.font = fs + 'px monospace';
   for (let i = 0; i < cols; i++) { const y = drops[i] * fs; g.fillStyle = colors.hi; g.fillText(chars[Math.random() * chars.length | 0], i * fs, y); g.fillStyle = colors.fg; g.fillText(chars[Math.random() * chars.length | 0], i * fs, y - fs);
    if (y > c.height && Math.random() > .975) drops[i] = 0; drops[i] += 1; } };
- mx = {raf: requestAnimationFrame(tick)}; c.addEventListener('pointerdown', stop); setTimeout(() => addEventListener('keydown', onKey, true), 50);
+ mx = {raf: requestAnimationFrame(tick), stop, saver: saverMode, name: 'matrix'}; c.addEventListener('pointerdown', stop); setTimeout(() => addEventListener('keydown', onKey, true), 50);
  if (RM) { g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height); g.fillStyle = colors.fg; g.font = '24px monospace'; g.fillText('MATRIX (reduced motion) — any key to exit', 20, 60); cancelAnimationFrame(mx.raf); } }
 
 /* ---------- fx: glitch / fire / hack / starfield ---------- */
 let fxs = null;
 function level() { if (an && !audio.paused) { fbuf = fbuf || new Uint8Array(an.frequencyBinCount); an.getByteFrequencyData(fbuf); let b = 0, m = 0; for (let i = 0; i < 24; i++) b += fbuf[i]; for (let i = 0; i < 256; i++) m += fbuf[i]; return {bass: b / 24 / 255, lvl: m / 256 / 255}; }
  const t = performance.now() / 1000, beat = Math.pow(1 - (t * 2.1 % 1), 3); return {bass: beat * .8, lvl: .25 + beat * .35}; }
-function fxRun(name, msg, init, draw, dur, intro) { if (fxs || mx) return; refreshColors(); const c = document.createElement('canvas'); c.id = 'matrix'; c.className = 'fx-' + name; c.setAttribute('aria-label', name + ' effect, press any key to exit'); document.body.appendChild(c);
+let saverMode = false;
+function fxRun(name, msg, init, draw, dur, intro) { if (fxs || mx) return; refreshColors(); const saver = saverMode; if (saver) msg = ''; const c = document.createElement('canvas'); c.id = 'matrix'; c.className = 'fx-' + name; c.setAttribute('aria-label', name + ' effect, press any key to exit'); document.body.appendChild(c);
  const g = c.getContext('2d'), mob = innerWidth < 760 || matchMedia('(pointer:coarse)').matches, st = {mob, t0: performance.now()};
  const size = () => { const dpr = mob ? 1 : Math.min(2, devicePixelRatio || 1); c.width = innerWidth * dpr; c.height = innerHeight * dpr; st.dpr = dpr; init(g, c, st); }; size(); addEventListener('resize', size);
  const stop = () => { if (!fxs) return; cancelAnimationFrame(fxs.raf); clearTimeout(fxs.to); c.remove(); removeEventListener('keydown', onKey, true); removeEventListener('resize', size); fxs = null; if (msg) say(msg); };
  const onKey = e => { e.preventDefault(); e.stopImmediatePropagation(); stop(); };
  let last = 0; const step = mob ? 50 : 33;
- const tick = now => { fxs.raf = requestAnimationFrame(tick); if (now - last < step) return; last = now; draw(g, c, st, (now - st.t0) / 1000, level()); };
- fxs = {raf: 0, stop}; if (intro) { msg = ''; c.classList.add('fx-intro'); c.style.pointerEvents = 'none'; fxs.to = setTimeout(() => { c.style.opacity = '0'; setTimeout(stop, 160); }, intro); } else { c.addEventListener('pointerdown', stop); setTimeout(() => addEventListener('keydown', onKey, true), 50); }
+ const tick = now => { fxs.raf = requestAnimationFrame(tick); if (now - last < step) return; last = now; const t0 = performance.now(); draw(g, c, st, (now - st.t0) / 1000, level()); const dt = performance.now() - t0; window.__fxms = window.__fxms == null ? dt : window.__fxms * .9 + dt * .1; };
+ fxs = {raf: 0, stop, name, saver}; window.__fxms = null; if (intro) { msg = ''; c.classList.add('fx-intro'); c.style.pointerEvents = 'none'; fxs.to = setTimeout(() => { c.style.opacity = '0'; setTimeout(stop, 160); }, intro); } else { c.addEventListener('pointerdown', stop); setTimeout(() => addEventListener('keydown', onKey, true), 50); }
  if (RM) { draw(g, c, st, dur || 0, {bass: 0, lvl: .3}); g.fillStyle = colors.fg; g.font = 20 * st.dpr + 'px monospace'; g.fillText(name.toUpperCase() + ' (reduced motion) — any key to exit', 20 * st.dpr, 40 * st.dpr); }
  else fxs.raf = requestAnimationFrame(tick); }
 function glitch(o) { const intro = o && o.intro; fxRun('glitch', 'signal restored.', (g, c, st) => { st.lines = Array.from({length: 40}, () => ({y: Math.random(), h: Math.random() * .06, txt: Array.from({length: 120}, () => '01#@%&$/\\|<>'[Math.random() * 12 | 0]).join('')})); },
@@ -330,17 +331,104 @@ function starfield() { fxRun('starfield', 'dropping out of warp.', (g, c, st) =>
  (g, c, st, t, L) => { const W = c.width, H = c.height, cx = W / 2, cy = H / 2, sp = .004 + L.lvl * .05 + L.bass * .03, fs = 14 * st.dpr; g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, 0, W, H); g.font = fs + 'px monospace';
   st.s.forEach(s => { s.z -= sp; if (s.z <= .01) { s.x = Math.random() * 2 - 1; s.y = Math.random() * 2 - 1; s.z = 1; } const px = cx + s.x / s.z * cx * .5, py = cy + s.y / s.z * cy * .5; if (px < 0 || px > W || py < 0 || py > H) { s.z = 0; return; }
    const b = 1 - s.z; g.fillStyle = b > .8 ? colors.hi : b > .45 ? colors.fg : colors.dim; g.fillText(b > .85 ? '*' : b > .6 ? '+' : b > .3 ? '·' : '.', px, py); }); }); }
+
+/* ---------- fx pack 2: plasma tunnel rain dvd life cube snow pipes ---------- */
+const RAMP = ' .:-=+*#%@';
+function gridInit(st, c, fs) { st.fs = fs * st.dpr; st.cw = st.fs * .6; st.W = Math.ceil(c.width / st.cw); st.H = Math.ceil(c.height / st.fs); }
+function pal4() { return [colors.dim, colors.fg, colors.acc, colors.hi]; }
+// draw a char buffer (chars + 0..3 color levels) row by row, one fillText per color per row
+function drawBuf(g, c, st, ch, lv, bg = '#000') { const {W, H, fs} = st, P = pal4(); g.fillStyle = bg; g.fillRect(0, 0, c.width, c.height); g.font = fs + 'px monospace'; g.textBaseline = 'top';
+ for (let y = 0; y < H; y++) for (let l = 0; l < 4; l++) { let row = '', any = false; for (let x = 0; x < W; x++) { const i = y * W + x; if (lv[i] === l && ch[i] !== ' ') { row += ch[i]; any = true; } else row += ' '; } if (any) { g.fillStyle = P[l]; g.fillText(row, 0, y * fs); } } }
+function beatDet(st, L) { st.avg = st.avg == null ? L.bass : st.avg * .94 + L.bass * .06; const now = performance.now(), hit = L.bass > .28 && L.bass > st.avg * 1.3 && now - (st.lastBeat || 0) > 260; if (hit) st.lastBeat = now; return hit; }
+function bufAlloc(st) { st.ch = new Array(st.W * st.H).fill(' '); st.lv = new Uint8Array(st.W * st.H); }
+function plasma() { fxRun('plasma', 'plasma cooled.', (g, c, st) => { gridInit(st, c, st.mob ? 14 : 12); bufAlloc(st); st.ph = 0; },
+ (g, c, st, t, L) => { const {W, H, ch, lv} = st; st.ph += .04 + L.bass * .12; const p = st.ph, k = 1 + L.bass * .8;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const v = Math.sin(x * .11 * k + p) + Math.sin(y * .17 + p * 1.3) + Math.sin((x + y) * .07 + p * .7) + Math.sin(Math.hypot(x - W / 2, (y - H / 2) * 1.8) * .16 - p * 2), n = (v + 4) / 8, i = y * W + x;
+   ch[i] = RAMP[Math.min(9, n * 10 | 0)]; lv[i] = Math.min(3, n * 4 | 0); }
+  drawBuf(g, c, st, ch, lv); }); }
+function tunnel() { fxRun('tunnel', 'exited the wormhole.', (g, c, st) => { gridInit(st, c, st.mob ? 14 : 12); bufAlloc(st); st.z = 0; },
+ (g, c, st, t, L) => { const {W, H, ch, lv} = st; st.z += .05 + L.lvl * .5 + L.bass * .3; const tw = t * .25;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const dx = (x - W / 2) / W, dy = (y - H / 2) / H * 1.1, r = Math.hypot(dx, dy) + .0001, a = Math.atan2(dy, dx), i = y * W + x;
+   const u = .35 / r + st.z, v = a / Math.PI * 8 + tw * 4, chk = ((u | 0) + (v + 100 | 0)) & 1, depth = Math.min(1, r * 2.4);
+   const b = depth * (chk ? 1 : .45); ch[i] = r < .03 ? ' ' : RAMP[Math.min(9, b * 10 | 0)]; lv[i] = Math.min(3, b * 4 | 0); }
+  drawBuf(g, c, st, ch, lv); }); }
+function rain() { fxRun('rain', 'the storm passes.', (g, c, st) => { const n = st.mob ? 140 : 340; st.d = Array.from({length: n}, () => ({x: Math.random() * c.width, y: Math.random() * c.height, l: (10 + Math.random() * 30) * st.dpr, v: (8 + Math.random() * 14) * st.dpr})); st.flash = 0; st.bolt = null; },
+ (g, c, st, t, L) => { const W = c.width, H = c.height, d = st.dpr; g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(0, 0, W, H);
+  if (beatDet(st, L)) { st.flash = 1; let x = Math.random() * W, y = 0; st.bolt = [[x, y]]; while (y < H * (.5 + Math.random() * .4)) { x += (Math.random() - .5) * 60 * d; y += (20 + Math.random() * 30) * d; st.bolt.push([x, y]); } }
+  if (st.flash > .02) { g.fillStyle = colors.hi; g.globalAlpha = st.flash * .35; g.fillRect(0, 0, W, H); g.globalAlpha = 1;
+   if (st.bolt) { g.strokeStyle = '#fff'; g.shadowColor = colors.hi; g.shadowBlur = 20 * d; g.lineWidth = 2.5 * d * st.flash; g.beginPath(); st.bolt.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); g.shadowBlur = 0; } st.flash *= .82; }
+  g.lineWidth = 1.2 * d; g.strokeStyle = colors.fg; g.beginPath();
+  for (const p of st.d) { p.y += p.v * (1 + L.lvl); p.x -= p.v * .15; if (p.y > H) { p.y = -p.l; p.x = Math.random() * W * 1.2; } g.moveTo(p.x, p.y); g.lineTo(p.x + p.l * .15, p.y - p.l); } g.stroke();
+  g.fillStyle = colors.dim; for (let i = 0; i < 12; i++) g.fillRect(Math.random() * W, H - 3 * d, 6 * d, d); }); }
+function dvd() { const LOGO = ['████████╗ ██████╗ ', '╚══██╔══╝██╔════╝ ', '   ██║   ██║  ███╗', '   ██║   ██║   ██║', '   ██║   ╚██████╔╝', '   ╚═╝    ╚═════╝ ', '    t o m G R I M '];
+ fxRun('dvd', 'the logo hit the corner. probably.', (g, c, st) => { st.fs = (st.mob ? 14 : 18) * st.dpr; st.w = 18 * st.fs * .6; st.h = LOGO.length * st.fs; st.x = st.x ?? Math.random() * (c.width - st.w); st.y = st.y ?? Math.random() * (c.height - st.h); st.vx = st.vx ?? 4 * st.dpr; st.vy = st.vy ?? 3 * st.dpr; st.ci = st.ci || 0; st.party = 0; st.parts = []; },
+ (g, c, st, t, L) => { const W = c.width, H = c.height, cols = [colors.fg, colors.hi, colors.acc, '#ff4a8a', '#ffd23f', '#c58cff', '#7dffa0'];
+  g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(0, 0, W, H); const sp = 1 + L.lvl * .6; st.x += st.vx * sp; st.y += st.vy * sp; let hx = false, hy = false;
+  if (st.x <= 0 || st.x + st.w >= W) { st.vx *= -1; st.x = Math.max(0, Math.min(W - st.w, st.x)); hx = true; } if (st.y <= 0 || st.y + st.h >= H) { st.vy *= -1; st.y = Math.max(0, Math.min(H - st.h, st.y)); hy = true; }
+  if (hx || hy) st.ci = (st.ci + 1) % cols.length;
+  const nearX = st.x < 6 * st.dpr || st.x + st.w > W - 6 * st.dpr, nearY = st.y < 6 * st.dpr || st.y + st.h > H - 6 * st.dpr;
+  if ((hx && nearY) || (hy && nearX)) { st.party = 3; for (let i = 0; i < 120; i++) st.parts.push({x: st.x + st.w / 2, y: st.y + st.h / 2, vx: (Math.random() - .5) * 18 * st.dpr, vy: (Math.random() - .8) * 18 * st.dpr, c: cols[i % cols.length], ch: '*+✦♪♫#@'[i % 7]}); }
+  g.font = 'bold ' + st.fs + 'px monospace'; g.textBaseline = 'top'; g.fillStyle = cols[st.ci]; g.shadowColor = cols[st.ci]; g.shadowBlur = 10 * st.dpr; LOGO.forEach((l, i) => g.fillText(l, st.x, st.y + i * st.fs)); g.shadowBlur = 0;
+  if (st.parts.length) { g.font = st.fs + 'px monospace'; st.parts = st.parts.filter(p => (p.x += p.vx, p.y += p.vy, p.vy += .5 * st.dpr, p.y < H)); st.parts.forEach(p => { g.fillStyle = p.c; g.fillText(p.ch, p.x, p.y); }); }
+  if (st.party > 0) { st.party -= .033; g.font = 'bold ' + 48 * st.dpr + 'px monospace'; g.textAlign = 'center'; g.fillStyle = cols[(t * 10 | 0) % cols.length]; g.fillText('★ PERFECT CORNER ★', W / 2, H / 2 - 24 * st.dpr); g.textAlign = 'left'; } }); }
+function life() { fxRun('life', 'all cells have died. or evolved.', (g, c, st) => { gridInit(st, c, st.mob ? 14 : 12); bufAlloc(st); st.a = new Uint8Array(st.W * st.H).map(() => Math.random() < .22 ? 1 : 0); st.age = new Uint8Array(st.W * st.H); st.acc = 0; st.gen = 0; },
+ (g, c, st, t, L) => { const {W, H, ch, lv} = st;
+  if (beatDet(st, L)) for (let k = 0; k < 6; k++) { const cx = Math.random() * W | 0, cy = Math.random() * H | 0; for (let q = 0; q < 14; q++) st.a[((cy + (Math.random() * 7 | 0) - 3 + H) % H) * W + (cx + (Math.random() * 7 | 0) - 3 + W) % W] = 1; }
+  if (++st.acc % 3 === 0) { const n = new Uint8Array(W * H); st.gen++;
+   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let s = 0; for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (i || j) s += st.a[((y + j + H) % H) * W + (x + i + W) % W]; const k = y * W + x, al = st.a[k]; n[k] = s === 3 || (al && s === 2) ? 1 : 0; st.age[k] = n[k] ? Math.min(255, st.age[k] + 1) : (st.age[k] > 0 && !n[k] ? 0 : 0); }
+   st.a = n; let pop = 0; for (let k = 0; k < n.length; k++) pop += n[k]; if (pop < W * H * .02) for (let k = 0; k < n.length; k++) if (Math.random() < .15) st.a[k] = 1; }
+  for (let k = 0; k < W * H; k++) { if (st.a[k]) { const a = st.age[k]; ch[k] = a < 2 ? '@' : a < 6 ? 'O' : 'o'; lv[k] = a < 2 ? 3 : a < 6 ? 1 : 2; } else { ch[k] = ' '; } }
+  drawBuf(g, c, st, ch, lv); g.fillStyle = colors.dim; g.font = st.fs + 'px monospace'; g.fillText('gen ' + st.gen, 8 * st.dpr, c.height - st.fs * 1.2); }); }
+function cube(arg) { const donut = /torus|donut/i.test(arg || '');
+ fxRun(donut ? 'donut' : 'cube', donut ? 'donut eaten.' : 'cube folded.', (g, c, st) => { gridInit(st, c, st.mob ? 12 : 10); bufAlloc(st); st.z = new Float32Array(st.W * st.H); st.A = 0; st.B = 0; },
+ (g, c, st, t, L) => { const {W, H, ch, lv, z} = st; ch.fill(' '); z.fill(0); lv.fill(0); st.A += .04 + L.bass * .08; st.B += .025 + L.lvl * .05; const cA = Math.cos(st.A), sA = Math.sin(st.A), cB = Math.cos(st.B), sB = Math.sin(st.B);
+  const sc = Math.min(W * .6, H * 1.2) * .5, plot = (x, y, zz, lum) => { const ooz = 1 / (zz + 5), xp = W / 2 + sc * 2.0 * ooz * x | 0, yp = H / 2 - sc * ooz * y | 0; if (xp < 0 || yp < 0 || xp >= W || yp >= H) return; const k = yp * W + xp; if (ooz > z[k]) { z[k] = ooz; const li = Math.max(0, Math.min(.999, lum)); ch[k] = '.,-~:;=!*#$@'[li * 12 | 0]; lv[k] = Math.min(3, li * 4 | 0); } };
+  const rot = (x, y, zz) => { let y1 = y * cA - zz * sA, z1 = y * sA + zz * cA; let x2 = x * cB - y1 * sB, y2 = x * sB + y1 * cB; return [x2, y2, z1]; };
+  const light = [0, .7, -.7];
+  if (donut) { for (let th = 0; th < 6.283; th += .07) for (let ph = 0; ph < 6.283; ph += .02) { const ct = Math.cos(th), stt = Math.sin(th), cp = Math.cos(ph), sp = Math.sin(ph), cx = 2 + 1 * ct, cy = stt;
+    const [x, y, zz] = rot(cx * cp, cy, -cx * sp), [nx, ny, nz] = rot(ct * cp, stt, -ct * sp); plot(x, y, zz, (nx * light[0] + ny * light[1] + nz * light[2]) * .7 + .3); } }
+  else { const S = 1.7, stp = st.mob ? .09 : .06; for (const [ax, sgn] of [[0, 1], [0, -1], [1, 1], [1, -1], [2, 1], [2, -1]]) for (let u = -S; u <= S; u += stp) for (let v = -S; v <= S; v += stp) { const p = [0, 0, 0], n = [0, 0, 0]; p[ax] = S * sgn; n[ax] = sgn; p[(ax + 1) % 3] = u; p[(ax + 2) % 3] = v;
+    const [x, y, zz] = rot(p[0], p[1], p[2]), [nx, ny, nz] = rot(n[0], n[1], n[2]); plot(x, y, zz, (nx * light[0] + ny * light[1] + nz * light[2]) * .6 + .4); } }
+  drawBuf(g, c, st, ch, lv); }); }
+function snow() { fxRun('snow', 'the snow melts.', (g, c, st) => { gridInit(st, c, st.mob ? 16 : 14); st.pile = new Float32Array(st.W); st.f = Array.from({length: st.mob ? 120 : 300}, () => ({x: Math.random() * st.W, y: Math.random() * st.H, v: .1 + Math.random() * .3, c: '*+.·'[Math.random() * 4 | 0], ph: Math.random() * 6})); },
+ (g, c, st, t, L) => { const {W, H, fs, cw, pile} = st; g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height); g.font = fs + 'px monospace'; g.textBaseline = 'top';
+  g.fillStyle = colors.hi; for (const p of st.f) { p.y += p.v * (1 + L.lvl); p.x += Math.sin(t * 1.5 + p.ph) * .15; const col = ((p.x % W) + W) % W | 0; if (p.y >= H - pile[col] - 1) { pile[col] = Math.min(H * .4, pile[col] + .35); for (const dc of [-1, 1]) { const n = (col + dc + W) % W; if (pile[col] - pile[n] > 2) { pile[col] -= .35; pile[n] += .35; } } p.y = -1; p.x = Math.random() * W; } g.fillText(p.c, p.x * cw, p.y * fs); }
+  if (Math.max(...pile) >= H * .4) pile.forEach((v, i) => pile[i] = Math.max(0, v - .02));
+  for (let x = 0; x < W; x++) { const h = pile[x]; for (let k = 0; k < Math.floor(h); k++) { g.fillStyle = k === Math.floor(h) - 1 ? colors.hi : colors.fg; g.fillText(k === Math.floor(h) - 1 ? '▄' : '█', x * cw, (H - 1 - k) * fs); } if (h % 1 > .5) { g.fillStyle = colors.dim; g.fillText('▁', x * cw, (H - 1 - Math.floor(h)) * fs); } } }); }
+function pipes() { const BOX = {'0,0': '─', '1,1': '│', '2,2': '─', '3,3': '│', '0,1': '┐', '3,2': '┐', '0,3': '┘', '1,2': '┘', '2,1': '┌', '3,0': '┌', '2,3': '└', '1,0': '└'};
+ const DX = [1, 0, -1, 0], DY = [0, 1, 0, -1];
+ fxRun('pipes', 'pipes drained.', (g, c, st) => { gridInit(st, c, st.mob ? 16 : 14); st.used = 0; st.p = []; g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height); st.reset = true; },
+ (g, c, st, t, L) => { const {W, H, fs, cw} = st, cols = [colors.fg, colors.hi, colors.acc, '#ff4a8a', '#ffd23f', '#c58cff', '#7dffa0'];
+  if (st.reset || st.used > W * H * .55) { g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height); st.used = 0; st.reset = false; st.p = Array.from({length: st.mob ? 2 : 4}, (_, i) => ({x: Math.random() * W | 0, y: Math.random() * H | 0, d: Math.random() * 4 | 0, c: cols[(i + (t | 0)) % cols.length]})); }
+  g.font = 'bold ' + fs + 'px monospace'; g.textBaseline = 'top'; const steps = 2 + (L.lvl * 6 | 0);
+  for (let s = 0; s < steps; s++) for (const p of st.p) { let nd = p.d; if (Math.random() < .18) nd = (p.d + (Math.random() < .5 ? 1 : 3)) % 4; const chr = BOX[p.d + ',' + nd] || '─';
+   g.fillStyle = '#000'; g.fillRect(p.x * cw, p.y * fs, cw, fs); g.fillStyle = p.c; g.shadowColor = p.c; g.shadowBlur = 6 * st.dpr; g.fillText(chr, p.x * cw, p.y * fs); g.shadowBlur = 0; st.used++;
+   p.d = nd; p.x += DX[nd]; p.y += DY[nd]; if (p.x < 0 || p.y < 0 || p.x >= W || p.y >= H) { p.x = Math.random() * W | 0; p.y = Math.random() * H | 0; p.d = Math.random() * 4 | 0; p.c = cols[Math.random() * cols.length | 0]; } } }); }
+/* ---------- idle screensaver ---------- */
+const SAVERS = {matrix: () => matrix(), fire: () => fire(), starfield: () => starfield(), plasma, tunnel, rain, dvd, life, cube: () => cube(), donut: () => cube('donut'), snow, pipes};
+const saver = {on: localStorage.grimSaver !== 'off', sec: +localStorage.grimSaverSec || 60, fx: localStorage.grimSaverFx || 'random', last: Date.now(), active: false, started: 0};
+function saverStop() { if (!saver.active) return; saver.active = false; if (fxs && fxs.saver) fxs.stop(); else if (mx && mx.saver) mx.stop(); }
+['mousemove', 'keydown', 'touchstart', 'wheel', 'scroll', 'pointerdown'].forEach(ev => addEventListener(ev, e => { saver.last = Date.now(); if (saver.active && Date.now() - saver.started > 400) { saverStop(); if (ev === 'keydown') { e.preventDefault(); e.stopImmediatePropagation(); } } }, {capture: true, passive: ev !== 'keydown'}));
+setInterval(() => { if (saver.active && !fxs && !mx) saver.active = false;
+ if (!saver.on || saver.active || fxs || mx || !booted || Date.now() - saver.last < saver.sec * 1000) return;
+ const ae = document.activeElement, busy = openM || !$('#photos').hidden || !$('#lb').hidden || !$('#help').hidden || (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.value);
+ if (busy) return; const names = Object.keys(SAVERS), pick = SAVERS[saver.fx] ? saver.fx : names[Math.random() * names.length | 0];
+ saverMode = true; try { SAVERS[pick](); } finally { saverMode = false; } if (fxs || mx) { saver.active = true; saver.started = Date.now(); } }, 1000);
+function screensaverCmd(a) { a = (a || '').trim().toLowerCase();
+ if (!a) return say(`screensaver: ${saver.on ? 'on' : 'off'} · after ${saver.sec}s idle · effect: ${saver.fx}\nusage: screensaver on|off|<seconds>|<effect>|random   effects: ${Object.keys(SAVERS).join(' ')}`);
+ if (a === 'on' || a === 'off') saver.on = a === 'on'; else if (/^\d+$/.test(a)) { saver.sec = Math.max(5, Math.min(3600, +a)); saver.on = true; } else if (a === 'random' || SAVERS[a]) saver.fx = a; else if (a === 'now' || a === 'test') { saver.last = 0; return say('screensaver: starting…'); } else return say('screensaver: unknown option ' + a);
+ localStorage.grimSaver = saver.on ? 'on' : 'off'; localStorage.grimSaverSec = saver.sec; localStorage.grimSaverFx = saver.fx; saver.last = Date.now(); screensaverCmd(''); }
 function cowsay(t) { t = (t || 'moo. drop the bass.').slice(0, 200); const w = Math.min(36, Math.max(...t.split(' ').map(x => x.length), 4)); const lines = []; let l = '';
  t.split(/\s+/).forEach(word => { if ((l + ' ' + word).trim().length > w) { lines.push(l.trim()); l = word; } else l += ' ' + word; }); if (l.trim()) lines.push(l.trim());
  const W = Math.max(...lines.map(x => x.length)); let b = ' ' + '_'.repeat(W + 2) + '\n';
  lines.forEach((x, i) => { const [o, c] = lines.length === 1 ? ['<', '>'] : i === 0 ? ['/', '\\'] : i === lines.length - 1 ? ['\\', '/'] : ['|', '|']; b += `${o} ${x.padEnd(W)} ${c}\n`; });
  b += ' ' + '-'.repeat(W + 2) + '\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\  ♪♫  )\\/\\\n                ||----w |\n                ||     ||'; say(b); }
 const CMDS = {
- help: () => say('commands: help ls albums play <n|name> pause next prev bio links mail irc get clear theme <' + THEMES.join('|') + '> themes crt on|off repeat shuffle vol <0-100> whoami fetch\nget:      get <n|name> · get album <name> · get --list   (aliases: wget, curl -O)\nnet:      mail (contact form) · irc (#tomgrim on irc.unrealircd.org)\nfun:      matrix · glitch · fire · hack · starfield (visual fx, any key/click exits) · cowsay <text>'),
+ help: () => say('commands: help ls albums play <n|name> pause next prev bio links mail irc get clear theme <' + THEMES.join('|') + '> themes crt on|off repeat shuffle vol <0-100> whoami fetch\nget:      get <n|name> · get album <name> · get --list   (aliases: wget, curl -O)\nnet:      mail (contact form) · irc (#tomgrim on irc.unrealircd.org)\nfun:      matrix glitch fire hack starfield plasma tunnel rain dvd life cube [torus] donut snow pipes (any key/click exits) · cowsay <text>\nidle:     screensaver on|off|<seconds>|<effect>|random  (default on, 60s)'),
  themes: () => say('themes: ' + THEMES.map(t => t === curTheme() ? '[' + t + ']' : t).join(' ')),
  crt: a => { a = (a || '').trim(); if (a === 'on' || a === 'off') setCrt(a === 'on'); else if (!a) setCrt(document.body.classList.contains('nocrt')); else say('usage: crt on|off'); },
  photos: () => { say(`~/photos: ${PHOTOS.length} frames · click one or use ←/→ in the viewer`); jump('photos'); }, gallery: () => CMDS.photos(),
- matrix: () => matrix(), glitch: () => glitch(), fire: () => fire(), hack: () => hack(), starfield: () => starfield(), stars: () => starfield(), cowsay: a => cowsay(a),
+ matrix: () => matrix(), glitch: () => glitch(), fire: () => fire(), hack: () => hack(), starfield: () => starfield(), stars: () => starfield(), plasma: () => plasma(), tunnel: () => tunnel(), rain: () => rain(), dvd: () => dvd(), life: () => life(), cube: a => cube(a), donut: () => cube('donut'), torus: () => cube('donut'), snow: () => snow(), pipes: () => pipes(), screensaver: a => screensaverCmd(a), saver: a => screensaverCmd(a), cowsay: a => cowsay(a),
  ls: () => flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}${t.special ? ' ★' : ''}  [${t.single ? 'single' : t.al.title}]`)),
  albums: () => data.albums.forEach((a, i) => say(`[${String.fromCharCode(65 + (flat.find(t => t.al === a)?.ai ?? i))}] ${a.title}${a.year ? ' (' + a.year + ')' : ''} — ${a.type || 'album'}, ${a.tracks.length} tracks${a.blurb ? ' · ' + a.blurb : ''}`)),
  play: a => { if (!a) return toggle(); const n = parseInt(a, 10); if (n >= 1 && n <= flat.length) { play(n - 1); say('playing ' + flat[n - 1].title); } else { const i = flat.findIndex(t => t.title.toLowerCase().includes(a.toLowerCase())); i >= 0 ? (play(i), say('playing ' + flat[i].title)) : say('no such track: ' + a); } },
