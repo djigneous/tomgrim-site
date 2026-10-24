@@ -321,3 +321,8 @@ body.nocolor .sx-bad{text-decoration:none}
 .npinfo .transport button{min-width:0;flex-basis:0;flex-shrink:1}
 #bprev,#bnext{width:auto;flex-grow:3.4}#bplay{width:auto;flex-grow:9}#brep{width:auto;flex-grow:11}#bshuf{width:auto;flex-grow:9}
 .volrow #volpct{margin-left:auto}
+/* waveform tap-to-arm (touch) */
+#wave{touch-action:pan-y}
+.vb-wave.armed{border-color:var(--br);animation:armpulse 1s ease-in-out infinite}
+.vb-wave.armed .lbl{background:var(--br)}
+@keyframes armpulse{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 10px 1px var(--fg),inset 0 0 8px -2px var(--fg)}}

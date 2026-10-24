@@ -215,9 +215,21 @@ function drawWave() {
 }
 function waveSeek(e) { if (!audio.duration) return; const r = wave.getBoundingClientRect(); audio.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * audio.duration; }
 let dragging = false;
-wave.addEventListener('pointerdown', e => { dragging = true; wave.setPointerCapture(e.pointerId); waveSeek(e); });
-wave.addEventListener('pointermove', e => dragging && waveSeek(e));
-wave.addEventListener('pointerup', () => dragging = false);
+/* mouse: click/drag seeks immediately. touch/pen: tap to arm, then tap or horizontal drag seeks; vertical moves scroll. */
+const waveBox = wave.closest('.vizbox'), waveLbl = waveBox.querySelector('.lbl'), coarse = matchMedia('(pointer:coarse)').matches;
+const WL = {idle: coarse ? 'WAVEFORM · tap to arm' : 'WAVEFORM · click to seek', armed: 'WAVEFORM · armed · tap/drag to seek'};
+waveLbl.textContent = WL.idle; let armed = false, armT = 0, tp = null;
+const arm = on => { armed = on; clearTimeout(armT); waveBox.classList.toggle('armed', on); waveLbl.textContent = on ? WL.armed : WL.idle; if (on) armT = setTimeout(() => arm(false), 4000); };
+wave.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') { dragging = true; wave.setPointerCapture(e.pointerId); waveSeek(e); return; }
+ tp = {x: e.clientX, y: e.clientY, id: e.pointerId, mode: null}; if (armed) arm(true); });
+wave.addEventListener('pointermove', e => { if (dragging) return waveSeek(e); if (!tp || e.pointerId !== tp.id) return; const dx = e.clientX - tp.x, dy = e.clientY - tp.y;
+ if (!tp.mode && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) { tp.mode = Math.abs(dx) > Math.abs(dy) * 1.2 && armed ? 'drag' : 'scroll'; if (tp.mode === 'drag') { try { wave.setPointerCapture(e.pointerId); } catch {} } }
+ if (tp.mode === 'drag') { waveSeek(e); arm(true); } });
+wave.addEventListener('pointerup', e => { if (dragging) { dragging = false; return; } if (!tp || e.pointerId !== tp.id) return; const m = tp.mode; tp = null;
+ if (m === 'scroll') return; if (m === 'drag') return arm(false); if (armed) { waveSeek(e); arm(false); } else arm(true); });
+wave.addEventListener('pointercancel', () => { tp = null; dragging = false; });
+document.addEventListener('pointerdown', e => { if (armed && !waveBox.contains(e.target)) arm(false); }, true);
+window.__wave = () => ({armed, label: waveLbl.textContent, t: audio.currentTime});
 
 /* ---------- visuals loop ---------- */
 const specEl = $('#spec'), ring = $('#ring'), rg = ring.getContext('2d');
