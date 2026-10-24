@@ -1,0 +1,28 @@
+{
+ "name": "tomGRIM :: GRIM/OS",
+ "short_name": "GRIM/OS",
+ "description": "tomGRIM's retro terminal music player.",
+ "start_url": "/?src=pwa",
+ "scope": "/",
+ "display": "standalone",
+ "background_color": "#000000",
+ "theme_color": "#00090c",
+ "icons": [
+  {
+   "src": "favicon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "favicon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  },
+  {
+   "src": "favicon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any maskable"
+  }
+ ]
+}
