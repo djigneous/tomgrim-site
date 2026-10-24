@@ -1,5 +1,6 @@
 (() => {
 'use strict';
+const GRIMOS_VERSION = '6.10'; // last-updated stamp: (year-2020).(month), auto-set by scripts/stamp-version.sh
 const $ = s => document.querySelector(s);
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const FALLBACK = {artist:'tomGRIM',albums:[{id:'ember-hours',title:'Ember Hours',type:'album',year:null,blurb:'',cover:'assets/covers/ember-hours.jpg',tracks:[
@@ -12,7 +13,7 @@ const fmt = s => { s = Math.max(0, Math.floor(s || 0)); return String(Math.floor
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 /* ---------- boot ---------- */
-const bootLines = ['GRIM/OS 2.6.66-warm #1 SMP PREEMPT lehigh-valley x86_64','[    0.000000] BIOS-e820: phosphor memory map ok','[    0.004113] Booting tomGRIM kernel on ign3ous-legacy hardware',
+const bootLines = ['GRIM/OS ' + GRIMOS_VERSION + '-warm #1 SMP PREEMPT lehigh-valley x86_64','[    0.000000] BIOS-e820: phosphor memory map ok','[    0.004113] Booting tomGRIM kernel on ign3ous-legacy hardware',
  '[    0.120771] crt0: scanline driver loaded (60Hz, P1 green phosphor)','[    0.250004] snd-grim: Web Audio bridge initialised','[    0.333333] analyser0: fft 2048, smoothing 0.75',
  '[    0.410000] mounting /music/albums ... ok','[    0.512345] mounting /music/loops ... ok','[    0.601010] breakbeat.ko: tempo locked','[  OK  ] Started GRIMAMP ascii audio daemon.',
  '[  OK  ] Reached target Downtempo.','','grimos login: tom','Password: ********','Last login: from the ign3ous era',''];
@@ -451,7 +452,7 @@ function cowsay(t) { t = (t || 'moo. drop the bass.').slice(0, 200); const w = M
  lines.forEach((x, i) => { const [o, c] = lines.length === 1 ? ['<', '>'] : i === 0 ? ['/', '\\'] : i === lines.length - 1 ? ['\\', '/'] : ['|', '|']; b += `${o} ${x.padEnd(W)} ${c}\n`; });
  b += ' ' + '-'.repeat(W + 2) + '\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\  ♪♫  )\\/\\\n                ||----w |\n                ||     ||'; say(b); }
 const CMDS = {
- help: () => say('commands: help ls albums play <n|name> pause next prev bio links mail irc get clear theme <' + THEMES.join('|') + '> themes crt on|off repeat shuffle vol <0-100> whoami fetch\nget:      get <n|name> · get album <name> · get --list   (aliases: wget, curl -O)\nnet:      mail (contact form) · irc (#tomgrim on irc.unrealircd.org)\nfun:      matrix glitch fire hack starfield plasma tunnel rain dvd life cube [torus] donut snow pipes (any key/click exits) · cowsay <text>\nidle:     screensaver on|off|<seconds>|<effect>|random  (default on, 60s)'),
+ help: () => say('commands: help ls albums play <n|name> pause next prev bio links mail irc get clear theme <' + THEMES.join('|') + '> themes crt on|off repeat shuffle vol <0-100> whoami fetch\nget:      get <n|name> · get album <name> · get --list   (aliases: wget, curl -O)\nnet:      mail (contact form) · irc (#tomgrim on irc.unrealircd.org)\nfun:      matrix glitch fire hack starfield plasma tunnel rain dvd life cube [torus] donut snow pipes (any key/click exits) · cowsay <text>\nsystem:   pwd cd ls -la dir cat echo history clear/cls whoami hostname uname -a date uptime ping ifconfig/ip a top/htop ps df -h free -h neofetch man which ssh curl apt sudo exit\nidle:     screensaver on|off|<seconds>|<effect>|random  (default on, 60s)'),
  themes: () => say('themes: ' + THEMES.map(t => t === curTheme() ? '[' + t + ']' : t).join(' ')),
  crt: a => { a = (a || '').trim(); if (a === 'on' || a === 'off') setCrt(a === 'on'); else if (!a) setCrt(document.body.classList.contains('nocrt')); else say('usage: crt on|off'); },
  photos: () => { say(`~/photos: ${PHOTOS.length} frames · click one or use ←/→ in the viewer`); jump('photos'); }, gallery: () => CMDS.photos(),
@@ -467,13 +468,110 @@ const CMDS = {
  contact: () => { say('opening mail client…'); openModal('mail'); }, mail: () => CMDS.contact(), irc: () => { say('opening irc #tomgrim on irc.unrealircd.org…'); openModal('irc'); }, chat: () => CMDS.irc(),
  zach: () => zach(), get: a => getCmd(a), wget: a => getCmd(a), curl: a => getCmd((a || '').replace(/(^|\s)(-O|--remote-name|-L|-s)(?=\s|$)/g, ' ').trim()),
  clear: () => { out.innerHTML = ''; }, theme: a => setTheme((a || '').trim()),
- sudo: () => say('tom is not in the sudoers file. This incident will be reported to the bassline.'), exit: () => say('there is no exit. only the next track.'),
+ sudo: a => { const m = (a || '').match(/^(\S+)\s*(.*)$/); if (m && /^(apt|apt-get)$/.test(m[1])) return CMDS[m[1]](m[2], true); say('[sudo] password for tom: ********\ntom is not in the sudoers file. This incident will be reported.'); },
+ exit: () => say('logout\nthere is no exit. only the next track. (refresh to reboot)'), logout: () => CMDS.exit(),
 };
-$('#prompt').addEventListener('submit', e => { e.preventDefault(); const v = cmd.value.trim(); cmd.value = ''; if (!v) return; hist.push(v); hp = hist.length;
- if (/^(sudo\s+)?rm\s+-(rf|fr)\s+(--no-preserve-root\s+)?\/\*?$/i.test(v)) { say('tom@grimos:~$ ' + v); return rmrf(); }
- say('tom@grimos:~$ ' + v); const [c, ...rest] = v.split(/\s+/); const f = CMDS[c.toLowerCase()]; f ? f(rest.join(' ')) : say(`grimsh: command not found: ${c} (try help)`); });
+/* ---------- terminal emulator: fake fs + system commands ---------- */
+const T_START = Date.now(), HOME = '/home/tom'; let cwd = HOME, job = null;
+const esc2 = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'})[c]);
+const slug2 = s => String(s).toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const prompt = () => 'tom@grimos:' + (cwd === HOME ? '~' : cwd.startsWith(HOME + '/') ? '~' + cwd.slice(HOME.length) : cwd) + '$';
+const setPrompt = () => { $('#prompt label').textContent = prompt(); };
+const OSREL = 'NAME="GrimOS"\nPRETTY_NAME="GrimOS ' + GRIMOS_VERSION + ' (Downtempo)"\nVERSION="' + GRIMOS_VERSION + '-warm"\nVERSION_ID="' + GRIMOS_VERSION + '"\nID=grimos\nID_LIKE=debian\nHOME_URL="https://thomasgrim.com"\nBUG_REPORT_URL="irc://irc.unrealircd.org/#tomgrim"';
+function fsTree() { const D = (o) => ({d: 1, c: o}), F = (txt, size) => ({f: 1, txt, size: size ?? (txt ? txt.length : 0)});
+ const music = {}, albums = {};
+ data.albums.forEach(a => { const dir = {}; (a.tracks || []).forEach(t => { const fn = t.file.split('/').pop(); const f = F(null, t.size || Math.round((t.duration_sec || 180) * 40000)); f.track = t; dir[fn] = f; music[fn] = f; }); albums[a.id] = D(dir); });
+ return D({
+  home: D({tom: D({music: D(music), albums: D(albums), photos: D(Object.fromEntries((PHOTOS || []).map((p, i) => ['frame-' + String(i + 1).padStart(2, '0') + '.jpg', F(null, 240000 + i * 7919)]))),
+   'readme.txt': F('tomGRIM :: GRIM/OS\n\ndark, warm machine music after midnight.\n\n  ls            list tracks        play <n>   play a track\n  get <n>       download a track   help       all commands\n  cd ~/albums   browse albums      neofetch   system info\n\nbookings / inquiries: type "mail".'),
+   '.bashrc': F('export PS1="tom@grimos:\\w$ "\nalias ll="ls -la"\nalias please="sudo"\n# play loud.'), '.bash_history': F(null, 4096)})}),
+  etc: D({motd: F('Welcome to GrimOS ' + GRIMOS_VERSION + ' (Downtempo)\n\n * Every track is free to download: get <track#>\n * Effects: fire, starfield, plasma, donut, pipes\n * Support: irc #tomgrim\n'), 'os-release': F(OSREL), hostname: F('grimos'), passwd: F(null, 1871), shadow: F(null, 1024), hosts: F('127.0.0.1\tlocalhost\n127.0.1.1\tgrimos\n185.199.108.153\tthomasgrim.com'), fstab: F(null, 612)}),
+  var: D({log: D({syslog: F(null, 88231), 'scope.log': F(null, 12044), 'vinyl.log': F(null, 3301), 'auth.log': F(null, 5120)})}),
+  bin: D({bash: F(null, 1183448), sh: F(null, 125560), ls: F(null, 138208), grimsh: F(null, 66600)}), usr: D({bin: D({grimamp: F(null, 420666), python3: F(null, 5904904)}), lib: D({'libgrimamp.so.2': F(null, 81920)})}),
+  sys: D({vinyl: D({'spin.ko': F(null, 16384), needle: F(null, 4096)})}), proc: D({cpuinfo: F(null, 0), uptime: F(null, 0)}), tmp: D({}), dev: D({bass: F(null, 0), kick0: F(null, 0), null: F(null, 0)}), boot: D({'vmlinuz-grim': F(null, 11534336)})}); }
+let FS = null; const fsRoot = () => FS || (FS = fsTree());
+function absPath(p) { p = (p || '').trim(); if (!p || p === '~') return HOME; if (p.startsWith('~')) p = HOME + p.slice(1); if (!p.startsWith('/')) p = cwd + '/' + p;
+ const out = []; for (const s of p.split('/')) { if (!s || s === '.') continue; if (s === '..') out.pop(); else out.push(s); } return '/' + out.join('/'); }
+function fsGet(p) { let n = fsRoot(); for (const s of absPath(p).split('/').filter(Boolean)) { if (!n.d || !n.c[s]) return null; n = n.c[s]; } return n; }
+const fdate = (i) => { const d = new Date(Date.now() - (i * 2654435761 % 9e9)); return d.toLocaleString('en-US', {month: 'short'}) + ' ' + String(d.getDate()).padStart(2) + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+const hsz = b => b < 1024 ? b + 'B' : b < 1048576 ? (b / 1024).toFixed(1) + 'K' : (b / 1048576).toFixed(1) + 'M';
+function lsPath(a) { const flags = (a.match(/(^|\s)-\w+/g) || []).join(''), p = a.replace(/(^|\s)-\w+/g, '').trim(), n = fsGet(p || '.');
+ if (!n) return say(`ls: cannot access '${p}': No such file or directory`); const long = /l/.test(flags), all = /a/.test(flags);
+ const ents = n.d ? Object.entries(n.c).filter(([k]) => all || !k.startsWith('.')) : [[p.split('/').pop(), n]];
+ if (!long) return say(ents.map(([k, v]) => v.d ? k + '/' : k).join('  ') || '');
+ const rows = (all && n.d ? [['.', n], ['..', {d: 1, c: {}}]] : []).concat(ents);
+ say('total ' + rows.length * 4 + '\n' + rows.map(([k, v], i) => `${v.d ? 'drwxr-xr-x' : /passwd|shadow|auth|\.bash_history/.test(k) ? '-rw-------' : '-rw-r--r--'} ${String(v.d ? 2 + Object.keys(v.c).length : 1).padStart(2)} tom  tom  ${String(v.d ? 4096 : v.size).padStart(8)} ${fdate(k.length * 31 + i)} ${v.d ? k + '/' : k}`).join('\n')); }
+function startJob(stop, kind) { job = {stop: () => { if (!job) return; stop(); job = null; }, kind}; }
+const pingCmd = a => { const host = (a || '').replace(/-\S+\s*\S*/g, '').trim(); if (!host) return say('ping: usage error: Destination address required');
+ const known = {'thomasgrim.com': '185.199.108.153', localhost: '127.0.0.1', grimos: '127.0.1.1', 'google.com': '142.250.72.14', 'irc.unrealircd.org': '94.130.0.1'};
+ const ip = known[host] || (/^\d+\.\d+\.\d+\.\d+$/.test(host) ? host : (host.length * 37 % 200 + 20) + '.' + (host.charCodeAt(0) * 3 % 255) + '.' + (host.length * 13 % 255) + '.' + (host.charCodeAt(host.length - 1) % 250 + 2));
+ const base = ip.startsWith('127.') ? .04 : host === 'thomasgrim.com' ? 11 : 20 + host.length * 2.3; let n = 0; const times = [];
+ say(`PING ${host} (${ip}) 56(84) bytes of data.`);
+ const fin = () => { const mn = Math.min(...times), mx2 = Math.max(...times), av = times.reduce((s, x) => s + x, 0) / (times.length || 1);
+  say(`\n--- ${host} ping statistics ---\n${n} packets transmitted, ${times.length} received, 0% packet loss, time ${n * 1000 - 999}ms` + (times.length ? `\nrtt min/avg/max/mdev = ${mn.toFixed(3)}/${av.toFixed(3)}/${mx2.toFixed(3)}/${((mx2 - mn) / 2).toFixed(3)} ms` : '')); };
+ const tick = () => { n++; const t = base * (1 + (Math.random() - .3) * .25); times.push(t); say(`64 bytes from ${host === ip ? ip : host + ' (' + ip + ')'}: icmp_seq=${n} ttl=${ip.startsWith('127.') ? 64 : 57} time=${t < 1 ? t.toFixed(3) : t.toFixed(1)} ms`); if (n >= 4) { clearInterval(iv); job = null; fin(); } };
+ const iv = setInterval(tick, 1000); setTimeout(tick, 60); startJob(() => { clearInterval(iv); say('^C'); fin(); }, 'ping'); };
+const PROCS = [['1', 'root', 'init'], ['42', 'root', 'kworker/bass'], ['133', 'tom', 'grimsh'], ['208', 'tom', 'grimamp'], ['209', 'tom', 'vinyl-spin'], ['211', 'tom', 'scope'], ['212', 'tom', 'spectrum'], ['230', 'tom', 'waveformd'], ['301', 'root', 'crt-phosphor'], ['333', 'tom', 'ircd-client'], ['404', 'root', 'sshd'], ['666', 'tom', 'ember-hours']];
+function procRows() { const L = typeof level === 'function' ? level() : {lvl: .2}, pl2 = !audio.paused;
+ return PROCS.map(([pid, u, c], i) => { const busy = pl2 && /vinyl|scope|spectrum|grimamp|waveform/.test(c); const cpu = busy ? 4 + L.lvl * 30 * (1 + (i % 3)) * Math.random() + 3 : Math.random() * 1.2; return [pid, u, cpu, (i * 1.7 % 6 + .3), c]; }).sort((a, b) => b[2] - a[2]); }
+const topCmd = () => { const d = document.createElement('div'); out.appendChild(d); const draw = () => { const up = Math.floor((Date.now() - T_START) / 1000), r = procRows(), tot = r.reduce((s, x) => s + x[2], 0);
+  d.textContent = `top - ${new Date().toLocaleTimeString('en-GB')} up ${Math.floor(up / 60)} min,  1 user,  load average: ${(tot / 100).toFixed(2)}, ${(tot / 120).toFixed(2)}, ${(tot / 150).toFixed(2)}\nTasks: ${r.length} total,   ${audio.paused ? 1 : 5} running,  ${r.length - (audio.paused ? 1 : 5)} sleeping\n%Cpu(s): ${tot.toFixed(1).padStart(5)} us,  1.2 sy,  0.0 ni, ${Math.max(0, 100 - tot).toFixed(1)} id\nMiB Mem :   6666.0 total,   4096.6 free,   1337.0 used,   1232.4 buff/cache\n\n  PID USER      %CPU  %MEM  COMMAND\n` + r.map(x => `${x[0].padStart(5)} ${x[1].padEnd(8)} ${x[2].toFixed(1).padStart(5)} ${x[3].toFixed(1).padStart(5)}  ${x[4]}`).join('\n') + '\n\n[ q or Ctrl+C to quit ]'; out.scrollTop = out.scrollHeight; };
+ draw(); const iv = setInterval(draw, 1000); startJob(() => { clearInterval(iv); d.textContent = d.textContent.replace(/\n\n\[ q or Ctrl\+C to quit \]$/, ''); }, 'top'); };
+const aptCmd = (a, su) => { const m = (a || '').match(/^(install|update|upgrade|remove)\s*(.*)$/); if (!m) return say('apt ' + GRIMOS_VERSION + ' (grimos)\nUsage: apt [install|remove|update|upgrade] <package>');
+ if (!su && m[1] !== 'update') return say(`E: Could not open lock file /var/lib/dpkg/lock-frontend - open (13: Permission denied)\nE: Unable to acquire the dpkg frontend lock, are you root?`);
+ if (m[1] === 'update') return say('Hit:1 https://thomasgrim.com/grimos stable InRelease\nHit:2 https://bandcamp.void downtempo InRelease\nReading package lists... Done\nAll packages are up to date. Stay warm.');
+ const pkg = m[2] || 'bass'; say(`Reading package lists... Done\nBuilding dependency tree... Done\nThe following NEW packages will be installed:\n  ${pkg} libgrim-${slug2(pkg) || 'x'}0\nNeed to get 6,660 kB of archives.\nGet:1 https://thomasgrim.com/grimos stable/main ${pkg} ${GRIMOS_VERSION} [6,660 kB]`);
+ const d = document.createElement('div'); out.appendChild(d); let p = 0; const iv = setInterval(() => { p = Math.min(100, p + 3 + Math.random() * 9); const w = 30, f = Math.round(p / 100 * w);
+  d.textContent = `Progress: [${String(Math.floor(p)).padStart(3)}%] [${'#'.repeat(f)}${'.'.repeat(w - f)}]`; out.scrollTop = out.scrollHeight;
+  if (p >= 100) { clearInterval(iv); job = null; say(`Unpacking ${pkg} (${GRIMOS_VERSION}) ...\nSetting up ${pkg} (${GRIMOS_VERSION}) ...\nProcessing triggers for vinyl-spin (1.0) ...\n${pkg}: installed. (it was always there, deep in the mix.)`); } }, 120);
+ startJob(() => { clearInterval(iv); say('^C\nE: Sub-process /usr/bin/dpkg received signal 2.'); }, 'apt'); };
+const NEO = ['████████╗ ██████╗ ', '╚══██╔══╝██╔════╝ ', '   ██║   ██║  ███╗', '   ██║   ██║   ██║', '   ██║   ╚██████╔╝', '   ╚═╝    ╚═════╝ ', '  >_ tomGRIM       ', '                  '];
+const MAN = {ls: 'ls [-la] [path] — without args lists every track; with a path lists the fake filesystem.', play: 'play <n|name> — play a track by number (see ls) or name.', get: 'get <n|name> — download a track. get album <name>, get --list.', cd: 'cd [dir] — change directory. try ~/albums, /etc, /var/log.', cat: 'cat <file> — print a file. try /etc/motd or readme.txt.', ping: 'ping <host> — send 4 ICMP echo requests (Ctrl+C stops).', top: 'top — live process list. q to quit.', theme: 'theme <name> — switch color theme.', screensaver: 'screensaver on|off|<seconds>|<effect>|random', apt: 'apt install <pkg> — needs sudo. you know how this ends.'};
+Object.assign(CMDS, {
+ ls: a => { a = (a || '').trim(); if (!a) return flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}${t.special ? ' ★' : ''}  [${t.single ? 'single' : t.al.title}]`)); lsPath(a); },
+ ll: a => lsPath('-la ' + (a || '')), pwd: () => say(cwd),
+ cd: a => { const p = absPath(a || '~'), n = fsGet(p); if (!n) return say(`bash: cd: ${a}: No such file or directory`); if (!n.d) return say(`bash: cd: ${a}: Not a directory`); cwd = p; setPrompt(); },
+ dir: a => { const n = fsGet(a || '.'); if (!n || !n.d) return say('File Not Found'); const e = Object.entries(n.c).filter(([k]) => !k.startsWith('.')); let fb = 0;
+  say(` Volume in drive C is GRIMOS\n Volume Serial Number is 7G0M-2026\n\n Directory of C:${absPath(a || '.').replace(/\//g, '\\')}\n\n` + e.map(([k, v], i) => { const d = new Date(Date.now() - (k.length * 9e7 % 9e9)); if (!v.d) fb += v.size;
+   return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}  ${String(d.getHours() % 12 || 12).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} ${d.getHours() < 12 ? 'AM' : 'PM'}    ${v.d ? '<DIR>         ' : String(v.size.toLocaleString('en-US')).padStart(14)} ${k}`; }).join('\n') +
+   `\n${String(e.filter(x => !x[1].d).length).padStart(16)} File(s) ${fb.toLocaleString('en-US').padStart(14)} bytes\n${String(e.filter(x => x[1].d).length).padStart(16)} Dir(s)  6,660,000,000 bytes free`); },
+ cat: a => { if (!a) return say('cat: missing operand'); a.split(/\s+/).forEach(p => { const n = fsGet(p); if (!n) return say(`cat: ${p}: No such file or directory`); if (n.d) return say(`cat: ${p}: Is a directory`);
+  if (p.endsWith('os-release') || absPath(p) === '/etc/os-release') return say(OSREL); if (n.txt != null) return say(n.txt); say(`cat: ${p}: Permission denied`); }); },
+ whoami: () => say('tom'), hostname: () => say('grimos'), id: () => say('uid=1000(tom) gid=1000(tom) groups=1000(tom),29(audio),666(bass)'),
+ uname: a => say(/-a/.test(a || '') ? 'GrimOS grimos ' + GRIMOS_VERSION + '-warm #1 SMP PREEMPT lehigh-valley x86_64 GNU/Linux' : 'GrimOS'),
+ date: () => say(new Date().toString().replace(/ GMT.*\(/, ' (')),
+ uptime: () => { const s = Math.floor((Date.now() - T_START) / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); say(` ${new Date().toLocaleTimeString('en-GB')} up ${h ? h + ':' + String(m).padStart(2, '0') : m + ' min'}${h ? '' : ', ' + (s % 60) + ' sec'},  1 user,  load average: 0.66, 0.42, 0.13`); },
+ echo: a => say((a || '').replace(/\$USER|\$\{USER\}/g, 'tom').replace(/\$HOME/g, HOME).replace(/\$SHELL/g, '/bin/grimsh').replace(/\$PWD/g, cwd).replace(/^["']|["']$/g, '')),
+ history: () => say(hist.map((h, i) => String(i + 1).padStart(5) + '  ' + h).join('\n')),
+ cls: () => CMDS.clear(), ping: pingCmd,
+ ifconfig: () => say('grim0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500\n        inet 10.66.6.2  netmask 255.255.255.0  broadcast 10.66.6.255\n        inet6 fe80::7e:9a1d:6f0f:2026  prefixlen 64  scopeid 0x20<link>\n        ether 7c:6f:0f:20:26:66  txqueuelen 1000  (Ethernet)\n        RX packets 128000  bytes 166600000 (166.6 MB)\n        TX packets 4096  bytes 512000 (512.0 KB)\n\nlo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536\n        inet 127.0.0.1  netmask 255.0.0.0\n        loop  txqueuelen 1000  (Local Loopback)'),
+ ip: a => /^(a|addr|address)\b/.test(a || '') ? say('1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN\n    inet 127.0.0.1/8 scope host lo\n2: grim0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP\n    link/ether 7c:6f:0f:20:26:66 brd ff:ff:ff:ff:ff:ff\n    inet 10.66.6.2/24 brd 10.66.6.255 scope global grim0') : say('Usage: ip a'),
+ top: topCmd, htop: topCmd,
+ ps: () => say('  PID TTY          TIME CMD\n' + procRows().slice(0, 8).sort((a, b) => a[0] - b[0]).map(x => `${x[0].padStart(5)} pts/0    00:00:0${x[0] % 9} ${x[4]}`).join('\n')),
+ df: () => say('Filesystem      Size  Used Avail Use% Mounted on\n/dev/grim0p1     66G   23G   43G  35% /\ntmpfs           3.3G  1.2M  3.3G   1% /dev/shm\n/dev/vinyl      120M  119M  1.0M  99% /music\n/dev/phosphor    16M  4.0M   12M  25% /sys/crt'),
+ free: () => say('               total        used        free      shared  buff/cache   available\nMem:           6.5Gi       1.3Gi       4.0Gi        66Mi       1.2Gi       5.0Gi\nSwap:          2.0Gi          0B       2.0Gi'),
+ neofetch: () => { const up = Math.floor((Date.now() - T_START) / 60000), t = curT();
+  const info = ['<b>tom</b>@<b>grimos</b>', '-----------', '<b>OS</b>: GrimOS ' + GRIMOS_VERSION + ' (Downtempo) x86_64', '<b>Host</b>: thomasgrim.com', '<b>Kernel</b>: ' + GRIMOS_VERSION + '-warm', `<b>Uptime</b>: ${up} mins`, `<b>Packages</b>: ${flat.length} (tracks)`, '<b>Shell</b>: grimsh ' + GRIMOS_VERSION + '', `<b>Theme</b>: ${curTheme()} [CRT]`, '<b>Terminal</b>: GRIMAMP tty', `<b>Now playing</b>: ${t ? esc2(t.title) : '—'}`, '<b>Location</b>: Lehigh Valley, PA'];
+  const rows = Math.max(NEO.length, info.length); let s = '<span class="neo">'; for (let i = 0; i < rows; i++) s += '<span style="color:var(--br)">' + esc2(NEO[i] || ' '.repeat(18)) + '</span>  ' + (info[i] || '') + '\n';
+  s += ' '.repeat(20) + THEMES.map(th => `<span class="theme-${th}" style="color:var(--fg)">███</span>`).join('') + '</span>'; say(s, true); },
+ man: a => { a = (a || '').trim(); if (!a || /^tom(grim)?$/i.test(a)) return CMDS.bio(); say(MAN[a] ? `${a.toUpperCase()}(1)\n\n  ${MAN[a]}` : CMDS[a] ? `${a.toUpperCase()}(1)\n\n  ${a} — see "help" for usage.` : `No manual entry for ${a}`); },
+ which: a => (a || '').split(/\s+/).filter(Boolean).forEach(c => say(CMDS[c] ? '/usr/bin/' + c : `which: no ${c} in (/usr/local/bin:/usr/bin:/bin)`)),
+ ssh: a => { const h = (a || '').split('@').pop() || ''; if (!h) return say('usage: ssh [user@]hostname'); say(`ssh: connect to host ${h} port 22: Connection refused\n(the only open port here is the dancefloor.)`); },
+ curl: a => { a = (a || '').trim(); if (/(^|\s)(-O|--remote-name)(\s|$)/.test(a)) return getCmd(a.replace(/(^|\s)(-O|--remote-name|-L|-s)(?=\s|$)/g, ' ').trim()); if (!a) return say("curl: try 'curl --help' for more information");
+  const u = a.replace(/(^|\s)-\S+/g, ' ').trim().replace(/^https?:\/\//, ''); if (/thomasgrim\.com/.test(u)) return say('<!doctype html>\n<html><head><title>GRIM/OS :: tomGRIM</title>…\n(you are already here.)'); if (/wttr\.in/.test(u)) return say('Weather: Lehigh Valley — 4°C, fog, low light. Perfect for downtempo.');
+  if (/^[\d.]+$|^[a-z0-9-]+(\.[a-z0-9-]+)+/i.test(u)) return say(`curl: (6) Could not resolve host: ${u.replace(/^https?:\/\//, '').split('/')[0]}\n(GrimOS is offline-first. try "curl -O <track#>" to download a track.)`); getCmd(a); },
+ apt: aptCmd, 'apt-get': aptCmd,
+});
+$('#prompt').addEventListener('submit', e => { e.preventDefault(); if (job) return; const v = cmd.value.trim(); cmd.value = ''; if (!v) return; hist.push(v); hp = hist.length;
+ if (/^(sudo\s+)?rm\s+-(rf|fr)\s+(--no-preserve-root\s+)?\/\*?$/i.test(v)) { say(prompt() + ' ' + v); return rmrf(); }
+ say(prompt() + ' ' + v); const [c, ...rest] = v.split(/\s+/); const f = CMDS[c.toLowerCase()]; f ? f(rest.join(' ')) : say(`bash: ${c}: command not found`); });
+addEventListener('keydown', e => { if (!job) return; if ((e.ctrlKey && /^c$/i.test(e.key)) || (job.kind === 'top' && /^q$/i.test(e.key))) { e.preventDefault(); e.stopImmediatePropagation(); job.stop(); } }, true);
 cmd.addEventListener('keydown', e => { if (e.key === 'ArrowUp') { hp = Math.max(0, hp - 1); cmd.value = hist[hp] || ''; e.preventDefault(); } else if (e.key === 'ArrowDown') { hp = Math.min(hist.length, hp + 1); cmd.value = hist[hp] || ''; e.preventDefault(); }
- else if (e.key === 'Tab' && cmd.value) { const m = Object.keys(CMDS).filter(k => k.startsWith(cmd.value)); if (m.length === 1) { cmd.value = m[0] + ' '; e.preventDefault(); } } });
+ else if (e.key === 'Tab' && cmd.value) { e.preventDefault(); const v = cmd.value, sp = v.lastIndexOf(' ');
+  if (sp < 0) { const m = Object.keys(CMDS).filter(k => k.startsWith(v)); if (m.length === 1) cmd.value = m[0] + ' '; else if (m.length > 1) { const pre = m.reduce((p, k) => { while (!k.startsWith(p)) p = p.slice(0, -1); return p; }); if (pre.length > v.length) cmd.value = pre; else say(m.join('  ')); } return; }
+  const part = v.slice(sp + 1), di = part.lastIndexOf('/'), dirP = di >= 0 ? part.slice(0, di + 1) : '', base = part.slice(di + 1), n = fsGet(dirP || '.');
+  if (!n || !n.d) return; const m = Object.keys(n.c).filter(k => k.startsWith(base) && (base.startsWith('.') || !k.startsWith('.')));
+  if (m.length === 1) cmd.value = v.slice(0, sp + 1) + dirP + m[0] + (n.c[m[0]].d ? '/' : ' '); else if (m.length > 1) say(m.join('  ')); } });
 
 /* ---------- navigation ---------- */
 const SECTIONS = ['fetch', 'man', 'player', 'links', 'shell', 'photos'];
@@ -647,10 +745,11 @@ window.__cue = () => ({black: cue.el ? +cue.el.style.opacity : 0, fire: !!(fxs &
 window.__mood = () => ({mood: !!mood, theme: curTheme(), saved: localStorage.grimTheme, smoke: !!document.getElementById('smoke')});
 
 /* ---------- init ---------- */
+document.querySelectorAll('.brand').forEach(b => { b.textContent = 'GRIM/OS ' + GRIMOS_VERSION; });
 setTheme(THEMES.includes(localStorage.grimTheme) ? localStorage.grimTheme : 'cyan', true); setCrt(localStorage.grimCrt !== '0', true);
 if (localStorage.grimFlicker === '1' || (localStorage.grimFlicker == null && !RM)) document.body.classList.add('flicker');
 refreshColors(); updateModes();
-say('GRIM/OS grimsh 2.6 — type "help". press ? for keys.');
+say('GRIM/OS grimsh ' + GRIMOS_VERSION + ' — type "help". press ? for keys.');
 say('motd: every track is free to download — type <button class="getlink" data-get="get ">get &lt;track#&gt;</button> or <button class="getlink" data-get="get --list">get --list</button> · try <button class="getlink" data-run="fire">fire</button> <button class="getlink" data-run="starfield">starfield</button> <button class="getlink" data-run="plasma">plasma</button> <button class="getlink" data-run="donut">donut</button> <button class="getlink" data-run="pipes">pipes</button>', true);
 document.querySelectorAll('.getlink').forEach(b => b.addEventListener('click', e => { e.preventDefault(); const c = $('#cmd'); jump('shell'); if (b.dataset.run) { c.value = b.dataset.run; $('#prompt').requestSubmit(); return; } c.value = b.dataset.get; c.focus({preventScroll: true}); c.setSelectionRange(c.value.length, c.value.length); }));
 load().then(() => requestAnimationFrame(frame));
