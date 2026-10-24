@@ -589,10 +589,10 @@ function smoke(on) {
  if (smk || RM) return;
  const mob = matchMedia('(max-width: 960px), (pointer: coarse)').matches;
  const c = document.createElement('canvas'); c.id = 'smoke'; c.setAttribute('aria-hidden', 'true');
- c.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:9000;opacity:' + (mob ? .18 : .28) + ';mix-blend-mode:screen;filter:blur(' + (mob ? 6 : 10) + 'px)';
+ c.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:9000;opacity:' + (mob ? .45 : .7) + ';mix-blend-mode:screen;filter:blur(' + (mob ? 6 : 10) + 'px)';
  document.body.appendChild(c); const g = c.getContext('2d'), sc = mob ? .35 : .5;
  const rs = () => { c.width = innerWidth * sc; c.height = innerHeight * sc; }; rs(); addEventListener('resize', rs);
- const P = Array.from({length: mob ? 14 : 28}, () => ({x: Math.random(), y: Math.random(), r: .12 + Math.random() * .22, vx: (Math.random() - .5) * .00012, vy: -.00006 - Math.random() * .0001, a: .25 + Math.random() * .35, ph: Math.random() * 6}));
+ const P = Array.from({length: mob ? 20 : 40}, () => ({x: Math.random(), y: Math.random(), r: .12 + Math.random() * .22, vx: (Math.random() - .5) * .00012, vy: -.00006 - Math.random() * .0001, a: .25 + Math.random() * .35, ph: Math.random() * 6}));
  let lt = 0; smk = {c, raf: 0};
  const step = ts => { smk.raf = requestAnimationFrame(step); if (ts - lt < (mob ? 50 : 33)) return; const dt = Math.min(80, ts - (lt || ts)); lt = ts;
   const W = c.width, H = c.height; g.clearRect(0, 0, W, H);
