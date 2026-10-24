@@ -61,7 +61,7 @@ kbd{font:inherit;color:var(--bg);background:var(--br);padding:0 .25em;margin-rig
 .manbody p{margin:0 0 .3em 2ch}.manbody .mh{margin:0;color:var(--dim)}
 #player{display:flex;flex-direction:column;min-height:0}
 .np{display:flex;gap:16px;align-items:center}
-.cover{margin:0;font:11px/11px "IBM Plex Mono",monospace;letter-spacing:0;white-space:pre;color:var(--fg);flex:none}
+.cover{margin:0;font:11px/11px "IBM Plex Mono",monospace;letter-spacing:0;white-space:pre;color:var(--fg);flex:none;box-sizing:content-box;width:37ch;height:209px;min-width:37ch;max-width:37ch;padding:6px;overflow:hidden;contain:strict;font-variant-ligatures:none;font-kerning:none}
 .cover .l{color:var(--hi)}.cover .a{color:var(--rec,var(--acc))}.cover .g{color:var(--dim)}
 .npinfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:.3em}
 #nptitle{color:var(--hi);font-size:1.35em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -127,7 +127,7 @@ input{font:inherit;color:var(--hi);background:transparent;border:none;border-bot
  .logo{font-size:7.5px}
  .viz{grid-template-columns:1fr;grid-template-areas:"spec" "scope" "wave"}
  .np{flex-direction:column;align-items:center}
- .cover{font-size:8px;line-height:8px}
+ .cover{font-size:8px;line-height:8px;height:152px}
  #keys{display:none}
  #crt{padding-bottom:1em}
  #clock{display:none}

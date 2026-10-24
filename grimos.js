@@ -43,6 +43,7 @@ async function load() {
  groups = gi + 1; let sc = 0; flat.forEach(t => { if (t.single) t.ti = sc++; });
  renderList(); updateModes();
  const s = new URLSearchParams(location.search).get('t'); if (s && flat[+s]) select(+s);
+ else { const d = flat.findIndex(t => /^let me be your problem$/i.test(t.title)); if (d >= 0) { cur = d; audio.preload = 'metadata'; audio.src = flat[d].file; setRecord(flat[d]); loadWave(flat[d]); select(d); updateNP(); } }
 }
 
 /* ---------- playlist ---------- */
@@ -247,7 +248,7 @@ function setCrt(on, quiet) { document.body.classList.toggle('nocrt', !on); local
 $('#bcrt').onclick = () => setCrt(document.body.classList.contains('nocrt'));
 /* matrix rain */
 let mx = null;
-function matrix() { if (mx) return; const c = document.createElement('canvas'); c.id = 'matrix'; c.setAttribute('aria-label', 'matrix rain, press any key to exit'); document.body.appendChild(c);
+function matrix() { if (mx || fxs) return; const c = document.createElement('canvas'); c.id = 'matrix'; c.setAttribute('aria-label', 'matrix rain, press any key to exit'); document.body.appendChild(c);
  const g = c.getContext('2d'), fs = 16, chars = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄ0123456789TOMGRIM♪♫'; let cols, drops;
  const size = () => { c.width = innerWidth; c.height = innerHeight; cols = Math.ceil(c.width / fs); drops = Array.from({length: cols}, () => Math.random() * -40); }; size();
  let last = 0; const stop = () => { if (!mx) return; cancelAnimationFrame(mx.raf); c.remove(); removeEventListener('keydown', onKey, true); mx = null; say('wake up, tom… the bassline has you.'); };
@@ -258,17 +259,64 @@ function matrix() { if (mx) return; const c = document.createElement('canvas'); 
    if (y > c.height && Math.random() > .975) drops[i] = 0; drops[i] += 1; } };
  mx = {raf: requestAnimationFrame(tick)}; c.addEventListener('pointerdown', stop); setTimeout(() => addEventListener('keydown', onKey, true), 50);
  if (RM) { g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height); g.fillStyle = colors.fg; g.font = '24px monospace'; g.fillText('MATRIX (reduced motion) — any key to exit', 20, 60); cancelAnimationFrame(mx.raf); } }
+
+/* ---------- fx: glitch / fire / hack / starfield ---------- */
+let fxs = null;
+function level() { if (an && !audio.paused) { fbuf = fbuf || new Uint8Array(an.frequencyBinCount); an.getByteFrequencyData(fbuf); let b = 0, m = 0; for (let i = 0; i < 24; i++) b += fbuf[i]; for (let i = 0; i < 256; i++) m += fbuf[i]; return {bass: b / 24 / 255, lvl: m / 256 / 255}; }
+ const t = performance.now() / 1000, beat = Math.pow(1 - (t * 2.1 % 1), 3); return {bass: beat * .8, lvl: .25 + beat * .35}; }
+function fxRun(name, msg, init, draw, dur) { if (fxs || mx) return; refreshColors(); const c = document.createElement('canvas'); c.id = 'matrix'; c.className = 'fx-' + name; c.setAttribute('aria-label', name + ' effect, press any key to exit'); document.body.appendChild(c);
+ const g = c.getContext('2d'), mob = innerWidth < 760 || matchMedia('(pointer:coarse)').matches, st = {mob, t0: performance.now()};
+ const size = () => { const dpr = mob ? 1 : Math.min(2, devicePixelRatio || 1); c.width = innerWidth * dpr; c.height = innerHeight * dpr; st.dpr = dpr; init(g, c, st); }; size(); addEventListener('resize', size);
+ const stop = () => { if (!fxs) return; cancelAnimationFrame(fxs.raf); clearTimeout(fxs.to); c.remove(); removeEventListener('keydown', onKey, true); removeEventListener('resize', size); fxs = null; if (msg) say(msg); };
+ const onKey = e => { e.preventDefault(); e.stopImmediatePropagation(); stop(); };
+ let last = 0; const step = mob ? 50 : 33;
+ const tick = now => { fxs.raf = requestAnimationFrame(tick); if (now - last < step) return; last = now; draw(g, c, st, (now - st.t0) / 1000, level()); };
+ fxs = {raf: 0, stop}; c.addEventListener('pointerdown', stop); setTimeout(() => addEventListener('keydown', onKey, true), 50);
+ if (RM) { draw(g, c, st, dur || 0, {bass: 0, lvl: .3}); g.fillStyle = colors.fg; g.font = 20 * st.dpr + 'px monospace'; g.fillText(name.toUpperCase() + ' (reduced motion) — any key to exit', 20 * st.dpr, 40 * st.dpr); }
+ else fxs.raf = requestAnimationFrame(tick); }
+function glitch() { fxRun('glitch', 'signal restored.', (g, c, st) => { st.lines = Array.from({length: 40}, () => ({y: Math.random(), h: Math.random() * .06, txt: Array.from({length: 120}, () => '01#@%&$/\\|<>'[Math.random() * 12 | 0]).join('')})); },
+ (g, c, st, t, L) => { const W = c.width, H = c.height, d = st.dpr, k = .3 + L.bass * 2.2, fs = 14 * d;
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H); g.font = 'bold ' + fs + 'px monospace';
+  const off = (Math.random() - .5) * 18 * k * d, word = 'tomGRIM', big = Math.min(W / 5, 160 * d);
+  st.lines.forEach((l, i) => { const y = l.y * H; g.globalAlpha = .35; g.fillStyle = i % 3 ? colors.dim : colors.fg; g.fillText(l.txt, ((t * 40 * (i % 5 + 1)) % 200) * d - 200 * d + (Math.random() < k * .15 ? off * 3 : 0), y); });
+  g.globalAlpha = 1; g.font = 'bold ' + big + 'px monospace'; g.textAlign = 'center'; g.globalCompositeOperation = 'lighter';
+  [['#f00', -1], ['#0f0', 0], ['#00f', 1]].forEach(([col, s]) => { g.fillStyle = col; g.fillText(word, W / 2 + s * off * 1.5, H / 2 + s * off * .4); });
+  g.globalCompositeOperation = 'source-over'; g.textAlign = 'left';
+  const n = 2 + (k * 6 | 0); for (let i = 0; i < n; i++) { const y = Math.random() * H | 0, h = (Math.random() * 40 * k + 2) * d | 0, dx = (Math.random() - .5) * 120 * k * d | 0; try { g.drawImage(c, 0, y, W, h, dx, y, W, h); } catch {} }
+  if (Math.random() < k * .2) { g.fillStyle = colors.hi; g.globalAlpha = .15; g.fillRect(0, Math.random() * H, W, 3 * d); g.globalAlpha = 1; }
+  g.fillStyle = 'rgba(0,0,0,.25)'; for (let y = 0; y < H; y += 3 * d) g.fillRect(0, y, W, d); }); }
+function fire() { const R = ' .:-=+*#%@'; fxRun('fire', 'the fire dies down to embers.', (g, c, st) => { st.fs = (st.mob ? 12 : 14) * st.dpr; st.cw = st.fs * .6; st.W = Math.ceil(c.width / st.cw); st.H = Math.ceil(c.height / st.fs); st.b = new Float32Array(st.W * (st.H + 2)); },
+ (g, c, st, t, L) => { const {W, H, b, fs, cw} = st, heat = .75 + L.bass * .6;
+  for (let x = 0; x < W; x++) b[(H + 1) * W + x] = Math.random() < .55 * heat ? 1.4 : 0;
+  for (let y = 0; y <= H; y++) for (let x = 0; x < W; x++) { const i = y * W + x, j = (y + 1) * W; b[i] = (b[j + (x - 1 + W) % W] + b[j + x] + b[j + (x + 1) % W] + (b[j + W + x] || 0)) / 4.05 - .004; if (b[i] < 0) b[i] = 0; }
+  g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height); g.font = fs + 'px monospace'; g.textBaseline = 'top';
+  for (let y = 0; y < H; y++) { let row = ''; const cols = [colors.dim, colors.fg, colors.acc, colors.hi];
+   for (let lv = 0; lv < 4; lv++) { row = ''; let any = false; for (let x = 0; x < W; x++) { const v = Math.min(1, b[y * W + x]), q = Math.min(3, v * 4 | 0); if (q === lv && v > .05) { row += R[Math.min(9, v * 10 | 0)]; any = true; } else row += ' '; }
+    if (any) { g.fillStyle = cols[lv]; g.fillText(row, 0, y * fs); } } } }); }
+function hack() { const hex = n => Array.from({length: n}, () => (Math.random() * 256 | 0).toString(16).padStart(2, '0')).join(' '), ip = () => [0, 0, 0, 0].map(() => Math.random() * 255 | 0).join('.');
+ const AG = ['  ___   _____  _____  _____  _____  _____ ', ' / _ \\ /  __ \\/  __ \\|  ___|/  ___|/  ___|', '/ /_\\ \\| /  \\/| /  \\/| |__  \\ `--. \\ `--. ', '|  _  || |    | |    |  __|  `--. \\ `--. \\', '| | | || \\__/\\| \\__/\\| |___ /\\__/ //\\__/ /', '\\_| |_/ \\____/ \\____/\\____/ \\____/ \\____/ ', '', '      G  R  A  N  T  E  D   ::  welcome, tom'];
+ const steps = ['tracing route to mainframe ' + ip(), 'bypassing firewall layer 1/3', 'bypassing firewall layer 2/3', 'bypassing firewall layer 3/3', 'injecting payload grim.so', 'cracking SHA-256 handshake', 'escalating privileges → root', 'downloading /vault/unreleased_stems.tar'];
+ fxRun('hack', 'connection closed by foreign host.', (g, c, st) => { st.fs = (st.mob ? 11 : 14) * st.dpr; st.rows = st.rows || []; },
+ (g, c, st, t) => { const fs = st.fs, W = c.width, H = c.height, maxR = Math.floor(H / fs) - 1; g.fillStyle = '#000'; g.fillRect(0, 0, W, H); g.font = fs + 'px monospace'; g.textBaseline = 'top';
+  if (t < 8.5) { for (let k = 0; k < 3; k++) { const r = Math.random(); st.rows.push(r < .6 ? ['d', '0x' + (Math.random() * 0xffffffff >>> 0).toString(16).padStart(8, '0') + '  ' + hex(st.mob ? 8 : 16)] : r < .85 ? ['d', '[' + ip() + ':' + (Math.random() * 65535 | 0) + '] SYN → ACK  ' + ['OK', 'OK', 'RETRY', 'OPEN'][Math.random() * 4 | 0]] : ['f', '>> ' + steps[Math.min(7, t / 1.05 | 0)]]); }
+   st.rows = st.rows.slice(-maxR + 3); st.rows.forEach((r, i) => { g.fillStyle = r[0] === 'f' ? colors.hi : colors.dim; g.fillText(r[1], 10 * st.dpr, i * fs); });
+   const p = Math.min(1, t / 8.5), bw = st.mob ? 24 : 40, s = steps[Math.min(7, t / 1.05 | 0)]; g.fillStyle = colors.fg; g.fillText(s.padEnd(42).slice(0, 42) + ' [' + '█'.repeat(p * bw | 0) + '░'.repeat(bw - (p * bw | 0)) + '] ' + (p * 100 | 0) + '%', 10 * st.dpr, H - fs * 1.6); }
+  else { const fs2 = Math.min(fs * 1.4, W / 46 / .6); g.font = 'bold ' + fs2 + 'px monospace'; g.fillStyle = (t * 4 | 0) % 2 ? colors.hi : colors.fg; const x = (W - 43 * fs2 * .6) / 2, y = (H - AG.length * fs2) / 2; AG.forEach((l, i) => g.fillText(l, x, y + i * fs2)); g.font = fs + 'px monospace'; g.fillStyle = colors.dim; g.fillText('press any key', x, y + (AG.length + 1) * fs2); } }, 9); }
+function starfield() { fxRun('starfield', 'dropping out of warp.', (g, c, st) => { st.n = st.mob ? 220 : 600; st.s = Array.from({length: st.n}, () => ({x: Math.random() * 2 - 1, y: Math.random() * 2 - 1, z: Math.random()})); },
+ (g, c, st, t, L) => { const W = c.width, H = c.height, cx = W / 2, cy = H / 2, sp = .004 + L.lvl * .05 + L.bass * .03, fs = 14 * st.dpr; g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, 0, W, H); g.font = fs + 'px monospace';
+  st.s.forEach(s => { s.z -= sp; if (s.z <= .01) { s.x = Math.random() * 2 - 1; s.y = Math.random() * 2 - 1; s.z = 1; } const px = cx + s.x / s.z * cx * .5, py = cy + s.y / s.z * cy * .5; if (px < 0 || px > W || py < 0 || py > H) { s.z = 0; return; }
+   const b = 1 - s.z; g.fillStyle = b > .8 ? colors.hi : b > .45 ? colors.fg : colors.dim; g.fillText(b > .85 ? '*' : b > .6 ? '+' : b > .3 ? '·' : '.', px, py); }); }); }
 function cowsay(t) { t = (t || 'moo. drop the bass.').slice(0, 200); const w = Math.min(36, Math.max(...t.split(' ').map(x => x.length), 4)); const lines = []; let l = '';
  t.split(/\s+/).forEach(word => { if ((l + ' ' + word).trim().length > w) { lines.push(l.trim()); l = word; } else l += ' ' + word; }); if (l.trim()) lines.push(l.trim());
  const W = Math.max(...lines.map(x => x.length)); let b = ' ' + '_'.repeat(W + 2) + '\n';
  lines.forEach((x, i) => { const [o, c] = lines.length === 1 ? ['<', '>'] : i === 0 ? ['/', '\\'] : i === lines.length - 1 ? ['\\', '/'] : ['|', '|']; b += `${o} ${x.padEnd(W)} ${c}\n`; });
  b += ' ' + '-'.repeat(W + 2) + '\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\  ♪♫  )\\/\\\n                ||----w |\n                ||     ||'; say(b); }
 const CMDS = {
- help: () => say('commands: help ls albums play <n|name> pause next prev bio links contact clear theme <' + THEMES.join('|') + '> themes crt on|off repeat shuffle vol <0-100> whoami fetch\nfun:      matrix (digital rain, any key exits) · cowsay <text>'),
+ help: () => say('commands: help ls albums play <n|name> pause next prev bio links contact clear theme <' + THEMES.join('|') + '> themes crt on|off repeat shuffle vol <0-100> whoami fetch\nfun:      matrix · glitch · fire · hack · starfield (visual fx, any key/click exits) · cowsay <text>'),
  themes: () => say('themes: ' + THEMES.map(t => t === curTheme() ? '[' + t + ']' : t).join(' ')),
  crt: a => { a = (a || '').trim(); if (a === 'on' || a === 'off') setCrt(a === 'on'); else if (!a) setCrt(document.body.classList.contains('nocrt')); else say('usage: crt on|off'); },
  photos: () => { say(`~/photos: ${PHOTOS.length} frames · click one or use ←/→ in the viewer`); jump('photos'); }, gallery: () => CMDS.photos(),
- matrix: () => matrix(), cowsay: a => cowsay(a),
+ matrix: () => matrix(), glitch: () => glitch(), fire: () => fire(), hack: () => hack(), starfield: () => starfield(), stars: () => starfield(), cowsay: a => cowsay(a),
  ls: () => flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}${t.special ? ' ★' : ''}  [${t.single ? 'single' : t.al.title}]`)),
  albums: () => data.albums.forEach((a, i) => say(`[${String.fromCharCode(65 + (flat.find(t => t.al === a)?.ai ?? i))}] ${a.title}${a.year ? ' (' + a.year + ')' : ''} — ${a.type || 'album'}, ${a.tracks.length} tracks${a.blurb ? ' · ' + a.blurb : ''}`)),
  play: a => { if (!a) return toggle(); const n = parseInt(a, 10); if (n >= 1 && n <= flat.length) { play(n - 1); say('playing ' + flat[n - 1].title); } else { const i = flat.findIndex(t => t.title.toLowerCase().includes(a.toLowerCase())); i >= 0 ? (play(i), say('playing ' + flat[i].title)) : say('no such track: ' + a); } },
