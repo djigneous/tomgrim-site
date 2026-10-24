@@ -550,7 +550,7 @@ function knobDraw(k) { const K = KNOBS[k]; if (!K) return; const d = FXK[k], v =
  K.el.setAttribute('aria-valuenow', Math.round(v)); K.el.setAttribute('aria-valuetext', fxFmt(k, v)); K.ro.textContent = fxFmt(k, v); K.el.classList.toggle('on', v !== d.def); }
 function knobsBuild() { const box = $('#fxknobs'); if (!box) return; const NS = 'http://www.w3.org/2000/svg';
  for (const [k, d] of Object.entries(FXK)) { const el = document.createElement('div'); el.className = 'knob k-' + k; el.tabIndex = 0; el.setAttribute('role', 'slider'); el.setAttribute('aria-label', d.label.toLowerCase() + ' knob'); el.setAttribute('aria-valuemin', d.min); el.setAttribute('aria-valuemax', d.max);
-  el.innerHTML = `<span class="kro"></span><span class="kled" aria-hidden="true"></span><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="kbody" cx="20" cy="20" r="11.5"/><path class="ktrack" d="${karc(ARC0, ARC0 + ARC, 15)}"/><path class="kval"/><line class="kptr"/></svg><span class="klbl">${d.label}</span>`;
+  el.innerHTML = `<span class="kro"></span><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="kbody" cx="20" cy="20" r="11.5"/><path class="ktrack" d="${karc(ARC0, ARC0 + ARC, 15)}"/><path class="kval"/><line class="kptr"/></svg><span class="klbl">${d.label}<span class="kled" aria-hidden="true"></span></span>`;
   box.appendChild(el); KNOBS[k] = {el, val: el.querySelector('.kval'), ptr: el.querySelector('.kptr'), ro: el.querySelector('.kro')};
   const span = d.max - d.min; let drag = null, lastTap = 0;
   el.addEventListener('pointerdown', e => { e.preventDefault(); el.focus({preventScroll: true}); const now = Date.now(); if (e.pointerType !== 'mouse' && now - lastTap < 300) { fxSet(k, d.def); lastTap = 0; return; } lastTap = now;

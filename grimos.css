@@ -305,3 +305,19 @@ body.nocolor .sx-bad{text-decoration:none}
 #fxknobs .k-filter{--led:#3fe4ff}#fxknobs .k-res{--led:#ffb12a}#fxknobs .k-verb{--led:#4dff6e}#fxknobs .k-crush{--led:#ff4646}
 #fxknobs .kro{top:-14px}
 @media (max-width:480px){#fxknobs .knob svg{width:32px;height:32px}#fxknobs .knob{flex-basis:56px}}
+/* FX panel v2: LED right of label, compact */
+.fxbox{padding-bottom:3px}
+.fxbox>.lbl{margin:3px 0 0}
+#fxknobs{margin:-6px 0 0;align-items:center}
+#fxknobs .knob{padding-top:0}
+
+#fxknobs .knob svg{width:38px;height:38px}
+#fxknobs .klbl{display:inline-flex;align-items:center;gap:4px;margin-top:-2px;line-height:1}
+#fxknobs .kled{position:static;margin:0;width:6px;height:6px;flex:none}
+#fxknobs .kro{top:-12px}
+@media (max-width:480px){#fxknobs .knob svg{width:36px;height:36px}}
+/* transport spans the VOL row; widths proportional, independent of text */
+.npinfo .transport{display:flex;width:100%;gap:.25em;flex-wrap:nowrap}
+.npinfo .transport button{min-width:0;flex-basis:0;flex-shrink:1}
+#bprev,#bnext{width:auto;flex-grow:3.4}#bplay{width:auto;flex-grow:9}#brep{width:auto;flex-grow:11}#bshuf{width:auto;flex-grow:9}
+.volrow #volpct{margin-left:auto}
