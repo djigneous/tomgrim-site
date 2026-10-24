@@ -8,7 +8,29 @@
       "year": 2026,
       "blurb": "The debut tomGRIM EP: three slow-burning tracks.",
       "cover": "assets/cover-web.jpg",
-      "tracks": []
+      "tracks": [
+        {
+          "title": "Graveyard Over the Fire",
+          "file": "assets/audio/ember-hours/01-graveyard-over-the-fire.mp3",
+          "duration_sec": 226.0,
+          "bpm": 123,
+          "original": "assets/track1.mp3"
+        },
+        {
+          "title": "Kickflip My Heart",
+          "file": "assets/audio/ember-hours/02-kickflip-my-heart.mp3",
+          "duration_sec": 140.0,
+          "bpm": 129,
+          "original": "assets/track2.mp3"
+        },
+        {
+          "title": "Telling Me",
+          "file": "assets/audio/ember-hours/03-telling-me.mp3",
+          "duration_sec": 270.0,
+          "bpm": 99,
+          "original": "assets/track3.mp3"
+        }
+      ]
     },
     {
       "id": "elements",
@@ -17,7 +39,43 @@
       "year": 2026,
       "blurb": "Five remastered ign3ous-era cuts, the original elements before 2023's Elements II.",
       "cover": "assets/covers/elements.jpg",
-      "tracks": []
+      "tracks": [
+        {
+          "title": "Walking Green",
+          "file": "assets/audio/elements/01-walking-green.mp3",
+          "duration_sec": 403.5,
+          "bpm": 123,
+          "original": "ign3ous_-_walking_green.mp3"
+        },
+        {
+          "title": "Kids at Play",
+          "file": "assets/audio/elements/02-kids-at-play.mp3",
+          "duration_sec": 270.1,
+          "bpm": 129,
+          "original": "ign3ous - kids at play.mp3"
+        },
+        {
+          "title": "Robots",
+          "file": "assets/audio/elements/03-robots.mp3",
+          "duration_sec": 484.4,
+          "bpm": 129,
+          "original": "ign3ous - robots.mp3"
+        },
+        {
+          "title": "No Good",
+          "file": "assets/audio/elements/04-no-good.mp3",
+          "duration_sec": 361.9,
+          "bpm": 136,
+          "original": "igneous_-_no_good70799.mp3"
+        },
+        {
+          "title": "February Static",
+          "file": "assets/audio/elements/05-february-static.mp3",
+          "duration_sec": 359.1,
+          "bpm": 123,
+          "original": "ign3ous_-_febnew.mp3"
+        }
+      ]
     },
     {
       "id": "night-signals",
@@ -26,7 +84,43 @@
       "year": 2026,
       "blurb": "Breakbeat, electro and late-night downtempo transmissions from the Lehigh Valley.",
       "cover": "assets/covers/night-signals.jpg",
-      "tracks": []
+      "tracks": [
+        {
+          "title": "Menace",
+          "file": "assets/audio/night-signals/01-menace.mp3",
+          "duration_sec": 177.3,
+          "bpm": 152,
+          "original": "tomGRIM-menace.mp3"
+        },
+        {
+          "title": "Animal Instinct",
+          "file": "assets/audio/night-signals/02-animal-instinct.mp3",
+          "duration_sec": 248.1,
+          "bpm": 123,
+          "original": "ANIMALS4.mp3"
+        },
+        {
+          "title": "Unnamed Frequency",
+          "file": "assets/audio/night-signals/03-unnamed-frequency.mp3",
+          "duration_sec": 153.0,
+          "bpm": 129,
+          "original": "IG3-NO TITLE.wav"
+        },
+        {
+          "title": "Ninety-Six Something",
+          "file": "assets/audio/night-signals/04-ninety-six-something.mp3",
+          "duration_sec": 205.6,
+          "bpm": 96,
+          "original": "96sOMETHING.Mp3 (Drive: 96SOMETHING.mp3)"
+        },
+        {
+          "title": "Uplift",
+          "file": "assets/audio/night-signals/05-uplift.mp3",
+          "duration_sec": 243.3,
+          "bpm": 99,
+          "original": "upliftingisharrange.mp3"
+        }
+      ]
     },
     {
       "id": "phosphor-cache",
@@ -35,7 +129,526 @@
       "year": 2026,
       "blurb": "A loop pack cut from the tomGRIM vault. Bar-snapped seamless loops for listening on repeat.",
       "cover": "assets/covers/phosphor-cache.jpg",
-      "tracks": []
+      "tracks": [
+        {
+          "title": "A Stranger's Thing - Loop A (intro) - 99bpm",
+          "file": "assets/audio/loops/a-stranger-s-thing-loop-a-intro-99bpm.mp3",
+          "duration_sec": 38.78,
+          "bpm": 99,
+          "original": "tomGRIM-a-strangers-thing.mp3"
+        },
+        {
+          "title": "A Stranger's Thing - Loop B (groove) - 99bpm",
+          "file": "assets/audio/loops/a-stranger-s-thing-loop-b-groove-99bpm.mp3",
+          "duration_sec": 39.1,
+          "bpm": 99,
+          "original": "tomGRIM-a-strangers-thing.mp3"
+        },
+        {
+          "title": "A Stranger's Thing - Loop C (peak) - 99bpm",
+          "file": "assets/audio/loops/a-stranger-s-thing-loop-c-peak-99bpm.mp3",
+          "duration_sec": 38.8,
+          "bpm": 99,
+          "original": "tomGRIM-a-strangers-thing.mp3"
+        },
+        {
+          "title": "Aim High at Me - Loop A (peak) - 112bpm",
+          "file": "assets/audio/loops/aim-high-at-me-loop-a-peak-112bpm.mp3",
+          "duration_sec": 33.97,
+          "bpm": 112,
+          "original": "tomGRIM-aim-high-at-me.mp3"
+        },
+        {
+          "title": "Aim High at Me - Loop B (intro) - 112bpm",
+          "file": "assets/audio/loops/aim-high-at-me-loop-b-intro-112bpm.mp3",
+          "duration_sec": 33.99,
+          "bpm": 112,
+          "original": "tomGRIM-aim-high-at-me.mp3"
+        },
+        {
+          "title": "Aim High at Me - Loop C (groove) - 112bpm",
+          "file": "assets/audio/loops/aim-high-at-me-loop-c-groove-112bpm.mp3",
+          "duration_sec": 33.99,
+          "bpm": 112,
+          "original": "tomGRIM-aim-high-at-me.mp3"
+        },
+        {
+          "title": "Believe (tomGRIM Remix) - Loop A (groove) - 123bpm",
+          "file": "assets/audio/loops/believe-tomgrim-remix-loop-a-groove-123bpm.mp3",
+          "duration_sec": 31.74,
+          "bpm": 123,
+          "original": "gus-gus-believe-tomgrimremix3.mp3"
+        },
+        {
+          "title": "Believe (tomGRIM Remix) - Loop B (ambient) - 123bpm",
+          "file": "assets/audio/loops/believe-tomgrim-remix-loop-b-ambient-123bpm.mp3",
+          "duration_sec": 31.74,
+          "bpm": 123,
+          "original": "gus-gus-believe-tomgrimremix3.mp3"
+        },
+        {
+          "title": "Believe (tomGRIM Remix) - Loop C (peak) - 123bpm",
+          "file": "assets/audio/loops/believe-tomgrim-remix-loop-c-peak-123bpm.mp3",
+          "duration_sec": 31.74,
+          "bpm": 123,
+          "original": "gus-gus-believe-tomgrimremix3.mp3"
+        },
+        {
+          "title": "Climbing Up the Walls (tomGRIM Remix) - Loop A (intro) - 152bpm",
+          "file": "assets/audio/loops/climbing-up-the-walls-tomgrim-remix-loop-a-intro-152bpm.mp3",
+          "duration_sec": 51.9,
+          "bpm": 152,
+          "original": "radiohead-climbinguothewalls-tgremix.mp3"
+        },
+        {
+          "title": "Climbing Up the Walls (tomGRIM Remix) - Loop B (groove) - 152bpm",
+          "file": "assets/audio/loops/climbing-up-the-walls-tomgrim-remix-loop-b-groove-152bpm.mp3",
+          "duration_sec": 51.9,
+          "bpm": 152,
+          "original": "radiohead-climbinguothewalls-tgremix.mp3"
+        },
+        {
+          "title": "Climbing Up the Walls (tomGRIM Remix) - Loop C (peak) - 152bpm",
+          "file": "assets/audio/loops/climbing-up-the-walls-tomgrim-remix-loop-c-peak-152bpm.mp3",
+          "duration_sec": 51.85,
+          "bpm": 152,
+          "original": "radiohead-climbinguothewalls-tgremix.mp3"
+        },
+        {
+          "title": "Deep Breaks - Loop A (peak) - 136bpm",
+          "file": "assets/audio/loops/deep-breaks-loop-a-peak-136bpm.mp3",
+          "duration_sec": 35.55,
+          "bpm": 136,
+          "original": "tg-deep-breaks01.mp3"
+        },
+        {
+          "title": "Deep Breaks - Loop B (groove) - 136bpm",
+          "file": "assets/audio/loops/deep-breaks-loop-b-groove-136bpm.mp3",
+          "duration_sec": 35.55,
+          "bpm": 136,
+          "original": "tg-deep-breaks01.mp3"
+        },
+        {
+          "title": "Don't Want to Be - Loop A (intro) - 123bpm",
+          "file": "assets/audio/loops/don-t-want-to-be-loop-a-intro-123bpm.mp3",
+          "duration_sec": 32.0,
+          "bpm": 123,
+          "original": "tomGRIM - Dont Want To Be"
+        },
+        {
+          "title": "Don't Want to Be - Loop B (groove) - 123bpm",
+          "file": "assets/audio/loops/don-t-want-to-be-loop-b-groove-123bpm.mp3",
+          "duration_sec": 32.0,
+          "bpm": 123,
+          "original": "tomGRIM - Dont Want To Be"
+        },
+        {
+          "title": "Don't Want to Be - Loop C (peak) - 123bpm",
+          "file": "assets/audio/loops/don-t-want-to-be-loop-c-peak-123bpm.mp3",
+          "duration_sec": 32.0,
+          "bpm": 123,
+          "original": "tomGRIM - Dont Want To Be"
+        },
+        {
+          "title": "Doo Doo Da Do - Loop A (intro) - 152bpm",
+          "file": "assets/audio/loops/doo-doo-da-do-loop-a-intro-152bpm.mp3",
+          "duration_sec": 49.23,
+          "bpm": 152,
+          "original": "doo-doo-da-do04.wav"
+        },
+        {
+          "title": "Doo Doo Da Do - Loop B (peak) - 152bpm",
+          "file": "assets/audio/loops/doo-doo-da-do-loop-b-peak-152bpm.mp3",
+          "duration_sec": 49.23,
+          "bpm": 152,
+          "original": "doo-doo-da-do04.wav"
+        },
+        {
+          "title": "Doo Doo Da Do - Loop C (groove) - 152bpm",
+          "file": "assets/audio/loops/doo-doo-da-do-loop-c-groove-152bpm.mp3",
+          "duration_sec": 49.23,
+          "bpm": 152,
+          "original": "doo-doo-da-do04.wav"
+        },
+        {
+          "title": "Eyes On You - Loop A (groove) - 112bpm",
+          "file": "assets/audio/loops/eyes-on-you-loop-a-groove-112bpm.mp3",
+          "duration_sec": 34.27,
+          "bpm": 112,
+          "original": "ig3-eyes-on-you-006-ARGMT.mp3"
+        },
+        {
+          "title": "Eyes On You - Loop B (peak) - 112bpm",
+          "file": "assets/audio/loops/eyes-on-you-loop-b-peak-112bpm.mp3",
+          "duration_sec": 34.27,
+          "bpm": 112,
+          "original": "ig3-eyes-on-you-006-ARGMT.mp3"
+        },
+        {
+          "title": "Eyes On You - Loop C (ambient) - 112bpm",
+          "file": "assets/audio/loops/eyes-on-you-loop-c-ambient-112bpm.mp3",
+          "duration_sec": 34.3,
+          "bpm": 112,
+          "original": "ig3-eyes-on-you-006-ARGMT.mp3"
+        },
+        {
+          "title": "Fall Changes - Loop A (groove) - 129bpm",
+          "file": "assets/audio/loops/fall-changes-loop-a-groove-129bpm.mp3",
+          "duration_sec": 29.98,
+          "bpm": 129,
+          "original": "uploadtomGRIM - Fall Changes (Extended Version).mp3"
+        },
+        {
+          "title": "Fall Changes - Loop B (peak) - 129bpm",
+          "file": "assets/audio/loops/fall-changes-loop-b-peak-129bpm.mp3",
+          "duration_sec": 30.0,
+          "bpm": 129,
+          "original": "uploadtomGRIM - Fall Changes (Extended Version).mp3"
+        },
+        {
+          "title": "Fall Changes - Loop C (ambient) - 129bpm",
+          "file": "assets/audio/loops/fall-changes-loop-c-ambient-129bpm.mp3",
+          "duration_sec": 30.0,
+          "bpm": 129,
+          "original": "uploadtomGRIM - Fall Changes (Extended Version).mp3"
+        },
+        {
+          "title": "Force of Impact - Loop A (peak) - 136bpm",
+          "file": "assets/audio/loops/force-of-impact-loop-a-peak-136bpm.mp3",
+          "duration_sec": 56.14,
+          "bpm": 136,
+          "original": "Igneous - Force of Impact.mp3"
+        },
+        {
+          "title": "Force of Impact - Loop B (groove) - 136bpm",
+          "file": "assets/audio/loops/force-of-impact-loop-b-groove-136bpm.mp3",
+          "duration_sec": 56.05,
+          "bpm": 136,
+          "original": "Igneous - Force of Impact.mp3"
+        },
+        {
+          "title": "Force of Impact - Loop C (breakdown) - 136bpm",
+          "file": "assets/audio/loops/force-of-impact-loop-c-breakdown-136bpm.mp3",
+          "duration_sec": 56.26,
+          "bpm": 136,
+          "original": "Igneous - Force of Impact.mp3"
+        },
+        {
+          "title": "Funky Breaks - Loop A (groove) - 96bpm",
+          "file": "assets/audio/loops/funky-breaks-loop-a-groove-96bpm.mp3",
+          "duration_sec": 30.63,
+          "bpm": 96,
+          "original": "funky breaks oct30-2025-3.mp3"
+        },
+        {
+          "title": "Funky Breaks - Loop B (peak) - 96bpm",
+          "file": "assets/audio/loops/funky-breaks-loop-b-peak-96bpm.mp3",
+          "duration_sec": 30.65,
+          "bpm": 96,
+          "original": "funky breaks oct30-2025-3.mp3"
+        },
+        {
+          "title": "Gaia Theory - Loop A (groove) - 112bpm",
+          "file": "assets/audio/loops/gaia-theory-loop-a-groove-112bpm.mp3",
+          "duration_sec": 34.9,
+          "bpm": 112,
+          "original": "01_GaiaTheory_Demo.wav"
+        },
+        {
+          "title": "Gaia Theory - Loop B (ambient) - 112bpm",
+          "file": "assets/audio/loops/gaia-theory-loop-b-ambient-112bpm.mp3",
+          "duration_sec": 34.92,
+          "bpm": 112,
+          "original": "01_GaiaTheory_Demo.wav"
+        },
+        {
+          "title": "Gaia Theory - Loop C (peak) - 112bpm",
+          "file": "assets/audio/loops/gaia-theory-loop-c-peak-112bpm.mp3",
+          "duration_sec": 34.95,
+          "bpm": 112,
+          "original": "01_GaiaTheory_Demo.wav"
+        },
+        {
+          "title": "Let You Go (2026 Remix) - Loop A (groove) - 117bpm",
+          "file": "assets/audio/loops/let-you-go-2026-remix-loop-a-groove-117bpm.mp3",
+          "duration_sec": 31.97,
+          "bpm": 117,
+          "original": "let-you-go-2026rmx.mp3"
+        },
+        {
+          "title": "Let You Go (2026 Remix) - Loop B (peak) - 117bpm",
+          "file": "assets/audio/loops/let-you-go-2026-remix-loop-b-peak-117bpm.mp3",
+          "duration_sec": 32.02,
+          "bpm": 117,
+          "original": "let-you-go-2026rmx.mp3"
+        },
+        {
+          "title": "Let You Go (2026 Remix) - Loop C (breakdown) - 117bpm",
+          "file": "assets/audio/loops/let-you-go-2026-remix-loop-c-breakdown-117bpm.mp3",
+          "duration_sec": 31.97,
+          "bpm": 117,
+          "original": "let-you-go-2026rmx.mp3"
+        },
+        {
+          "title": "Love You - Loop A (peak) - 129bpm",
+          "file": "assets/audio/loops/love-you-loop-a-peak-129bpm.mp3",
+          "duration_sec": 30.0,
+          "bpm": 129,
+          "original": "loveyou3.mp3"
+        },
+        {
+          "title": "Love You - Loop B (breakdown) - 129bpm",
+          "file": "assets/audio/loops/love-you-loop-b-breakdown-129bpm.mp3",
+          "duration_sec": 30.0,
+          "bpm": 129,
+          "original": "loveyou3.mp3"
+        },
+        {
+          "title": "Love You - Loop C (groove) - 129bpm",
+          "file": "assets/audio/loops/love-you-loop-c-groove-129bpm.mp3",
+          "duration_sec": 30.02,
+          "bpm": 129,
+          "original": "loveyou3.mp3"
+        },
+        {
+          "title": "Magnew - Loop A (peak) - 144bpm",
+          "file": "assets/audio/loops/magnew-loop-a-peak-144bpm.mp3",
+          "duration_sec": 52.25,
+          "bpm": 144,
+          "original": "MAGNEW-09-23-25C (wav)"
+        },
+        {
+          "title": "Magnew - Loop B (ambient) - 144bpm",
+          "file": "assets/audio/loops/magnew-loop-b-ambient-144bpm.mp3",
+          "duration_sec": 52.24,
+          "bpm": 144,
+          "original": "MAGNEW-09-23-25C (wav)"
+        },
+        {
+          "title": "Magnew - Loop C (groove) - 144bpm",
+          "file": "assets/audio/loops/magnew-loop-c-groove-144bpm.mp3",
+          "duration_sec": 52.25,
+          "bpm": 144,
+          "original": "MAGNEW-09-23-25C (wav)"
+        },
+        {
+          "title": "Moby Roll - Loop A (groove) - 103bpm",
+          "file": "assets/audio/loops/moby-roll-loop-a-groove-103bpm.mp3",
+          "duration_sec": 37.29,
+          "bpm": 103,
+          "original": "mobyroll3-arngmnt1.mp3"
+        },
+        {
+          "title": "Moby Roll - Loop B (peak) - 103bpm",
+          "file": "assets/audio/loops/moby-roll-loop-b-peak-103bpm.mp3",
+          "duration_sec": 37.29,
+          "bpm": 103,
+          "original": "mobyroll3-arngmnt1.mp3"
+        },
+        {
+          "title": "Moonlight - Loop A (peak) - 136bpm",
+          "file": "assets/audio/loops/moonlight-loop-a-peak-136bpm.mp3",
+          "duration_sec": 56.89,
+          "bpm": 136,
+          "original": "moonlight2.wav"
+        },
+        {
+          "title": "Moonlight - Loop B (groove) - 136bpm",
+          "file": "assets/audio/loops/moonlight-loop-b-groove-136bpm.mp3",
+          "duration_sec": 56.89,
+          "bpm": 136,
+          "original": "moonlight2.wav"
+        },
+        {
+          "title": "Moonlight - Loop C (ambient) - 136bpm",
+          "file": "assets/audio/loops/moonlight-loop-c-ambient-136bpm.mp3",
+          "duration_sec": 56.89,
+          "bpm": 136,
+          "original": "moonlight2.wav"
+        },
+        {
+          "title": "Nothing Redux - Loop A (groove) - 117bpm",
+          "file": "assets/audio/loops/nothing-redux-loop-a-groove-117bpm.mp3",
+          "duration_sec": 33.37,
+          "bpm": 117,
+          "original": "NOTHGIN2-RED.O.mp3"
+        },
+        {
+          "title": "Nothing Redux - Loop B (peak) - 117bpm",
+          "file": "assets/audio/loops/nothing-redux-loop-b-peak-117bpm.mp3",
+          "duration_sec": 33.39,
+          "bpm": 117,
+          "original": "NOTHGIN2-RED.O.mp3"
+        },
+        {
+          "title": "Nothing Redux - Loop C (ambient) - 117bpm",
+          "file": "assets/audio/loops/nothing-redux-loop-c-ambient-117bpm.mp3",
+          "duration_sec": 33.39,
+          "bpm": 117,
+          "original": "NOTHGIN2-RED.O.mp3"
+        },
+        {
+          "title": "Outlife - Loop A (groove) - 99bpm",
+          "file": "assets/audio/loops/outlife-loop-a-groove-99bpm.mp3",
+          "duration_sec": 38.41,
+          "bpm": 99,
+          "original": "outlife008.mp3"
+        },
+        {
+          "title": "Outlife - Loop B (peak) - 99bpm",
+          "file": "assets/audio/loops/outlife-loop-b-peak-99bpm.mp3",
+          "duration_sec": 38.4,
+          "bpm": 99,
+          "original": "outlife008.mp3"
+        },
+        {
+          "title": "Outlife - Loop C (breakdown) - 99bpm",
+          "file": "assets/audio/loops/outlife-loop-c-breakdown-99bpm.mp3",
+          "duration_sec": 38.41,
+          "bpm": 99,
+          "original": "outlife008.mp3"
+        },
+        {
+          "title": "Pumped Up Kicks (tomGRIM Flip) - Loop A (peak) - 96bpm",
+          "file": "assets/audio/loops/pumped-up-kicks-tomgrim-flip-loop-a-peak-96bpm.mp3",
+          "duration_sec": 39.59,
+          "bpm": 96,
+          "original": "many-pumpedup-kicks.wav"
+        },
+        {
+          "title": "Real Love - Loop A (groove) - 129bpm",
+          "file": "assets/audio/loops/real-love-loop-a-groove-129bpm.mp3",
+          "duration_sec": 30.0,
+          "bpm": 129,
+          "original": "real love-arrange9.wav"
+        },
+        {
+          "title": "Real Love - Loop B (peak) - 129bpm",
+          "file": "assets/audio/loops/real-love-loop-b-peak-129bpm.mp3",
+          "duration_sec": 30.0,
+          "bpm": 129,
+          "original": "real love-arrange9.wav"
+        },
+        {
+          "title": "Sonic Casino Night - Loop A (groove) - 103bpm",
+          "file": "assets/audio/loops/sonic-casino-night-loop-a-groove-103bpm.mp3",
+          "duration_sec": 36.92,
+          "bpm": 103,
+          "original": "tomGRIM-sonic-casino-night.mp3"
+        },
+        {
+          "title": "Sonic Casino Night - Loop B (peak) - 103bpm",
+          "file": "assets/audio/loops/sonic-casino-night-loop-b-peak-103bpm.mp3",
+          "duration_sec": 36.94,
+          "bpm": 103,
+          "original": "tomGRIM-sonic-casino-night.mp3"
+        },
+        {
+          "title": "Stop - Loop A (intro) - 96bpm",
+          "file": "assets/audio/loops/stop-loop-a-intro-96bpm.mp3",
+          "duration_sec": 40.38,
+          "bpm": 96,
+          "original": "ig3-stop.mp3"
+        },
+        {
+          "title": "Stop - Loop B (groove) - 96bpm",
+          "file": "assets/audio/loops/stop-loop-b-groove-96bpm.mp3",
+          "duration_sec": 39.38,
+          "bpm": 96,
+          "original": "ig3-stop.mp3"
+        },
+        {
+          "title": "Stop - Loop C (peak) - 96bpm",
+          "file": "assets/audio/loops/stop-loop-c-peak-96bpm.mp3",
+          "duration_sec": 39.87,
+          "bpm": 96,
+          "original": "ig3-stop.mp3"
+        },
+        {
+          "title": "System Overload - Loop A (peak) - 96bpm",
+          "file": "assets/audio/loops/system-overload-loop-a-peak-96bpm.mp3",
+          "duration_sec": 39.99,
+          "bpm": 96,
+          "original": "system-overload.mp3"
+        },
+        {
+          "title": "System Overload - Loop B (groove) - 96bpm",
+          "file": "assets/audio/loops/system-overload-loop-b-groove-96bpm.mp3",
+          "duration_sec": 40.01,
+          "bpm": 96,
+          "original": "system-overload.mp3"
+        },
+        {
+          "title": "Untsche - Loop A (groove) - 148bpm",
+          "file": "assets/audio/loops/untsche-loop-a-groove-148bpm.mp3",
+          "duration_sec": 39.17,
+          "bpm": 148,
+          "original": "UNTSCHE-08-27-25 version2.mp3"
+        },
+        {
+          "title": "Untsche - Loop B (peak) - 148bpm",
+          "file": "assets/audio/loops/untsche-loop-b-peak-148bpm.mp3",
+          "duration_sec": 39.17,
+          "bpm": 148,
+          "original": "UNTSCHE-08-27-25 version2.mp3"
+        },
+        {
+          "title": "Upside Down Around - Loop A (groove) - 117bpm",
+          "file": "assets/audio/loops/upside-down-around-loop-a-groove-117bpm.mp3",
+          "duration_sec": 32.0,
+          "bpm": 117,
+          "original": "IG3-UPSIDEDOWNAROUND.wav"
+        },
+        {
+          "title": "Upside Down Around - Loop B (peak) - 117bpm",
+          "file": "assets/audio/loops/upside-down-around-loop-b-peak-117bpm.mp3",
+          "duration_sec": 32.0,
+          "bpm": 117,
+          "original": "IG3-UPSIDEDOWNAROUND.wav"
+        },
+        {
+          "title": "Upside Down Around - Loop C (breakdown) - 117bpm",
+          "file": "assets/audio/loops/upside-down-around-loop-c-breakdown-117bpm.mp3",
+          "duration_sec": 32.02,
+          "bpm": 117,
+          "original": "IG3-UPSIDEDOWNAROUND.wav"
+        },
+        {
+          "title": "Where Do the Days Go - Loop A (groove) - 152bpm",
+          "file": "assets/audio/loops/where-do-the-days-go-loop-a-groove-152bpm.mp3",
+          "duration_sec": 30.77,
+          "bpm": 152,
+          "original": "157- WHERE DO THE DAYS GO2.wav"
+        },
+        {
+          "title": "Where Do the Days Go - Loop B (peak) - 152bpm",
+          "file": "assets/audio/loops/where-do-the-days-go-loop-b-peak-152bpm.mp3",
+          "duration_sec": 30.77,
+          "bpm": 152,
+          "original": "157- WHERE DO THE DAYS GO2.wav"
+        },
+        {
+          "title": "Won't Cry, My Tears Will Dry - Loop A (groove) - 129bpm",
+          "file": "assets/audio/loops/won-t-cry-my-tears-will-dry-loop-a-groove-129bpm.mp3",
+          "duration_sec": 30.0,
+          "bpm": 129,
+          "original": "ig3-Won't Cry, My Tears Will Dry.wav"
+        },
+        {
+          "title": "Won't Cry, My Tears Will Dry - Loop B (peak) - 129bpm",
+          "file": "assets/audio/loops/won-t-cry-my-tears-will-dry-loop-b-peak-129bpm.mp3",
+          "duration_sec": 29.98,
+          "bpm": 129,
+          "original": "ig3-Won't Cry, My Tears Will Dry.wav"
+        },
+        {
+          "title": "Won't Cry, My Tears Will Dry - Loop C (ambient) - 129bpm",
+          "file": "assets/audio/loops/won-t-cry-my-tears-will-dry-loop-c-ambient-129bpm.mp3",
+          "duration_sec": 29.95,
+          "bpm": 129,
+          "original": "ig3-Won't Cry, My Tears Will Dry.wav"
+        }
+      ]
     }
   ]
 }
