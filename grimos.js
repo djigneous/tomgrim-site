@@ -581,7 +581,7 @@ let mood = null;
 function trackMood(t) {
  const want = t && /^graveyard over the fire$/i.test(t.title);
  if (want && !mood) { mood = {prev: curTheme()}; if (THEMES.includes('fire')) setTheme('fire', 'mood'); smoke(true); }
- else if (!want && mood) { const p = mood.prev; mood = null; setTheme(p, 'mood'); smoke(false); }
+ else if (!want && mood) { const p = mood.prev; mood = null; setTheme(p, 'mood'); smoke(false); cueClear(); }
 }
 let smk = null;
 function smoke(on) {
@@ -601,6 +601,23 @@ function smoke(on) {
    gr.addColorStop(0, `rgba(210,205,200,${p.a})`); gr.addColorStop(1, 'rgba(210,205,200,0)'); g.fillStyle = gr; g.fillRect(x - R0, y - R0, R0 * 2, R0 * 2); } };
  smk.raf = requestAnimationFrame(step);
 }
+/* Graveyard cue: 0:46 fade to black (2s), 0:48 full-screen fire — driven by audio.currentTime */
+const CUE_B = 46, CUE_F = 48; const cue = {dismissed: false, fx: false, el: null};
+function cueBlack(o) { if (o <= 0) { if (cue.el) { cue.el.remove(); cue.el = null; } return; }
+ if (!cue.el) { cue.el = document.createElement('div'); cue.el.id = 'cueblack'; cue.el.style.cssText = 'position:fixed;inset:0;background:#000;z-index:8990;opacity:0;transition:opacity .12s linear;cursor:pointer'; document.body.appendChild(cue.el); }
+ cue.el.style.opacity = Math.min(1, o).toFixed(3); }
+function cueFxStop() { if (cue.fx) { cue.fx = false; if (fxs && fxs.cue) fxs.stop(); } }
+function cueClear() { cueFxStop(); cueBlack(0); cue.dismissed = false; }
+function cueDismiss() { cue.dismissed = true; cueFxStop(); cueBlack(0); }
+['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, e => { if (cue.el && !cue.fx && !cue.dismissed) { cueDismiss(); if (ev === 'keydown') { e.preventDefault(); e.stopImmediatePropagation(); } } }, {capture: true}));
+setInterval(() => { if (!mood) return; const t = audio.currentTime;
+ if (cue.fx && !(fxs && fxs.cue)) { cue.fx = false; cue.dismissed = true; cueBlack(0); } // user closed the fire
+ if (t < CUE_B) { if (cue.fx || cue.el) cueFxStop(), cueBlack(0); cue.dismissed = false; return; }
+ if (cue.dismissed) return;
+ if (t < CUE_F) { cueFxStop(); cueBlack((t - CUE_B) / (CUE_F - CUE_B)); return; }
+ if (!cue.fx) { if (fxs && !fxs.cue) fxs.stop(); if (mx) mx.stop(); saverStop(); saverMode = true; try { fire(); } finally { saverMode = false; } if (fxs) { fxs.cue = true; cue.fx = true; } }
+ if (cue.fx) cueBlack(0); }, 100);
+window.__cue = () => ({black: cue.el ? +cue.el.style.opacity : 0, fire: !!(fxs && fxs.cue), dismissed: cue.dismissed, t: audio.currentTime});
 window.__mood = () => ({mood: !!mood, theme: curTheme(), saved: localStorage.grimTheme, smoke: !!document.getElementById('smoke')});
 
 /* ---------- init ---------- */
