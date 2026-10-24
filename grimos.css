@@ -350,3 +350,14 @@ body.nocolor .sx-bad{text-decoration:none}
 .cover .lf{background:color-mix(in srgb,var(--rec,var(--acc)) 78%,#fff 0%);color:#0a0a0a;text-shadow:none}
 .cover .lf.l{font-weight:bold;color:#000}
 .cover .hole{background:color-mix(in srgb,var(--rec,var(--acc)) 78%,#fff 0%);color:#000;text-shadow:0 0 0 #000,0 0 1.5px var(--br);font-weight:bold}
+.theme-silicon #playlist .tr.sel,.theme-nightshift #playlist .tr.sel,.theme-neon #playlist .tr.sel,.theme-silicon #playlist .tr.sel:hover,.theme-nightshift #playlist .tr.sel:hover,.theme-neon #playlist .tr.sel:hover{background:var(--bar);color:var(--barfg)}
+/* help v2 */
+.helpout{white-space:normal;margin:.2em 0 .4em}
+.helpout .hs{color:var(--a5);font-weight:bold;margin-top:.45em}
+.helpout .hr{display:flex;flex-wrap:wrap;column-gap:1.5ch;padding-left:2ch}
+.helpout .hc{min-width:min(34ch,100%);white-space:pre-wrap;word-break:break-word}
+.helpout .hc .sx-cmd{font-weight:bold}
+.helpout .hd,.helpout .sep,.helpout .hn{color:var(--dim)}
+.helpout .hf{padding-left:2ch;word-break:break-word}
+.helpout .hf b{font-weight:bold;color:var(--a3)}
+.theme-silicon #topbar,.theme-nightshift #topbar,.theme-neon #topbar{z-index:52}
