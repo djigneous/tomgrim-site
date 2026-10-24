@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>tomGRIM :: GRIM/OS terminal</title>
+<meta name="description" content="tomGRIM — dark, warm downtempo, breakbeat, electro and experimental music from the Lehigh Valley, PA.">
+<meta name="theme-color" content="#030a04">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect width=%2216%22 height=%2216%22 fill=%22%23020a04%22/%3E%3Ctext x=%222%22 y=%2213%22 font-family=%22monospace%22 font-size=%2213%22 fill=%22%2339ff6a%22%3E%3E%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="grimos.css">
+</head>
+<body class="theme-green">
+<div id="boot" role="dialog" aria-label="Boot sequence. Press any key to skip"><pre id="bootlog"></pre><div class="skip">[ press any key or tap to skip ]</div></div>
+
+<div id="crt">
+<header id="topbar">
+  <span class="brand">GRIM/OS 2.6</span>
+  <nav aria-label="Sections">
+    <button data-jump="fetch">[1] sysinfo</button>
+    <button data-jump="man">[2] man tomgrim</button>
+    <button data-jump="player">[3] grimamp</button>
+    <button data-jump="links">[4] links</button>
+    <button data-jump="shell">[5] shell</button>
+  </nav>
+  <span id="clock" aria-hidden="true"></span>
+</header>
+
+<main id="desk">
+  <section id="fetch" class="win" tabindex="-1" aria-labelledby="t-fetch">
+    <h2 class="wt" id="t-fetch"><span>─[ tom@grimos:~$ grimfetch ]─</span></h2>
+    <div class="fetchbody">
+<pre class="logo" aria-label="tomGRIM logo">
+ _                  ██████  ██████  ██ ███    ███
+| |_ ___  _ __ ___ ██       ██   ██ ██ ████  ████
+| __/ _ \| '_ ` _ \██   ███ ██████  ██ ██ ████ ██
+| || (_) | | | | | ██    ██ ██   ██ ██ ██  ██  ██
+ \__\___/|_| |_| |_|██████  ██   ██ ██ ██      ██
+</pre>
+<ul class="info">
+<li><b>tom</b>@<b>grimos</b></li>
+<li class="dim">───────────────</li>
+<li><b>OS:</b> tomGRIM (GRIM/OS x86_warm)</li>
+<li><b>Kernel:</b> ign3ous-legacy</li>
+<li><b>Genre:</b> downtempo · breakbeat · electro · experimental</li>
+<li><b>Location:</b> Lehigh Valley, PA</li>
+<li><b>Releases:</b> Elements II (2023)</li>
+<li><b>Singles:</b> Radio Flows · No Good · Passing High</li>
+<li><b>Shell:</b> grimsh — type <kbd>help</kbd></li>
+<li><b>Links:</b> <a href="#links" data-jump="links">see [4]</a></li>
+<li class="swatch" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></li>
+</ul>
+    </div>
+  </section>
+
+  <section id="man" class="win" tabindex="-1" aria-labelledby="t-man">
+    <h2 class="wt" id="t-man"><span>─[ man tomgrim ]─</span></h2>
+    <div class="manbody">
+<p class="mh">TOMGRIM(1)&nbsp;&nbsp;&nbsp;&nbsp;Lehigh Valley Manual&nbsp;&nbsp;&nbsp;&nbsp;TOMGRIM(1)</p>
+<h3>NAME</h3><p>tomGRIM — dark, warm machine music after midnight</p>
+<h3>SYNOPSIS</h3><p><b>tomgrim</b> [--downtempo] [--breakbeat] [--electro] [--experimental]</p>
+<h3>DESCRIPTION</h3>
+<p>tomGRIM is a producer from the Lehigh Valley, PA, making dark and warm downtempo, breakbeat and electro with an experimental streak — slow-burning grooves, broken drums and analog-leaning textures.</p>
+<p>The project grew out of the old <b>dj ign3ous</b> (igneous) era; those early tracks are collected here under <b>ELEMENTS</b>. The 2023 album <b>Elements II</b> carried that lineage forward, alongside the singles <i>Radio Flows</i>, <i>No Good</i> and <i>Passing High</i>.</p>
+<h3>SEE ALSO</h3><p>grimamp(1), links(7), contact(8)</p>
+    </div>
+  </section>
+
+  <section id="player" class="win" tabindex="-1" aria-labelledby="t-player">
+    <h2 class="wt" id="t-player"><span>─[ GRIMAMP v1 :: ascii audio terminal ]─</span></h2>
+    <div class="np">
+      <pre id="cover" class="cover" aria-hidden="true"></pre>
+      <div class="npinfo">
+        <div id="nptitle" aria-live="polite">▶ select a track</div>
+        <div id="npalbum" class="dim">—</div>
+        <div class="row"><span id="tcur">00:00</span> / <span id="tdur">00:00</span> <span id="modes" class="dim"></span></div>
+        <div class="row">VOL <button id="voldn" aria-label="Volume down">-</button><span id="volbar"></span><button id="volup" aria-label="Volume up">+</button></div>
+        <div class="transport">
+          <button id="bprev" aria-label="Previous track">|◀◀</button>
+          <button id="bplay" aria-label="Play">▶ PLAY</button>
+          <button id="bnext" aria-label="Next track">▶▶|</button>
+          <button id="brep" aria-label="Repeat mode">rep:off</button>
+          <button id="bshuf" aria-label="Shuffle" aria-pressed="false">shuf:off</button>
+        </div>
+      </div>
+    </div>
+    <div class="viz">
+      <div class="vizbox"><div class="lbl">SPECTRUM</div><pre id="spec" aria-hidden="true"></pre></div>
+      <div class="vizbox"><div class="lbl">VU · PEAK</div><pre id="vu" aria-hidden="true"></pre><div class="lbl">SCOPE</div><canvas id="scope" height="90" aria-hidden="true"></canvas></div>
+    </div>
+    <div class="lbl">WAVEFORM · click to seek</div>
+    <canvas id="wave" height="56" role="slider" tabindex="0" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></canvas>
+    <div class="plhead"><label for="search">/</label><input id="search" placeholder="search tracks…" autocomplete="off" spellcheck="false"></div>
+    <ul id="playlist" role="listbox" tabindex="0" aria-label="Playlist"></ul>
+    <audio id="audio" preload="metadata"></audio>
+  </section>
+
+  <section id="links" class="win" tabindex="-1" aria-labelledby="t-links">
+    <h2 class="wt" id="t-links"><span>─[ ls -la ~/links ]─</span></h2>
+<ul class="lnk">
+<li>lrwxr-xr-x <a href="https://open.spotify.com/artist/1tBp2oza76uuM5bC3fx8Vg" target="_blank" rel="noopener">spotify</a></li>
+<li>lrwxr-xr-x <a href="https://music.apple.com/us/artist/tomgrim/1705139904" target="_blank" rel="noopener">apple-music</a></li>
+<li>lrwxr-xr-x <a href="https://www.youtube.com/@ig3.productions" target="_blank" rel="noopener">youtube</a></li>
+<li>lrwxr-xr-x <a href="https://soundcloud.com/thomasgrim" target="_blank" rel="noopener">soundcloud</a></li>
+<li>-rw-r--r-- <a href="mailto:tom@thomasgrim.com">tom@thomasgrim.com</a></li>
+</ul>
+  </section>
+
+  <section id="shell" class="win" tabindex="-1" aria-labelledby="t-shell">
+    <h2 class="wt" id="t-shell"><span>─[ grimsh ]─</span></h2>
+    <div id="out" aria-live="polite"></div>
+    <form id="prompt"><label for="cmd">tom@grimos:~$</label><input id="cmd" autocomplete="off" spellcheck="false" autocapitalize="off" aria-label="Command"></form>
+  </section>
+</main>
+
+<footer id="keys">
+  <span><kbd>spc</kbd>play</span><span><kbd>↑↓</kbd>track</span><span><kbd>←→</kbd>seek</span><span><kbd>+-</kbd>vol</span><span><kbd>n/p</kbd>next/prev</span><span><kbd>r</kbd>repeat</span><span><kbd>s</kbd>shuffle</span><span><kbd>/</kbd>search</span><span><kbd>:</kbd>shell</span><span><kbd>1-5</kbd>jump</span><span><kbd>t</kbd>theme</span><button id="bhelp"><kbd>?</kbd>help</button>
+</footer>
+</div>
+
+<div id="help" role="dialog" aria-modal="true" aria-labelledby="t-help" hidden>
+<div class="win"><h2 class="wt" id="t-help"><span>─[ HELP ]─</span></h2>
+<pre>
+ SPACE        play / pause          n / p      next / previous
+ ↑ / ↓        select track          ENTER      play selected
+ ← / →        seek -5s / +5s        + / -      volume
+ r            repeat off/all/one    s          shuffle
+ /            search playlist       : or `     focus shell
+ TAB          cycle focus           1..5       jump to section
+ a..z (shift) jump to album         t          cycle theme
+ c            toggle CRT flicker    ESC        close / unfocus
+ ?            this help
+
+ shell: help ls albums play &lt;n&gt; bio links contact
+        clear theme green|amber|cyan pause next prev
+</pre>
+<button id="hclose">[ close · esc ]</button></div></div>
+<script src="grimos.js"></script>
+</body>
+</html>
