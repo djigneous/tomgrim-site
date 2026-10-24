@@ -43,7 +43,7 @@ async function load() {
  groups = gi + 1; let sc = 0; flat.forEach(t => { if (t.single) t.ti = sc++; });
  renderList(); updateModes();
  const s = new URLSearchParams(location.search).get('t'), sl = x => String(x || '').toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
- const si = s == null ? -1 : /^\d+$/.test(s) ? (flat[+s] ? +s : -1) : flat.findIndex(t => sl(t.title) === sl(s) || (t.aliases || []).includes(sl(s)));
+ const si = s == null ? -1 : /^\d+$/.test(s) ? (flat[+s - 1] ? +s - 1 : -1) : flat.findIndex(t => sl(t.title) === sl(s) || (t.aliases || []).includes(sl(s)));
  if (si >= 0) select(si);
  else { const d = flat.findIndex(t => /^redline$/i.test(t.title)); if (d >= 0) { cur = d; audio.preload = 'metadata'; audio.src = flat[d].file; setRecord(flat[d]); loadWave(flat[d]); select(d); updateNP(); } }
 }
@@ -414,7 +414,7 @@ function saverStop() { if (!saver.active) return; saver.active = false; if (fxs 
 setInterval(() => { if (saver.active && !fxs && !mx) saver.active = false;
  if (!saver.on || saver.active || fxs || mx || !booted || Date.now() - saver.last < saver.sec * 1000) return;
  const ae = document.activeElement, busy = openM || !$('#photos').hidden || !$('#lb').hidden || !$('#help').hidden || (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.value);
- if (busy) return; const names = Object.keys(SAVERS), pick = SAVERS[saver.fx] ? saver.fx : names[Math.random() * names.length | 0];
+ if (busy) return; const names = Object.keys(SAVERS), pick = mood && SAVERS.fire ? 'fire' : SAVERS[saver.fx] ? saver.fx : names[Math.random() * names.length | 0];
  saverMode = true; try { SAVERS[pick](); } finally { saverMode = false; } if (fxs || mx) { saver.active = true; saver.started = Date.now(); } }, 1000);
 function screensaverCmd(a) { a = (a || '').trim().toLowerCase();
  if (!a) return say(`screensaver: ${saver.on ? 'on' : 'off'} · after ${saver.sec}s idle · effect: ${saver.fx}\nusage: screensaver on|off|<seconds>|<effect>|random   effects: ${Object.keys(SAVERS).join(' ')}`);
