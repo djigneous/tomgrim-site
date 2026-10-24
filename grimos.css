@@ -217,3 +217,5 @@ body.standalone .solo{display:flex;justify-content:center;padding:3em 1em}
 .irc-in input{flex:1;min-width:0;font:inherit;color:var(--hi);background:transparent;border:0;outline:0;caret-color:var(--hi)}
 @media (max-width:700px){.irc-main{grid-template-columns:1fr}.irc-users{display:none}}
 body.standalone .solo .iwin{height:calc(100vh - 6em);width:min(1100px,100%);display:flex;flex-direction:column}
+
+#matrix.fx-intro{z-index:101;transition:opacity .15s linear}

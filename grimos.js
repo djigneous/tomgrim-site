@@ -18,7 +18,7 @@ const bootLines = ['GRIM/OS 2.6.66-warm #1 SMP PREEMPT lehigh-valley x86_64','[ 
  '[  OK  ] Reached target Downtempo.','','grimos login: tom','Password: ********','Last login: from the ign3ous era',''];
 const boot = $('#boot'), bootlog = $('#bootlog');
 let booted = false;
-function endBoot() { if (booted) return; booted = true; boot.classList.add('gone'); setTimeout(() => boot.remove(), 450); $('#cmd').blur(); sessionStorage.grimBooted = 1; }
+function endBoot() { if (booted) return; booted = true; if (!RM) try { glitch({intro: 750}); } catch (e) {} boot.classList.add('gone'); setTimeout(() => boot.remove(), 450); $('#cmd').blur(); sessionStorage.grimBooted = 1; }
 if (sessionStorage.grimBooted || RM) { boot.remove(); booted = true; }
 else { let i = 0; const step = () => { if (booted) return; if (i < bootLines.length) { bootlog.textContent += bootLines[i++] + '\n'; setTimeout(step, 60 + Math.random() * 110); } else setTimeout(endBoot, 500); }; step();
  addEventListener('keydown', e => { if (!booted) { e.preventDefault(); e.stopImmediatePropagation(); endBoot(); } }, true);
@@ -282,17 +282,17 @@ function matrix() { if (mx || fxs) return; const c = document.createElement('can
 let fxs = null;
 function level() { if (an && !audio.paused) { fbuf = fbuf || new Uint8Array(an.frequencyBinCount); an.getByteFrequencyData(fbuf); let b = 0, m = 0; for (let i = 0; i < 24; i++) b += fbuf[i]; for (let i = 0; i < 256; i++) m += fbuf[i]; return {bass: b / 24 / 255, lvl: m / 256 / 255}; }
  const t = performance.now() / 1000, beat = Math.pow(1 - (t * 2.1 % 1), 3); return {bass: beat * .8, lvl: .25 + beat * .35}; }
-function fxRun(name, msg, init, draw, dur) { if (fxs || mx) return; refreshColors(); const c = document.createElement('canvas'); c.id = 'matrix'; c.className = 'fx-' + name; c.setAttribute('aria-label', name + ' effect, press any key to exit'); document.body.appendChild(c);
+function fxRun(name, msg, init, draw, dur, intro) { if (fxs || mx) return; refreshColors(); const c = document.createElement('canvas'); c.id = 'matrix'; c.className = 'fx-' + name; c.setAttribute('aria-label', name + ' effect, press any key to exit'); document.body.appendChild(c);
  const g = c.getContext('2d'), mob = innerWidth < 760 || matchMedia('(pointer:coarse)').matches, st = {mob, t0: performance.now()};
  const size = () => { const dpr = mob ? 1 : Math.min(2, devicePixelRatio || 1); c.width = innerWidth * dpr; c.height = innerHeight * dpr; st.dpr = dpr; init(g, c, st); }; size(); addEventListener('resize', size);
  const stop = () => { if (!fxs) return; cancelAnimationFrame(fxs.raf); clearTimeout(fxs.to); c.remove(); removeEventListener('keydown', onKey, true); removeEventListener('resize', size); fxs = null; if (msg) say(msg); };
  const onKey = e => { e.preventDefault(); e.stopImmediatePropagation(); stop(); };
  let last = 0; const step = mob ? 50 : 33;
  const tick = now => { fxs.raf = requestAnimationFrame(tick); if (now - last < step) return; last = now; draw(g, c, st, (now - st.t0) / 1000, level()); };
- fxs = {raf: 0, stop}; c.addEventListener('pointerdown', stop); setTimeout(() => addEventListener('keydown', onKey, true), 50);
+ fxs = {raf: 0, stop}; if (intro) { msg = ''; c.classList.add('fx-intro'); c.style.pointerEvents = 'none'; fxs.to = setTimeout(() => { c.style.opacity = '0'; setTimeout(stop, 160); }, intro); } else { c.addEventListener('pointerdown', stop); setTimeout(() => addEventListener('keydown', onKey, true), 50); }
  if (RM) { draw(g, c, st, dur || 0, {bass: 0, lvl: .3}); g.fillStyle = colors.fg; g.font = 20 * st.dpr + 'px monospace'; g.fillText(name.toUpperCase() + ' (reduced motion) — any key to exit', 20 * st.dpr, 40 * st.dpr); }
  else fxs.raf = requestAnimationFrame(tick); }
-function glitch() { fxRun('glitch', 'signal restored.', (g, c, st) => { st.lines = Array.from({length: 40}, () => ({y: Math.random(), h: Math.random() * .06, txt: Array.from({length: 120}, () => '01#@%&$/\\|<>'[Math.random() * 12 | 0]).join('')})); },
+function glitch(o) { const intro = o && o.intro; fxRun('glitch', 'signal restored.', (g, c, st) => { st.lines = Array.from({length: 40}, () => ({y: Math.random(), h: Math.random() * .06, txt: Array.from({length: 120}, () => '01#@%&$/\\|<>'[Math.random() * 12 | 0]).join('')})); },
  (g, c, st, t, L) => { const W = c.width, H = c.height, d = st.dpr, k = .3 + L.bass * 2.2, fs = 14 * d;
   g.fillStyle = '#000'; g.fillRect(0, 0, W, H); g.font = 'bold ' + fs + 'px monospace';
   const off = (Math.random() - .5) * 18 * k * d, word = 'tomGRIM', big = Math.min(W / 5, 160 * d);
@@ -302,7 +302,7 @@ function glitch() { fxRun('glitch', 'signal restored.', (g, c, st) => { st.lines
   g.globalCompositeOperation = 'source-over'; g.textAlign = 'left';
   const n = 2 + (k * 6 | 0); for (let i = 0; i < n; i++) { const y = Math.random() * H | 0, h = (Math.random() * 40 * k + 2) * d | 0, dx = (Math.random() - .5) * 120 * k * d | 0; try { g.drawImage(c, 0, y, W, h, dx, y, W, h); } catch {} }
   if (Math.random() < k * .2) { g.fillStyle = colors.hi; g.globalAlpha = .15; g.fillRect(0, Math.random() * H, W, 3 * d); g.globalAlpha = 1; }
-  g.fillStyle = 'rgba(0,0,0,.25)'; for (let y = 0; y < H; y += 3 * d) g.fillRect(0, y, W, d); }); }
+  g.fillStyle = 'rgba(0,0,0,.25)'; for (let y = 0; y < H; y += 3 * d) g.fillRect(0, y, W, d); }, 0, intro); }
 function fire() { const R = ' .:-=+*#%@'; fxRun('fire', 'the fire dies down to embers.', (g, c, st) => { st.fs = (st.mob ? 12 : 14) * st.dpr; st.cw = st.fs * .6; st.W = Math.ceil(c.width / st.cw); st.H = Math.ceil(c.height / st.fs); st.b = new Float32Array(st.W * (st.H + 2)); },
  (g, c, st, t, L) => { const {W, H, b, fs, cw} = st, heat = .75 + L.bass * .6;
   for (let x = 0; x < W; x++) b[(H + 1) * W + x] = Math.random() < .55 * heat ? 1.4 : 0;
