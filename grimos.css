@@ -326,3 +326,27 @@ body.nocolor .sx-bad{text-decoration:none}
 .vb-wave.armed{border-color:var(--br);animation:armpulse 1s ease-in-out infinite}
 .vb-wave.armed .lbl{background:var(--br)}
 @keyframes armpulse{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 10px 1px var(--fg),inset 0 0 8px -2px var(--fg)}}
+/* ---------- colorful themes (sampled from Tom's ls/htop screenshots) ---------- */
+.theme-silicon{--fg:#b3c088;--dim:#8f9c5a;--br:#eef4d8;--bg:#2b2b2b;--hi:#ffffff;--acc:#eaaf24;--bar:#c9dca2;--barfg:#1c2212;--ring:#6fb8b4;--glow:0 0 3px rgba(179,192,136,.55),0 0 9px rgba(111,184,180,.18);
+ --specgrad:linear-gradient(90deg,#5fb3b0,#9ccf5a 35%,#c8d84a 55%,#eaaf24 75%,#e06c5c);
+ --a0:#9a9a90;--a1:#e8766a;--a2:#9ccf5a;--a3:#eaaf24;--a4:#6ab0d4;--a5:#d088c8;--a6:#6fc4be;--a7:#d8d8c8;--a8:#a8a89c;--a9:#ff9a8a;--a10:#c4e27a;--a11:#ffd060;--a12:#98ccec;--a13:#eaa8e0;--a14:#98e2dc;--a15:#f6f6ec}
+.theme-silicon #topbar{background:linear-gradient(90deg,#eaaf24,#e8892a 70%,#e07a2a)}
+.theme-silicon .lbl{background:linear-gradient(90deg,#8f9c5a,#5f9a98)}
+.theme-nightshift{--fg:#a9b8f0;--dim:#7d89c4;--br:#e2e8ff;--bg:#1a1b26;--hi:#ffffff;--acc:#e0cf6a;--bar:#7ecfff;--barfg:#0b1424;--ring:#b28dfd;--glow:0 0 3px rgba(169,184,240,.6),0 0 10px rgba(126,207,255,.22);
+ --specgrad:linear-gradient(90deg,#7ecfff,#79a3f4 35%,#9196d9 55%,#b288fd 75%,#e0cf6a);
+ --a0:#8088b0;--a1:#f7768e;--a2:#9ece6a;--a3:#e0cf6a;--a4:#7aa2f7;--a5:#bb9af7;--a6:#7dcfff;--a7:#c0caf5;--a8:#9aa2c8;--a9:#ff98aa;--a10:#b8e08a;--a11:#f0e08a;--a12:#a0bcff;--a13:#d0b8ff;--a14:#a8e0ff;--a15:#eef0ff}
+.theme-nightshift #topbar{background:linear-gradient(90deg,#9a7fd9,#b288fd 60%,#c8a8ff)}
+.theme-nightshift .lbl{background:linear-gradient(90deg,#79a3f4,#b28dd9)}
+.theme-neon{--fg:#4cc6ff;--dim:#3a98d0;--br:#e0f4ff;--bg:#070825;--hi:#ffffff;--acc:#ffd23f;--bar:#e48dfc;--barfg:#1a0424;--ring:#df81fc;--glow:0 0 3px rgba(76,198,255,.8),0 0 12px rgba(223,129,252,.3);
+ --specgrad:linear-gradient(90deg,#41afef,#7f8cf6 30%,#df81fc 55%,#e312a0 72%,#e28020 86%,#dbcf4e);
+ --a0:#7a7aa0;--a1:#ff5c7a;--a2:#5ee8a0;--a3:#ffd23f;--a4:#41afef;--a5:#df81fc;--a6:#4ce0ff;--a7:#d0d0e0;--a8:#9a9ab8;--a9:#ff8aa0;--a10:#8affc0;--a11:#ffe27a;--a12:#80ccff;--a13:#f0a8ff;--a14:#8af0ff;--a15:#ffffff}
+.theme-neon #topbar{background:linear-gradient(90deg,#aba6a6,#cfcaca);--barfg:#14142a;color:#14142a}
+.theme-neon .lbl{background:linear-gradient(90deg,#e312a0,#df81fc)}
+.theme-silicon #spec,.theme-nightshift #spec,.theme-neon #spec{background:var(--specgrad);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}
+.theme-silicon #spec .h,.theme-nightshift #spec .h,.theme-neon #spec .h{color:var(--br)}
+/* record v2: dim grooves, bright edge ring, solid colored label, true black spindle hole */
+.cover .v{color:var(--dim);opacity:.85}
+.cover .e{color:var(--br);text-shadow:0 0 3px var(--br)}
+.cover .lf{background:color-mix(in srgb,var(--rec,var(--acc)) 78%,#fff 0%);color:#0a0a0a;text-shadow:none}
+.cover .lf.l{font-weight:bold;color:#000}
+.cover .hole{background:color-mix(in srgb,var(--rec,var(--acc)) 78%,#fff 0%);color:#000;text-shadow:0 0 0 #000,0 0 1.5px var(--br);font-weight:bold}

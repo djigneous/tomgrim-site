@@ -167,17 +167,18 @@ function drawRecord() {
   for (let x = 0; x < W; x++) { const dx = (x - cx) / cx, dy = (y - cy) / cy, r = Math.hypot(dx, dy); let th = Math.atan2(dy, dx);
    if (r > 1.0) { line += ' '; continue; }
    if (r > .955) { line += '<span class="g">' + (y === 0 || y === H - 1 ? '─' : '·') + '</span>'; continue; }
-   if (r < .3) { // label
+   if (r < .47) { // 12" style: edge ring, colored label (~38% of diameter), black spindle hole
+    if (r >= .37) { line += '<span class="e">' + (Math.abs(dy) > Math.abs(dx) * 1.6 ? '━' : Math.abs(dx) > Math.abs(dy) * 1.6 ? '┃' : '●') + '</span>'; continue; }
     const row = y - Math.round(cy), lw = rec.title.length, col = x - Math.round(cx);
-    if (r < .06) { line += '<span class="g">●</span>'; continue; }
-    if (row === -2 && col === 0) { line += '<span class="l">' + esc(rec.label) + '</span>'; continue; }
-    if (row === 2 && Math.abs(col) <= lw / 2 && lw) { const ch = rec.title[col + Math.floor(lw / 2)]; line += '<span class="l">' + esc(ch || ' ') + '</span>'; continue; }
-    const s2 = Math.sin((th + a) * 2) > .6; line += '<span class="a">' + (s2 ? '▓' : r > .25 ? '░' : ' ') + '</span>'; continue; }
+    if (row === 0 && col === 0) { line += '<span class="hole">●</span>'; continue; }
+    if (row === -2 && col === 0) { line += '<span class="lf l">' + esc(rec.label) + '</span>'; continue; }
+    if (row === 2 && Math.abs(col) <= lw / 2 && lw) { const ch = rec.title[col + Math.floor(lw / 2)]; line += '<span class="lf l">' + esc(ch || ' ') + '</span>'; continue; }
+    line += '<span class="lf">' + (Math.sin((th + a) * 3) > .75 ? '·' : ' ') + '</span>'; continue; }
    const sp = Math.sin(th * arms - r * tight * 6.283 + a * arms), groove = Math.sin(r * 58 + (rec.seed % 7));
    const shine = Math.cos(th - a - 0.9) ; // rotating highlight
    let v = (sp * .5 + .5) * .7 + (groove > .55 ? .3 : 0); if (shine > .93) v = 1;
    const ch = chars[Math.min(chars.length - 1, Math.floor((1 - v) * chars.length))];
-   line += sp > .82 ? '<span class="a">' + esc(ch) + '</span>' : esc(ch); }
+   line += sp > .82 ? '<span class="a">' + esc(ch) + '</span>' : '<span class="v">' + esc(ch) + '</span>'; }
   out += line + '\n'; }
  coverEl.innerHTML = out;
 }
@@ -202,7 +203,7 @@ async function loadWave(t) {
 }
 function css(v) { return getComputedStyle(document.body).getPropertyValue(v).trim(); }
 let colors = {};
-function refreshColors() { colors = {fg:css('--fg'), dim:css('--dim'), hi:css('--hi'), acc:css('--acc')}; }
+function refreshColors() { colors = {fg:css('--fg'), dim:css('--dim'), hi:css('--hi'), acc:css('--acc'), ring:css('--ring') || css('--fg')}; }
 function fitCanvas(c) { const w = c.clientWidth * devicePixelRatio | 0, h = c.clientHeight * devicePixelRatio | 0; if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } }
 function drawWave() {
  fitCanvas(wave); const W = wave.width, H = wave.height; wg.clearRect(0, 0, W, H);
@@ -266,7 +267,7 @@ const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(6, Math.f
   const live = an && playing; let gain = 1;
   if (live) { tbuf = tbuf || new Uint8Array(an.fftSize); an.getByteTimeDomainData(tbuf); let sq = 0; for (let i = 0; i < tbuf.length; i += 4) { const x = (tbuf[i] - 128) / 128; sq += x * x; }
    const rms = Math.sqrt(sq / (tbuf.length / 4)); ringAgc = Math.max(rms, ringAgc * .992, .02); gain = Math.min(9, Math.max(1.5, .55 / ringAgc)); }
-  const N = 240; for (const [col, lw, blur] of [[colors.fg, 2.6, 10], [colors.hi, 1.1, 0]]) { rg.strokeStyle = col; rg.lineWidth = lw * d; rg.shadowColor = col; rg.shadowBlur = blur * d; rg.beginPath();
+  const N = 240; for (const [col, lw, blur] of [[colors.ring || colors.fg, 2.6, 10], [colors.hi, 1.1, 0]]) { rg.strokeStyle = col; rg.lineWidth = lw * d; rg.shadowColor = col; rg.shadowBlur = blur * d; rg.beginPath();
    for (let i = 0; i <= N; i++) { const t = i % N, a = t / N * Math.PI * 2 - Math.PI / 2; let v; if (live) { const k = Math.floor(t / N * (tbuf.length - 1)), raw = (tbuf[k] - 128) / 128; let lp = 0; for (let q = -12; q <= 12; q += 3) lp += (tbuf[(k + q + tbuf.length) % tbuf.length] - 128) / 128; v = Math.tanh((raw + lp / 9 * .9) * gain); } else v = Math.sin(t / 6 + idle * 3) * .06; const o = Math.max(-1, Math.min(1, v)) * amp, x = cx + Math.cos(a) * (rx + o), y = cy + Math.sin(a) * (ry + o); i ? rg.lineTo(x, y) : rg.moveTo(x, y); }
    rg.closePath(); rg.stroke(); } rg.shadowBlur = 0; }
  drawWave(); spinRecord(performance.now());
@@ -311,7 +312,7 @@ const cmdHl = document.createElement('span'); cmdHl.className = 'cmdhl'; cmdHl.s
 let hlLast = null; const hlSync = () => { if (cmd.value !== hlLast) { hlLast = cmd.value; cmdHl.innerHTML = '<span>' + hl(cmd.value) + ' </span>'; } cmdHl.style.transform = `translateX(${-cmd.scrollLeft}px)`; };
 ['input', 'keyup', 'scroll', 'focus', 'select'].forEach(ev => cmd.addEventListener(ev, hlSync)); setInterval(hlSync, 120);
 const LINKS = [['spotify','https://open.spotify.com/artist/1tBp2oza76uuM5bC3fx8Vg'],['apple-music','https://music.apple.com/us/artist/tomgrim/1705139904'],['youtube','https://www.youtube.com/@ig3.productions'],['soundcloud','https://soundcloud.com/thomasgrim']];
-const THEMES = ['cyan', 'green', 'amber', 'red', 'gray', 'fire', 'ice'];
+const THEMES = ['cyan', 'green', 'amber', 'red', 'gray', 'fire', 'ice', 'silicon', 'nightshift', 'neon'];
 const themeSel = $('#themesel'); themeSel.innerHTML = THEMES.map(t => `<option value="${t}">${t}</option>`).join('');
 const curTheme = () => (document.body.className.match(/theme-(\w+)/) || [])[1] || 'cyan';
 function setTheme(t, quiet) { if (t === 'grey' || t === 'grayscale') t = 'gray'; if (!THEMES.includes(t)) return say('usage: theme ' + THEMES.join('|'));
@@ -656,7 +657,7 @@ const aptCmd = (a, su) => { const m = (a || '').match(/^(install|update|upgrade|
   if (p >= 100) { clearInterval(iv); job = null; say(`Unpacking ${pkg} (${GRIMOS_VERSION}) ...\nSetting up ${pkg} (${GRIMOS_VERSION}) ...\nProcessing triggers for vinyl-spin (1.0) ...\n${pkg}: installed. (it was always there, deep in the mix.)`); } }, 120);
  startJob(() => { clearInterval(iv); say('^C\nE: Sub-process /usr/bin/dpkg received signal 2.'); }, 'apt'); };
 const NEO = ['████████╗ ██████╗ ', '╚══██╔══╝██╔════╝ ', '   ██║   ██║  ███╗', '   ██║   ██║   ██║', '   ██║   ╚██████╔╝', '   ╚═╝    ╚═════╝ ', '  >_ tomGRIM       ', '                  '];
-const MAN = {ls: 'ls [-la] [path] — without args lists every track; with a path lists the fake filesystem.', play: 'play <n|name> — play a track by number (see ls) or name.', get: 'get <n|name> — download a track. get album <name>, get --list.', cd: 'cd [dir] — change directory. try ~/albums, /etc, /var/log.', cat: 'cat <file> — print a file. try /etc/motd or readme.txt.', ping: 'ping <host> — send 4 ICMP echo requests (Ctrl+C stops).', top: 'top — live process list. q to quit.', theme: 'theme <name> — switch color theme.', screensaver: 'screensaver on|off|<seconds>|<effect>|random', apt: 'apt install <pkg> — needs sudo. you know how this ends.'};
+const MAN = {ls: 'ls [-la] [path] — without args lists every track; with a path lists the fake filesystem.', play: 'play <n|name> — play a track by number (see ls) or name.', get: 'get <n|name> — download a track. get album <name>, get --list.', cd: 'cd [dir] — change directory. try ~/albums, /etc, /var/log.', cat: 'cat <file> — print a file. try /etc/motd or readme.txt.', ping: 'ping <host> — send 4 ICMP echo requests (Ctrl+C stops).', top: 'top — live process list. q to quit.', theme: 'theme <name> — switch color theme: ' + THEMES.join(' ') + ' (cyan is the default). silicon, nightshift and neon are full-color palettes; Tab completes names.', screensaver: 'screensaver on|off|<seconds>|<effect>|random', apt: 'apt install <pkg> — needs sudo. you know how this ends.'};
 Object.assign(CMDS, {
  ls: a => { a = (a || '').trim(); if (!a) return flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}${t.special ? ' ★' : ''}  [${t.single ? 'single' : t.al.title}]`)); lsPath(a); },
  ll: a => lsPath('-la ' + (a || '')), pwd: () => say(cwd),
@@ -701,6 +702,7 @@ addEventListener('keydown', e => { if (!job) return; if ((e.ctrlKey && /^c$/i.te
 cmd.addEventListener('keydown', e => { if (e.key === 'ArrowUp') { hp = Math.max(0, hp - 1); cmd.value = hist[hp] || ''; e.preventDefault(); } else if (e.key === 'ArrowDown') { hp = Math.min(hist.length, hp + 1); cmd.value = hist[hp] || ''; e.preventDefault(); }
  else if (e.key === 'Tab' && cmd.value) { e.preventDefault(); const v = cmd.value, sp = v.lastIndexOf(' ');
   if (sp < 0) { const m = Object.keys(CMDS).filter(k => k.startsWith(v)); if (m.length === 1) cmd.value = m[0] + ' '; else if (m.length > 1) { const pre = m.reduce((p, k) => { while (!k.startsWith(p)) p = p.slice(0, -1); return p; }); if (pre.length > v.length) cmd.value = pre; else say(m.join('  ')); } return; }
+  if (/^theme\s+\S*$/.test(v)) { const m = THEMES.filter(t => t.startsWith(v.slice(sp + 1))); if (m.length === 1) cmd.value = 'theme ' + m[0]; else if (m.length > 1) say(m.join('  ')); return; }
   const part = v.slice(sp + 1), di = part.lastIndexOf('/'), dirP = di >= 0 ? part.slice(0, di + 1) : '', base = part.slice(di + 1), n = fsGet(dirP || '.');
   if (!n || !n.d) return; const m = Object.keys(n.c).filter(k => k.startsWith(base) && (base.startsWith('.') || !k.startsWith('.')));
   if (m.length === 1) cmd.value = v.slice(0, sp + 1) + dirP + m[0] + (n.c[m[0]].d ? '/' : ' '); else if (m.length > 1) say(m.join('  ')); } });
