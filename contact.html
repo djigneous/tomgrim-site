@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>contact :: tomGRIM</title><meta name="theme-color" content="#00090c">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="grimos.css">
+</head><body class="theme-cyan standalone">
+<div id="crt"><main class="solo">
+  <section class="win cwin" aria-labelledby="t-c"><h2 class="wt" id="t-c"><span>─[ mail tom@grimos ]─</span></h2>
+    <p class="dim"><a href="./">◀ cd ~ (back to GRIM/OS)</a></p>
+    <form class="cform" novalidate>
+      <label>name:<input name="name" autocomplete="name" required maxlength="100"></label>
+      <label>email:<input name="email" type="email" autocomplete="email" required maxlength="150"></label>
+      <label>subject:<select name="subject"><option value="inquiry">inquiry</option><option value="booking">booking</option><option value="other">other</option></select></label>
+      <label>message:<textarea name="message" rows="6" required maxlength="5000"></textarea></label>
+      <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <input type="hidden" name="_captcha" value="false">
+      <div class="cbtns"><button type="submit">[ send ]</button><span class="cstatus" role="status" aria-live="polite"></span></div>
+    </form>
+  </section></main></div>
+<script>try{const t=localStorage.grimTheme;if(t)document.body.className=document.body.className.replace(/theme-\w+/,'theme-'+t);if(localStorage.grimCrt==='0')document.body.classList.add('nocrt')}catch(e){}window.tgTrack=window.tgTrack||function(){};</script>
+<script src="contact.js"></script><script>tgContactInit(document.querySelector('.cwin'));</script>
+</body></html>

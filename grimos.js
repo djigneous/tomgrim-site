@@ -325,7 +325,7 @@ function cowsay(t) { t = (t || 'moo. drop the bass.').slice(0, 200); const w = M
  lines.forEach((x, i) => { const [o, c] = lines.length === 1 ? ['<', '>'] : i === 0 ? ['/', '\\'] : i === lines.length - 1 ? ['\\', '/'] : ['|', '|']; b += `${o} ${x.padEnd(W)} ${c}\n`; });
  b += ' ' + '-'.repeat(W + 2) + '\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\  ♪♫  )\\/\\\n                ||----w |\n                ||     ||'; say(b); }
 const CMDS = {
- help: () => say('commands: help ls albums play <n|name> pause next prev bio links contact clear theme <' + THEMES.join('|') + '> themes crt on|off repeat shuffle vol <0-100> whoami fetch\nfun:      matrix · glitch · fire · hack · starfield (visual fx, any key/click exits) · cowsay <text>'),
+ help: () => say('commands: help ls albums play <n|name> pause next prev bio links mail irc get clear theme <' + THEMES.join('|') + '> themes crt on|off repeat shuffle vol <0-100> whoami fetch\nget:      get <n|name> · get album <name> · get --list   (aliases: wget, curl -O)\nnet:      mail (contact form) · irc (#tomgrim on libera.chat)\nfun:      matrix · glitch · fire · hack · starfield (visual fx, any key/click exits) · cowsay <text>'),
  themes: () => say('themes: ' + THEMES.map(t => t === curTheme() ? '[' + t + ']' : t).join(' ')),
  crt: a => { a = (a || '').trim(); if (a === 'on' || a === 'off') setCrt(a === 'on'); else if (!a) setCrt(document.body.classList.contains('nocrt')); else say('usage: crt on|off'); },
  photos: () => { say(`~/photos: ${PHOTOS.length} frames · click one or use ←/→ in the viewer`); jump('photos'); }, gallery: () => CMDS.photos(),
@@ -338,7 +338,8 @@ const CMDS = {
  bio: () => { say(document.querySelector('.manbody').innerText); jump('man'); },
  man: a => CMDS.bio(), whoami: () => say('tomGRIM — formerly dj ign3ous. Lehigh Valley, PA.'), fetch: () => jump('fetch'), grimfetch: () => jump('fetch'),
  links: () => LINKS.forEach(([n, u]) => say(`${n.padEnd(12)} <a href="${u}" target="_blank" rel="noopener">${u}</a>`, true)),
- contact: () => say('mail: <a href="mailto:tom@thomasgrim.com">tom@thomasgrim.com</a>', true),
+ contact: () => { say('opening mail client…'); openModal('mail'); }, mail: () => CMDS.contact(), irc: () => { say('connecting to irc.libera.chat #tomgrim…'); openModal('irc'); }, chat: () => CMDS.irc(),
+ get: a => getCmd(a), wget: a => getCmd(a), curl: a => getCmd((a || '').replace(/(^|\s)(-O|--remote-name|-L|-s)(?=\s|$)/g, ' ').trim()),
  clear: () => { out.innerHTML = ''; }, theme: a => setTheme((a || '').trim()),
  sudo: () => say('tom is not in the sudoers file. This incident will be reported to the bassline.'), exit: () => say('there is no exit. only the next track.'),
 };
@@ -359,6 +360,8 @@ const ICONS = { // 8x8 pixel glyphs
  player: ['00111100','01000010','10011001','10100101','10100101','10011001','01000010','00111100'],
  links: ['00000000','01100110','10011001','10011001','10011001','10011001','01100110','00000000'],
  shell: ['11111111','10000001','10100001','10010001','10100001','10001101','10000001','11111111'],
+ irc: ['11111110','10000010','10101010','10000010','11111110','00100000','01000000','00000000'],
+ mail: ['00000000','11111111','11000011','10100101','10011001','10000001','11111111','00000000'],
  photos: ['00011000','11111111','10000001','10011001','10100101','10011001','10000001','11111111']};
 document.querySelectorAll('#topbar nav button').forEach(b => { const m = ICONS[b.dataset.ico]; if (!m) return; let r = ''; m.forEach((row, y) => [...row].forEach((v, x) => { if (v === '1') r += `<rect x="${x}" y="${y}" width="1" height="1"/>`; }));
  b.insertAdjacentHTML('afterbegin', `<svg class="ico" viewBox="0 0 8 8" aria-hidden="true" shape-rendering="crispEdges">${r}</svg>`); });
@@ -372,7 +375,8 @@ function showHelp(v) { help.hidden = !v; if (v) $('#hclose').focus(); }
 $('#bhelp').onclick = () => showHelp(true); $('#hclose').onclick = () => showHelp(false); help.addEventListener('click', e => { if (e.target === help) showHelp(false); });
 wave.addEventListener('keydown', e => { if (e.key === 'Home') audio.currentTime = 0; });
 document.addEventListener('keydown', e => {
- const tag = e.target.tagName, typing = tag === 'INPUT' || tag === 'TEXTAREA';
+ const tag = e.target.tagName, typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+ if (openM && !typing && e.key !== 'Escape') return;
  if (e.key === 'Escape') { if (!help.hidden) return showHelp(false); if (typing) { e.target.blur(); if (e.target === search && search.value) { search.value = ''; renderList(); } pl.focus(); } return; }
  if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
  if (!help.hidden && e.key !== '?') return;
@@ -397,9 +401,45 @@ document.addEventListener('keydown', e => {
  else if (k === 'f') setCrt(document.body.classList.contains('nocrt'));
  else if (k === 'c') { document.body.classList.toggle('flicker'); localStorage.grimFlicker = document.body.classList.contains('flicker') ? 1 : ''; }
  else if (/^[1-6]$/.test(k)) jump(SECTIONS[+k - 1]);
+ else if (k === '7') openModal('irc'); else if (k === '8') openModal('mail');
  else if (k === 'g') jump('photos');
  else if (/^[A-Z]$/.test(k)) { const ai = k.charCodeAt(0) - 65, i = flat.findIndex(t => t.ai === ai); if (i >= 0) { if (search.value) { search.value = ''; renderList(); } select(i); jump('player'); document.getElementById('al-' + ai)?.scrollIntoView({block: 'nearest'}); } }
 });
+
+/* ---------- modals: mail / irc ---------- */
+window.tgTrack = window.tgTrack || function (event, label) { /* analytics hook stub: no-op */ };
+let openM = null, mLast = null;
+const ircNick = 'grim_guest' + String(Math.random() * 10000 | 0).padStart(4, '0'), ircURL = `https://kiwiirc.com/nextclient/irc.libera.chat/?nick=${ircNick}#tomgrim`;
+function openModal(id) { closeModal(); const m = $('#' + id + 'm'); if (!m) return; mLast = document.activeElement; m.hidden = false; openM = m;
+ if (id === 'irc') { const f = $('#ircf'); if (!f.src) f.src = ircURL; $('#ircpop').href = ircURL; $('#ircnick').textContent = 'nick: ' + ircNick; window.tgTrack('irc', ircNick); $('#ircpop').focus(); }
+ else m.querySelector('input[name=name]').focus(); }
+function closeModal() { if (!openM) return; openM.hidden = true; openM = null; mLast?.focus?.(); }
+document.querySelectorAll('.modal').forEach(m => { m.addEventListener('click', e => { if (e.target === m) closeModal(); }); m.querySelector('.mclose').onclick = closeModal; });
+document.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); openModal(b.dataset.open); }));
+addEventListener('keydown', e => { if (openM && e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeModal(); } }, true);
+window.tgContactInit && tgContactInit($('#mailm'));
+/* ---------- get / wget ---------- */
+const sizeCache = {};
+const fname = t => `tomGRIM - ${t.title.replace(/[\\/:*?"<>|]+/g, '-')}.mp3`;
+const hsize = b => b == null ? '   ?' : b > 1048576 ? (b / 1048576).toFixed(1) + 'M' : (b / 1024 | 0) + 'K';
+async function fsize(t) { if (t.file in sizeCache) return sizeCache[t.file]; try { const r = await fetch(t.file, {method: 'HEAD'}); return sizeCache[t.file] = +r.headers.get('content-length') || null; } catch { return sizeCache[t.file] = null; } }
+function findTrack(a) { const n = parseInt(a, 10); if (/^\d+$/.test(a) && flat[n - 1]) return n - 1; a = a.toLowerCase(); let i = flat.findIndex(t => t.title.toLowerCase() === a); return i >= 0 ? i : flat.findIndex(t => t.title.toLowerCase().includes(a)); }
+async function getTrack(i) { const t = flat[i], fn = fname(t), url = new URL(t.file, location.href).href;
+ say(`--${new Date().toISOString().replace('T', ' ').slice(0, 19)}--  ${url}\nResolving thomasgrim.com... connected.\nHTTP request sent, awaiting response... 200 OK`);
+ const size = await fsize(t); say(`Length: ${size ?? 'unspecified'} (${hsize(size).trim()}) [audio/mpeg]\nSaving to: '${fn}'`);
+ const line = document.createElement('div'); out.appendChild(line); const W = 30, T = RM ? 1 : 900; let t0 = performance.now();
+ await new Promise(res => { const step = now => { const p = Math.min(1, (now - t0) / T), k = p * W | 0; line.textContent = `${fn.slice(0, 28).padEnd(28)} ${String(p * 100 | 0).padStart(3)}%[${'='.repeat(Math.max(0, k - 1))}${p < 1 ? '>' : '='}${' '.repeat(W - Math.max(k, 1))}] ${hsize(size ? size * p : null).padStart(6)}  ${p < 1 ? (2 + Math.random() * 6).toFixed(2) + 'MB/s' : 'in ' + (T / 1000).toFixed(1) + 's'}`; out.scrollTop = out.scrollHeight; p < 1 ? requestAnimationFrame(step) : res(); }; requestAnimationFrame(step); });
+ const a = document.createElement('a'); a.href = t.file; a.download = fn; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove();
+ say(`'${fn}' saved [${size ?? '?'}/${size ?? '?'}]`); window.tgTrack('download', t.title); }
+async function getCmd(a) { a = (a || '').trim();
+ if (!a) return say("usage: get [OPTION]... <TRACK|NAME>\n       get album <NAME>\n       get --list | ls\n\n  TRACK       track number as shown by 'ls' (1-" + flat.length + ")\n  NAME        track title or part of it\n  album NAME  download every track of an album\n  -l, --list  list downloadable files with sizes\n  -h, --help  show this help\n\naliases: wget, curl -O.  example: get let me be your problem");
+ if (/^(-h|--help)$/.test(a)) return getCmd('');
+ if (/^(-l|--list|ls)$/.test(a)) { say('fetching index of /assets/audio …'); const sz = await Promise.all(flat.map(fsize)); let tot = 0;
+  flat.forEach((t, i) => { tot += sz[i] || 0; say(`-rw-r--r-- tom grim ${hsize(sz[i]).padStart(6)}  ${String(i + 1).padStart(3)}  ${fname(t)}`); }); return say(`total ${hsize(tot)} in ${flat.length} files`); }
+ const m = a.match(/^album\s+(.+)/i); if (m) { const q = m[1].toLowerCase(), al = data.albums.find(x => x.title.toLowerCase() === q || x.id === q) || data.albums.find(x => x.title.toLowerCase().includes(q));
+  if (!al) return say('get: album not found: ' + m[1] + " (try 'albums')"); const idx = flat.map((t, i) => i).filter(i => flat[i].al === al);
+  say(`queued ${idx.length} files from ${al.title}. your browser may ask to allow multiple downloads.`); for (const i of idx) { await getTrack(i); await new Promise(r => setTimeout(r, 600)); } return say(`FINISHED --  ${idx.length} files downloaded`); }
+ const i = findTrack(a); if (i < 0) return say(`get: ${a}: No such file or directory (try 'get --list')`); getTrack(i); }
 
 /* ---------- photos ---------- */
 function openPhotos() { const p = $('#photos'); p.hidden = false; document.body.classList.add('photos-open'); if (location.hash !== '#photos') history.pushState(null, '', '#photos'); p.scrollTop = 0; $('#phback').focus(); }
