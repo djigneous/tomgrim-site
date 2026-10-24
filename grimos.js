@@ -79,7 +79,7 @@ function ensureCtx() {
  actx = new (window.AudioContext || window.webkitAudioContext)();
  const src = actx.createMediaElementSource(audio);
  an = actx.createAnalyser(); an.fftSize = 2048; an.smoothingTimeConstant = .75;
- src.connect(an); an.connect(actx.destination);
+ an.connect(actx.destination); fxInit(src);
 }
 const isLoopAlbum = t => t && t.al.type === 'loops';
 function effRepeat() { const t = flat[cur]; if (t && isLoopAlbum(t)) return loopOverride[t.ai] ?? (repeat === 'off' ? 'one' : repeat); return repeat; }
@@ -452,7 +452,7 @@ function cowsay(t) { t = (t || 'moo. drop the bass.').slice(0, 200); const w = M
  lines.forEach((x, i) => { const [o, c] = lines.length === 1 ? ['<', '>'] : i === 0 ? ['/', '\\'] : i === lines.length - 1 ? ['\\', '/'] : ['|', '|']; b += `${o} ${x.padEnd(W)} ${c}\n`; });
  b += ' ' + '-'.repeat(W + 2) + '\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\  ♪♫  )\\/\\\n                ||----w |\n                ||     ||'; say(b); }
 const CMDS = {
- help: () => say('commands: help ls albums play <n|name> pause next prev bio links mail irc get clear theme <' + THEMES.join('|') + '> themes crt on|off repeat shuffle vol <0-100> whoami fetch\nget:      get <n|name> · get album <name> · get --list   (aliases: wget, curl -O)\nnet:      mail (contact form) · irc (#tomgrim on irc.unrealircd.org)\nfun:      matrix glitch fire hack starfield plasma tunnel rain dvd life cube [torus] donut snow pipes (any key/click exits) · cowsay <text>\nsystem:   pwd cd ls -la dir cat echo history clear/cls whoami hostname uname -a date uptime ping ifconfig/ip a top/htop ps df -h free -h neofetch man which ssh curl apt sudo exit\nidle:     screensaver on|off|<seconds>|<effect>|random  (default on, 60s)'),
+ help: () => say('commands: help ls albums play <n|name> pause stop next prev bio links mail irc get clear theme <' + THEMES.join('|') + '> themes crt on|off repeat shuffle vol <0-100> whoami fetch\nget:      get <n|name> · get album <name> · get --list   (aliases: wget, curl -O)\nnet:      mail (contact form) · irc (#tomgrim on irc.unrealircd.org)\nfun:      matrix glitch fire hack starfield plasma tunnel rain dvd life cube [torus] donut snow pipes (any key/click exits) · cowsay <text>\nsystem:   pwd cd ls -la dir cat echo history clear/cls whoami hostname uname -a date uptime ping ifconfig/ip a top/htop ps df -h free -h neofetch man which ssh curl apt sudo exit\nfx:       fx · fx reset · fx <filter|res|verb|crush> <value>   (or drag the knobs)\nidle:     screensaver on|off|<seconds>|<effect>|random  (default on, 60s)'),
  themes: () => say('themes: ' + THEMES.map(t => t === curTheme() ? '[' + t + ']' : t).join(' ')),
  crt: a => { a = (a || '').trim(); if (a === 'on' || a === 'off') setCrt(a === 'on'); else if (!a) setCrt(document.body.classList.contains('nocrt')); else say('usage: crt on|off'); },
  photos: () => { say(`~/photos: ${PHOTOS.length} frames · click one or use ←/→ in the viewer`); jump('photos'); }, gallery: () => CMDS.photos(),
@@ -471,6 +471,87 @@ const CMDS = {
  sudo: a => { const m = (a || '').match(/^(\S+)\s*(.*)$/); if (m && /^(apt|apt-get)$/.test(m[1])) return CMDS[m[1]](m[2], true); say('[sudo] password for tom: ********\ntom is not in the sudoers file. This incident will be reported.'); },
  exit: () => say('logout\nthere is no exit. only the next track. (refresh to reboot)'), logout: () => CMDS.exit(),
 };
+/* ---------- DJ FX: filter / res / verb / crush ---------- */
+const FXK = {filter: {min: -100, max: 100, def: 0, label: 'FILTER', bi: true}, res: {min: 0, max: 100, def: 0, label: 'RES'}, verb: {min: 0, max: 100, def: 0, label: 'VERB'}, crush: {min: 0, max: 100, def: 0, label: 'CRUSH'}};
+const fxv = {filter: 0, res: 0, verb: 0, crush: 0}; let fxg = null;
+const fxFmt = (k, v) => { v = Math.round(v); if (k === 'filter') { if (Math.abs(v) < 3) return 'OFF'; const t = (Math.abs(v) - 3) / 97; return v < 0 ? 'LP ' + fhz(20000 * Math.pow(80 / 20000, t)) : 'HP ' + fhz(20 * Math.pow(8000 / 20, t)); }
+ if (k === 'res') return 'Q ' + (0.7 * Math.pow(15 / 0.7, v / 100)).toFixed(1); if (k === 'crush') return v ? Math.round(16 - v / 100 * 12) + '-bit' : 'OFF'; return v + '%'; };
+const fhz = f => f >= 1000 ? (f / 1000).toFixed(f >= 10000 ? 0 : 1) + 'k' : Math.round(f) + 'Hz';
+function fxInit(src) { const c = actx, g = fxg = {src, c};
+ g.filt = c.createBiquadFilter(); g.fcomp = c.createGain();
+ g.dry = c.createGain(); g.wet = c.createGain(); g.conv = c.createConvolver(); g.sum = c.createGain();
+ g.lim = c.createDynamicsCompressor(); g.lim.threshold.value = -3; g.lim.knee.value = 0; g.lim.ratio.value = 20; g.lim.attack.value = .002; g.lim.release.value = .12;
+ const sr = c.sampleRate, len = Math.floor(sr * 2.5), ir = c.createBuffer(2, len, sr);
+ for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) { const t = i / len; d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 3.2) * (i < sr * .012 ? i / (sr * .012) : 1); } }
+ g.conv.buffer = ir; g.crush = null; g.crushFb = null;
+ const code = `class C extends AudioWorkletProcessor{static get parameterDescriptors(){return[{name:'bits',defaultValue:16},{name:'down',defaultValue:1}]}constructor(){super();this.h=[0,0];this.n=0}process(i,o,p){const a=i[0],b=o[0];if(!a||!a.length)return true;const bits=p.bits[0],dn=Math.max(1,p.down[0]|0),q=Math.pow(2,bits-1),comp=1/(1+(16-bits)*.012);for(let ch=0;ch<b.length;ch++){const x=a[ch]||a[0],y=b[ch];let n=this.n;for(let s=0;s<y.length;s++){if(n%dn===0)this.h[ch]=Math.round(x[s]*q)/q;y[s]=this.h[ch]*comp;n++}if(ch===b.length-1)this.n=n}return true}}registerProcessor('grim-crush',C);`;
+ if (c.audioWorklet) c.audioWorklet.addModule(URL.createObjectURL(new Blob([code], {type: 'application/javascript'}))).then(() => { g.crush = new AudioWorkletNode(c, 'grim-crush', {outputChannelCount: [2]}); g.sig = null; fxRoute(); }).catch(() => {});
+ g.crushFb = c.createWaveShaper(); g.sig = null; fxRoute(); }
+function fxRoute() { const g = fxg; if (!g) return; const c = g.c, now = c.currentTime;
+ const fOn = Math.abs(fxv.filter) >= 3, vOn = fxv.verb > 0, cOn = fxv.crush > 0, sig = [fOn, vOn, cOn, !!g.crush].join(), wire = sig !== g.sig; g.sig = sig;
+ if (fOn) { const t = (Math.abs(fxv.filter) - 3) / 97, Q = 0.7 * Math.pow(15 / 0.7, fxv.res / 100), ty = fxv.filter < 0 ? 'lowpass' : 'highpass';
+  if (g.filt.type !== ty) g.filt.type = ty; g.filt.frequency.setTargetAtTime(fxv.filter < 0 ? 20000 * Math.pow(80 / 20000, t) : 20 * Math.pow(8000 / 20, t), now, .015);
+  g.filt.Q.setTargetAtTime(Q, now, .015); g.fcomp.gain.setTargetAtTime(1 / Math.sqrt(Q / 0.7), now, .015); }
+ if (cOn) { const bits = 16 - fxv.crush / 100 * 12, down = 1 + Math.round(Math.pow(fxv.crush / 100, 1.5) * 15);
+  if (g.crush) { g.crush.parameters.get('bits').setValueAtTime(bits, now); g.crush.parameters.get('down').setValueAtTime(down, now); }
+  else { const q = Math.pow(2, Math.round(bits) - 1); if (g.fbq !== q) { g.fbq = q; const N = 4096, cv = new Float32Array(N); for (let i = 0; i < N; i++) { const x = i / (N - 1) * 2 - 1; cv[i] = Math.round(x * q) / q; } g.crushFb.curve = cv; } } }
+ if (vOn) { const w = fxv.verb / 100; g.dry.gain.setTargetAtTime(1 - w * .5, now, .02); g.wet.gain.setTargetAtTime(w * .9, now, .02); }
+ if (!wire) return;
+ [g.src, g.filt, g.fcomp, g.dry, g.wet, g.conv, g.sum, g.lim, g.crush, g.crushFb].forEach(n => { try { n && n.disconnect(); } catch {} });
+ if (!fOn && !vOn && !cOn) { g.src.connect(an); return; } // true bypass: untouched signal
+ let head = g.src;
+ if (fOn) { head.connect(g.filt); g.filt.connect(g.fcomp); head = g.fcomp; }
+ if (cOn) { const n = g.crush || g.crushFb; head.connect(n); head = n; }
+ if (vOn) { head.connect(g.dry); head.connect(g.conv); g.conv.connect(g.wet); g.dry.connect(g.sum); g.wet.connect(g.sum); head = g.sum; }
+ head.connect(g.lim); g.lim.connect(an); }
+let fxRouteT = 0; const fxApply = () => { if (!fxg) return; cancelAnimationFrame(fxRouteT); fxRouteT = requestAnimationFrame(fxRoute); };
+function fxSet(k, v, quiet) { const d = FXK[k]; if (!d) return; v = Math.max(d.min, Math.min(d.max, +v || 0)); fxv[k] = v; fxApply(); knobDraw(k); }
+/* knobs (SVG, Ableton-style) */
+const KNOBS = {}; const ARC0 = -135, ARC = 270;
+const kpt = (a, r) => { const t = (a - 90) * Math.PI / 180; return [20 + r * Math.cos(t), 20 + r * Math.sin(t)]; };
+const karc = (a0, a1, r) => { if (Math.abs(a1 - a0) < .01) return ''; const [x0, y0] = kpt(Math.min(a0, a1), r), [x1, y1] = kpt(Math.max(a0, a1), r); return `M${x0.toFixed(2)} ${y0.toFixed(2)}A${r} ${r} 0 ${Math.abs(a1 - a0) > 180 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`; };
+function knobDraw(k) { const K = KNOBS[k]; if (!K) return; const d = FXK[k], v = fxv[k], n = (v - d.min) / (d.max - d.min), a = ARC0 + ARC * n, a0 = d.bi ? 0 : ARC0;
+ K.val.setAttribute('d', karc(a0, a, 15)); const [x1, y1] = kpt(a, 5), [x2, y2] = kpt(a, 12.5); K.ptr.setAttribute('x1', x1); K.ptr.setAttribute('y1', y1); K.ptr.setAttribute('x2', x2); K.ptr.setAttribute('y2', y2);
+ K.el.setAttribute('aria-valuenow', Math.round(v)); K.el.setAttribute('aria-valuetext', fxFmt(k, v)); K.ro.textContent = fxFmt(k, v); K.el.classList.toggle('on', v !== d.def); }
+function knobsBuild() { const box = $('#fxknobs'); if (!box) return; const NS = 'http://www.w3.org/2000/svg';
+ for (const [k, d] of Object.entries(FXK)) { const el = document.createElement('div'); el.className = 'knob k-' + k; el.tabIndex = 0; el.setAttribute('role', 'slider'); el.setAttribute('aria-label', d.label.toLowerCase() + ' knob'); el.setAttribute('aria-valuemin', d.min); el.setAttribute('aria-valuemax', d.max);
+  el.innerHTML = `<span class="kro"></span><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="kbody" cx="20" cy="20" r="11.5"/><path class="ktrack" d="${karc(ARC0, ARC0 + ARC, 15)}"/><path class="kval"/><line class="kptr"/></svg><span class="klbl">${d.label}</span>`;
+  box.appendChild(el); KNOBS[k] = {el, val: el.querySelector('.kval'), ptr: el.querySelector('.kptr'), ro: el.querySelector('.kro')};
+  const span = d.max - d.min; let drag = null, lastTap = 0;
+  el.addEventListener('pointerdown', e => { e.preventDefault(); el.focus({preventScroll: true}); const now = Date.now(); if (e.pointerType !== 'mouse' && now - lastTap < 300) { fxSet(k, d.def); lastTap = 0; return; } lastTap = now;
+   drag = {x: e.clientX, y: e.clientY, v: fxv[k]}; el.setPointerCapture(e.pointerId); el.classList.add('drag'); });
+  el.addEventListener('pointermove', e => { if (!drag) return; const px = (drag.y - e.clientY) + (e.clientX - drag.x); fxSet(k, drag.v + px / (e.shiftKey ? 1200 : 160) * span); });
+  const end = () => { drag = null; el.classList.remove('drag'); }; el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  el.addEventListener('dblclick', () => fxSet(k, d.def));
+  el.addEventListener('wheel', e => { e.preventDefault(); fxSet(k, fxv[k] - Math.sign(e.deltaY) * (e.shiftKey ? .5 : 4) * span / 100); }, {passive: false});
+  el.addEventListener('keydown', e => { const st = (e.shiftKey ? 1 : 5) * span / 100; let nv = null;
+   if (e.key === 'ArrowUp' || e.key === 'ArrowRight') nv = fxv[k] + st; else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') nv = fxv[k] - st; else if (e.key === 'Home') nv = d.min; else if (e.key === 'End') nv = d.max; else if (e.key === 'Delete' || e.key === 'Backspace' || e.key === '0') nv = d.def;
+   if (nv != null) { e.preventDefault(); e.stopPropagation(); fxSet(k, nv); } });
+  knobDraw(k); } }
+knobsBuild();
+function fxCmd(a) { a = (a || '').trim().toLowerCase(); const show = () => say('fx: ' + Object.keys(FXK).map(k => `${k} ${Math.round(fxv[k])} (${fxFmt(k, fxv[k])})`).join(' · ') + '\nusage: fx reset · fx <filter|res|verb|crush> <value>   (filter -100..100, others 0..100)');
+ if (!a) return show(); if (a === 'reset') { Object.keys(FXK).forEach(k => fxSet(k, FXK[k].def)); return say('fx: all knobs reset (bypass).'); }
+ const m = a.match(/^(filter|res|verb|reverb|crush)\s+(-?\d+(\.\d+)?)$/); if (!m) return show(); const k = m[1] === 'reverb' ? 'verb' : m[1]; fxSet(k, +m[2]); say(`fx: ${k} → ${Math.round(fxv[k])} (${fxFmt(k, fxv[k])})`); }
+window.__fx = () => ({...fxv, routed: fxg ? 1 : 0, worklet: !!(fxg && fxg.crush)});
+
+/* ---------- pop-out terminal ---------- */
+const shellEl = $('#shell'), shellHome = document.createComment('shell-home'); shellEl.before(shellHome);
+const termMob = () => innerWidth < 760 || matchMedia('(pointer:coarse)').matches;
+function termFloat(on) { on = !!on; if (on === shellEl.classList.contains('floating')) return; const b = $('#termpop');
+ if (on) { document.body.appendChild(shellEl); shellEl.classList.add('floating'); shellEl.classList.toggle('sheet', termMob());
+  if (!termMob()) { const st = JSON.parse(sessionStorage.grimTermPos || 'null') || {x: Math.max(10, innerWidth - 760), y: 80, w: 720, h: 460};
+   Object.assign(shellEl.style, {left: Math.min(st.x, innerWidth - 120) + 'px', top: Math.max(0, Math.min(st.y, innerHeight - 60)) + 'px', width: st.w + 'px', height: st.h + 'px'}); }
+  b.textContent = '⤓'; b.title = 'dock terminal'; b.setAttribute('aria-label', 'Dock terminal back into the page'); }
+ else { shellEl.classList.remove('floating', 'sheet'); shellEl.removeAttribute('style'); shellHome.after(shellEl); b.textContent = '⧉'; b.title = 'pop out terminal'; b.setAttribute('aria-label', 'Pop out terminal into a floating window'); }
+ sessionStorage.grimTermFloat = on ? '1' : ''; out.scrollTop = out.scrollHeight; if (!dead) cmd.focus({preventScroll: true}); }
+const termSave = () => { if (!shellEl.classList.contains('floating') || shellEl.classList.contains('sheet')) return; const r = shellEl.getBoundingClientRect(); sessionStorage.grimTermPos = JSON.stringify({x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height)}); };
+$('#termpop').addEventListener('click', e => { e.stopPropagation(); termFloat(!shellEl.classList.contains('floating')); });
+$('#t-shell').addEventListener('pointerdown', e => { if (!shellEl.classList.contains('floating') || shellEl.classList.contains('sheet') || e.target.closest('button')) return; e.preventDefault();
+ const r = shellEl.getBoundingClientRect(), ox = e.clientX - r.left, oy = e.clientY - r.top, h = e.currentTarget; h.setPointerCapture(e.pointerId);
+ const mv = ev => { shellEl.style.left = Math.max(-r.width + 80, Math.min(innerWidth - 80, ev.clientX - ox)) + 'px'; shellEl.style.top = Math.max(0, Math.min(innerHeight - 30, ev.clientY - oy)) + 'px'; };
+ const up = () => { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); termSave(); }; h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up); });
+new ResizeObserver(() => termSave()).observe(shellEl);
+if (sessionStorage.grimTermFloat === '1') setTimeout(() => termFloat(true), 0);
 /* ---------- terminal emulator: fake fs + system commands ---------- */
 const T_START = Date.now(), HOME = '/home/tom'; let cwd = HOME, job = null;
 const esc2 = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'})[c]);
@@ -560,7 +641,9 @@ Object.assign(CMDS, {
  curl: a => { a = (a || '').trim(); if (/(^|\s)(-O|--remote-name)(\s|$)/.test(a)) return getCmd(a.replace(/(^|\s)(-O|--remote-name|-L|-s)(?=\s|$)/g, ' ').trim()); if (!a) return say("curl: try 'curl --help' for more information");
   const u = a.replace(/(^|\s)-\S+/g, ' ').trim().replace(/^https?:\/\//, ''); if (/thomasgrim\.com/.test(u)) return say('<!doctype html>\n<html><head><title>GRIM/OS :: tomGRIM</title>…\n(you are already here.)'); if (/wttr\.in/.test(u)) return say('Weather: Lehigh Valley — 4°C, fog, low light. Perfect for downtempo.');
   if (/^[\d.]+$|^[a-z0-9-]+(\.[a-z0-9-]+)+/i.test(u)) return say(`curl: (6) Could not resolve host: ${u.replace(/^https?:\/\//, '').split('/')[0]}\n(GrimOS is offline-first. try "curl -O <track#>" to download a track.)`); getCmd(a); },
- apt: aptCmd, 'apt-get': aptCmd,
+ apt: aptCmd, 'apt-get': aptCmd, fx: fxCmd,
+ stop: () => { audio.pause(); try { audio.currentTime = 0; } catch {} $('#tcur').textContent = fmt(0); updateNP(); setTimeout(() => { if ('mediaSession' in navigator) { navigator.mediaSession.playbackState = 'none'; try { navigator.mediaSession.setPositionState({duration: audio.duration || 0, position: 0, playbackRate: 1}); } catch {} } }, 0); say('■ stopped. (00:00)'); },
+ popout: () => termFloat(true), dock: () => termFloat(false),
 });
 $('#prompt').addEventListener('submit', e => { e.preventDefault(); if (job) return; const v = cmd.value.trim(); cmd.value = ''; if (!v) return; hist.push(v); hp = hist.length;
  if (/^(sudo\s+)?rm\s+-(rf|fr)\s+(--no-preserve-root\s+)?\/\*?$/i.test(v)) { say(prompt() + ' ' + v); return rmrf(); }
