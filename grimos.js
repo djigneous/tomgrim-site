@@ -263,7 +263,41 @@ const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(6, Math.f
 
 /* ---------- shell ---------- */
 const out = $('#out'), cmd = $('#cmd'); const hist = []; let hp = 0;
-function say(html, raw) { const d = document.createElement('div'); if (raw) d.innerHTML = html; else d.textContent = html; out.appendChild(d); out.scrollTop = out.scrollHeight; }
+function say(html, raw) { const d = document.createElement('div'); if (raw) d.innerHTML = html; else if (typeof ansi === 'function' && (String(html).includes('\x1b') || ERRRE.test(html))) d.innerHTML = ansi(String(html).includes('\x1b') ? html : String(html).split('\n').map(l => ERRRE.test(l) ? '\x1b[31m' + l + '\x1b[0m' : l).join('\n')); else d.textContent = html; out.appendChild(d); out.scrollTop = out.scrollHeight; }
+/* ---------- ANSI colors + syntax highlighting ---------- */
+const E = '\x1b[', A = (c, s) => E + c + 'm' + s + E + '0m';
+const escH = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'})[c]);
+function ansi(str) { let o = '', st = {}, open = false; const parts = String(str).split(/\x1b\[([\d;]*)m/);
+ const flush = () => { const c = []; if (st.fg != null) c.push('a' + st.fg); if (st.bg != null) c.push('ab' + st.bg); if (st.b) c.push('ab-b'); if (st.d) c.push('ab-d'); if (st.i) c.push('ab-i'); if (st.u) c.push('ab-u'); return c.length ? `<span class="${c.join(' ')}">` : ''; };
+ for (let k = 0; k < parts.length; k++) { if (k % 2 === 0) { if (!parts[k]) continue; const sp = flush(); o += sp + escH(parts[k]) + (sp ? '</span>' : ''); continue; }
+  for (const n of (parts[k] || '0').split(';').map(Number)) { if (n === 0) st = {}; else if (n === 1) st.b = 1; else if (n === 2) st.d = 1; else if (n === 3) st.i = 1; else if (n === 4) st.u = 1; else if (n === 22) st.b = st.d = 0; else if (n === 23) st.i = 0; else if (n === 24) st.u = 0;
+   else if (n >= 30 && n <= 37) st.fg = n - 30 + (st.b ? 0 : 0); else if (n >= 90 && n <= 97) st.fg = n - 90 + 8; else if (n === 39) st.fg = null; else if (n >= 40 && n <= 47) st.bg = n - 40; else if (n >= 100 && n <= 107) st.bg = n - 100 + 8; else if (n === 49) st.bg = null; } }
+ return o; }
+const ERRRE = /(command not found|Permission denied|No such file or directory|cannot access|Not a directory|Is a directory|Connection refused|Could not resolve host|^E: |not in the sudoers|No manual entry|usage error|missing operand)/;
+function sayA(s) { say(ansi(s), true); }
+function hl(line) { let o = '', first = true; const re = /(\s+)|("(?:[^"\\]|\\.)*"?|'[^']*'?)|(\|\||&&|[|;&><])|([^\s|;&><"']+)/g; let m;
+ while ((m = re.exec(line))) { const [t, ws, q, op, w] = m;
+  if (ws) { o += ws; continue; } if (q) { o += `<span class="sx-str">${escH(q)}</span>`; continue; } if (op) { o += `<span class="sx-op">${escH(op)}</span>`; if (/[|;&]/.test(op)) first = true; continue; }
+  let cls; if (first) { first = false; const k = w.toLowerCase(); cls = (typeof CMDS !== 'undefined' && CMDS[k]) || k === 'sudo' ? 'sx-cmd' : 'sx-bad'; if (k === 'sudo') first = true; }
+  else if (/^--?[A-Za-z]/.test(w)) cls = 'sx-flag'; else if (/^\$(\w+|\{\w+\})$/.test(w) || /\$\w/.test(w)) cls = 'sx-var'; else if (/^-?\d+(\.\d+)?%?$/.test(w)) cls = 'sx-num';
+  else if (/[\/~]|\.\w{1,4}$/.test(w)) cls = 'sx-path'; else cls = 'sx-arg';
+  if (cls === 'sx-var') o += `<span class="sx-var">${escH(w).replace(/(\$\w+|\$\{\w+\})/g, '<i>$1</i>')}</span>`; else o += `<span class="${cls}">${escH(w)}</span>`; }
+ return o; }
+const promptHtml = () => { const p = prompt(); const m = p.match(/^([^:]+):(.*)\$$/); return m ? `<span class="pr-uh">${escH(m[1])}</span>:<span class="pr-path">${escH(m[2])}</span>$` : escH(p); };
+function sayCmd(v) { say(promptHtml() + ' ' + hl(v), true); }
+function colorHelp(s) { return s.split('\n').map(l => { const m = l.match(/^(\w+:)(\s+)(.*)$/); const head = m ? A('1;35', m[1]) + m[2] : '', body = m ? m[3] : l;
+ return head + body.split(/(\s+)/).map(w => /^\s+$/.test(w) || !w ? w : /^<.*>$|^\[.*\]$/.test(w) ? A('2', w) : /^--?\w/.test(w) ? A('35', w) : /^\(|\)$|^·$|^\(.*\)$/.test(w) ? A('2', w) : /^[a-z][\w-]*[,]?$/i.test(w) && (typeof CMDS !== 'undefined' && CMDS[w.replace(/,$/, '')]) ? A('1;33', w) : /\|/.test(w) && !/[<>]/.test(w) ? w.split('|').map(x => typeof CMDS !== 'undefined' && CMDS[x] ? A('1;33', x) : x).join(A('2', '|')) : w).join(''); }).join('\n'); }
+let colorsOn = sessionStorage.grimColors !== 'off'; document.body.classList.toggle('nocolor', !colorsOn);
+function colorsCmd(a) { a = (a || '').trim(); if (a === 'off' || a === 'on') { colorsOn = a === 'on'; sessionStorage.grimColors = a; document.body.classList.toggle('nocolor', !colorsOn); return sayA('colors: ' + (colorsOn ? A('1;32', 'on') : 'off')); }
+ const T = ' gYw ', bgs = ['', '40m', '41m', '42m', '43m', '44m', '45m', '46m', '47m']; let s = '         ' + bgs.map(b => (b || '').padEnd(6) ).join('').trimEnd() + '\n';
+ const rows = [['m', ''], ['1m', '1'], ['30m', '30'], ['1;30m', '1;30'], ['31m', '31'], ['1;31m', '1;31'], ['32m', '32'], ['1;32m', '1;32'], ['33m', '33'], ['1;33m', '1;33'], ['34m', '34'], ['1;34m', '1;34'], ['35m', '35'], ['1;35m', '1;35'], ['36m', '36'], ['1;36m', '1;36'], ['37m', '37'], ['1;37m', '1;37']];
+ for (const [lab, code] of rows) { s += lab.padStart(6) + ' ' + A(code || '0', T); for (let b = 0; b < 8; b++) s += ' ' + A((code ? code + ';' : '') + (40 + b), T); s += '\n'; }
+ s += '\n' + A('1', 'bold') + ' ' + A('2', 'dim') + ' ' + A('3', 'italic') + ' ' + A('4', 'underline') + '   colors on|off'; sayA(s); }
+/* live input highlighting overlay */
+const cmdHl = document.createElement('span'); cmdHl.className = 'cmdhl'; cmdHl.setAttribute('aria-hidden', 'true');
+{ const wrap = document.createElement('span'); wrap.className = 'cmdwrap'; cmd.before(wrap); wrap.append(cmd, cmdHl); }
+let hlLast = null; const hlSync = () => { if (cmd.value !== hlLast) { hlLast = cmd.value; cmdHl.innerHTML = '<span>' + hl(cmd.value) + ' </span>'; } cmdHl.style.transform = `translateX(${-cmd.scrollLeft}px)`; };
+['input', 'keyup', 'scroll', 'focus', 'select'].forEach(ev => cmd.addEventListener(ev, hlSync)); setInterval(hlSync, 120);
 const LINKS = [['spotify','https://open.spotify.com/artist/1tBp2oza76uuM5bC3fx8Vg'],['apple-music','https://music.apple.com/us/artist/tomgrim/1705139904'],['youtube','https://www.youtube.com/@ig3.productions'],['soundcloud','https://soundcloud.com/thomasgrim']];
 const THEMES = ['cyan', 'green', 'amber', 'red', 'gray', 'fire', 'ice'];
 const themeSel = $('#themesel'); themeSel.innerHTML = THEMES.map(t => `<option value="${t}">${t}</option>`).join('');
@@ -452,7 +486,8 @@ function cowsay(t) { t = (t || 'moo. drop the bass.').slice(0, 200); const w = M
  lines.forEach((x, i) => { const [o, c] = lines.length === 1 ? ['<', '>'] : i === 0 ? ['/', '\\'] : i === lines.length - 1 ? ['\\', '/'] : ['|', '|']; b += `${o} ${x.padEnd(W)} ${c}\n`; });
  b += ' ' + '-'.repeat(W + 2) + '\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\  ♪♫  )\\/\\\n                ||----w |\n                ||     ||'; say(b); }
 const CMDS = {
- help: () => say('commands: help ls albums play <n|name> pause stop next prev bio links mail irc get clear theme <' + THEMES.join('|') + '> themes crt on|off repeat shuffle vol <0-100> whoami fetch\nget:      get <n|name> · get album <name> · get --list   (aliases: wget, curl -O)\nnet:      mail (contact form) · irc (#tomgrim on irc.unrealircd.org)\nfun:      matrix glitch fire hack starfield plasma tunnel rain dvd life cube [torus] donut snow pipes (any key/click exits) · cowsay <text>\nsystem:   pwd cd ls -la dir cat echo history clear/cls whoami hostname uname -a date uptime ping ifconfig/ip a top/htop ps df -h free -h neofetch man which ssh curl apt sudo exit\nfx:       fx · fx reset · fx <filter|res|verb|crush> <value>   (or drag the knobs)\nidle:     screensaver on|off|<seconds>|<effect>|random  (default on, 60s)'),
+ help: () => sayA(colorHelp('commands: help ls albums play <n|name> pause stop next prev bio links mail irc get clear theme <' + THEMES.join('|') + '> themes crt on|off repeat shuffle vol <0-100> whoami fetch\nget:      get <n|name> · get album <name> · get --list   (aliases: wget, curl -O)\nnet:      mail (contact form) · irc (#tomgrim on irc.unrealircd.org)\nfun:      matrix glitch fire hack starfield plasma tunnel rain dvd life cube [torus] donut snow pipes (any key/click exits) · cowsay <text>\nsystem:   pwd cd ls -la dir cat echo history clear/cls whoami hostname uname -a date uptime ping ifconfig/ip a top/htop ps df -h free -h neofetch man which ssh curl apt sudo exit\nfx:       fx · fx reset · fx <filter|res|verb|crush> <value>   (or drag the knobs)\nlook:     colors · colors on|off\nidle:     screensaver on|off|<seconds>|<effect>|random  (default on, 60s)')),
+
  themes: () => say('themes: ' + THEMES.map(t => t === curTheme() ? '[' + t + ']' : t).join(' ')),
  crt: a => { a = (a || '').trim(); if (a === 'on' || a === 'off') setCrt(a === 'on'); else if (!a) setCrt(document.body.classList.contains('nocrt')); else say('usage: crt on|off'); },
  photos: () => { say(`~/photos: ${PHOTOS.length} frames · click one or use ←/→ in the viewer`); jump('photos'); }, gallery: () => CMDS.photos(),
@@ -558,7 +593,7 @@ const T_START = Date.now(), HOME = '/home/tom'; let cwd = HOME, job = null;
 const esc2 = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'})[c]);
 const slug2 = s => String(s).toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const prompt = () => 'tom@grimos:' + (cwd === HOME ? '~' : cwd.startsWith(HOME + '/') ? '~' + cwd.slice(HOME.length) : cwd) + '$';
-const setPrompt = () => { $('#prompt label').textContent = prompt(); };
+const setPrompt = () => { $('#prompt label').innerHTML = promptHtml(); };
 const OSREL = 'NAME="GrimOS"\nPRETTY_NAME="GrimOS ' + GRIMOS_VERSION + ' (Downtempo)"\nVERSION="' + GRIMOS_VERSION + '-warm"\nVERSION_ID="' + GRIMOS_VERSION + '"\nID=grimos\nID_LIKE=debian\nHOME_URL="https://thomasgrim.com"\nBUG_REPORT_URL="irc://irc.unrealircd.org/#tomgrim"';
 function fsTree() { const D = (o) => ({d: 1, c: o}), F = (txt, size) => ({f: 1, txt, size: size ?? (txt ? txt.length : 0)});
  const music = {}, albums = {};
@@ -580,9 +615,10 @@ const hsz = b => b < 1024 ? b + 'B' : b < 1048576 ? (b / 1024).toFixed(1) + 'K' 
 function lsPath(a) { const flags = (a.match(/(^|\s)-\w+/g) || []).join(''), p = a.replace(/(^|\s)-\w+/g, '').trim(), n = fsGet(p || '.');
  if (!n) return say(`ls: cannot access '${p}': No such file or directory`); const long = /l/.test(flags), all = /a/.test(flags);
  const ents = n.d ? Object.entries(n.c).filter(([k]) => all || !k.startsWith('.')) : [[p.split('/').pop(), n]];
- if (!long) return say(ents.map(([k, v]) => v.d ? k + '/' : k).join('  ') || '');
+ if (!long) return sayA(ents.map(([k, v]) => lsName(k, v)).join('  ') || '');
  const rows = (all && n.d ? [['.', n], ['..', {d: 1, c: {}}]] : []).concat(ents);
- say('total ' + rows.length * 4 + '\n' + rows.map(([k, v], i) => `${v.d ? 'drwxr-xr-x' : /passwd|shadow|auth|\.bash_history/.test(k) ? '-rw-------' : '-rw-r--r--'} ${String(v.d ? 2 + Object.keys(v.c).length : 1).padStart(2)} tom  tom  ${String(v.d ? 4096 : v.size).padStart(8)} ${fdate(k.length * 31 + i)} ${v.d ? k + '/' : k}`).join('\n')); }
+ sayA('total ' + rows.length * 4 + '\n' + rows.map(([k, v], i) => `${A('2', v.d ? 'drwxr-xr-x' : /passwd|shadow|auth|\.bash_history/.test(k) ? '-rw-------' : '-rw-r--r--')} ${String(v.d ? 2 + Object.keys(v.c).length : 1).padStart(2)} ${A('33', 'tom  tom')}  ${A('32', String(v.d ? 4096 : v.size).padStart(8))} ${A('2', fdate(k.length * 31 + i))} ${lsName(k, v)}`).join('\n')); }
+const lsName = (k, v) => v.d ? A('1;34', k + '/') : /\.mp3$/.test(k) ? A('35', k) : /\.(jpe?g|png)$/.test(k) ? A('36', k) : k.startsWith('.') ? A('2', k) : /^(bash|sh|ls|grimsh|grimamp|python3)$/.test(k) ? A('1;32', k) : k;
 function startJob(stop, kind) { job = {stop: () => { if (!job) return; stop(); job = null; }, kind}; }
 const pingCmd = a => { const host = (a || '').replace(/-\S+\s*\S*/g, '').trim(); if (!host) return say('ping: usage error: Destination address required');
  const known = {'thomasgrim.com': '185.199.108.153', localhost: '127.0.0.1', grimos: '127.0.1.1', 'google.com': '142.250.72.14', 'irc.unrealircd.org': '94.130.0.1'};
@@ -591,14 +627,14 @@ const pingCmd = a => { const host = (a || '').replace(/-\S+\s*\S*/g, '').trim();
  say(`PING ${host} (${ip}) 56(84) bytes of data.`);
  const fin = () => { const mn = Math.min(...times), mx2 = Math.max(...times), av = times.reduce((s, x) => s + x, 0) / (times.length || 1);
   say(`\n--- ${host} ping statistics ---\n${n} packets transmitted, ${times.length} received, 0% packet loss, time ${n * 1000 - 999}ms` + (times.length ? `\nrtt min/avg/max/mdev = ${mn.toFixed(3)}/${av.toFixed(3)}/${mx2.toFixed(3)}/${((mx2 - mn) / 2).toFixed(3)} ms` : '')); };
- const tick = () => { n++; const t = base * (1 + (Math.random() - .3) * .25); times.push(t); say(`64 bytes from ${host === ip ? ip : host + ' (' + ip + ')'}: icmp_seq=${n} ttl=${ip.startsWith('127.') ? 64 : 57} time=${t < 1 ? t.toFixed(3) : t.toFixed(1)} ms`); if (n >= 4) { clearInterval(iv); job = null; fin(); } };
+ const tick = () => { n++; const t = base * (1 + (Math.random() - .3) * .25); times.push(t); sayA(`64 bytes from ${A('1;36', host === ip ? ip : host)}${host === ip ? '' : ' (' + A('36', ip) + ')'}: icmp_seq=${A('33', n)} ttl=${A('33', ip.startsWith('127.') ? 64 : 57)} time=${A('1;32', t < 1 ? t.toFixed(3) : t.toFixed(1))} ms`); if (n >= 4) { clearInterval(iv); job = null; fin(); } };
  const iv = setInterval(tick, 1000); setTimeout(tick, 60); startJob(() => { clearInterval(iv); say('^C'); fin(); }, 'ping'); };
 const PROCS = [['1', 'root', 'init'], ['42', 'root', 'kworker/bass'], ['133', 'tom', 'grimsh'], ['208', 'tom', 'grimamp'], ['209', 'tom', 'vinyl-spin'], ['211', 'tom', 'scope'], ['212', 'tom', 'spectrum'], ['230', 'tom', 'waveformd'], ['301', 'root', 'crt-phosphor'], ['333', 'tom', 'ircd-client'], ['404', 'root', 'sshd'], ['666', 'tom', 'ember-hours']];
 function procRows() { const L = typeof level === 'function' ? level() : {lvl: .2}, pl2 = !audio.paused;
  return PROCS.map(([pid, u, c], i) => { const busy = pl2 && /vinyl|scope|spectrum|grimamp|waveform/.test(c); const cpu = busy ? 4 + L.lvl * 30 * (1 + (i % 3)) * Math.random() + 3 : Math.random() * 1.2; return [pid, u, cpu, (i * 1.7 % 6 + .3), c]; }).sort((a, b) => b[2] - a[2]); }
 const topCmd = () => { const d = document.createElement('div'); out.appendChild(d); const draw = () => { const up = Math.floor((Date.now() - T_START) / 1000), r = procRows(), tot = r.reduce((s, x) => s + x[2], 0);
-  d.textContent = `top - ${new Date().toLocaleTimeString('en-GB')} up ${Math.floor(up / 60)} min,  1 user,  load average: ${(tot / 100).toFixed(2)}, ${(tot / 120).toFixed(2)}, ${(tot / 150).toFixed(2)}\nTasks: ${r.length} total,   ${audio.paused ? 1 : 5} running,  ${r.length - (audio.paused ? 1 : 5)} sleeping\n%Cpu(s): ${tot.toFixed(1).padStart(5)} us,  1.2 sy,  0.0 ni, ${Math.max(0, 100 - tot).toFixed(1)} id\nMiB Mem :   6666.0 total,   4096.6 free,   1337.0 used,   1232.4 buff/cache\n\n  PID USER      %CPU  %MEM  COMMAND\n` + r.map(x => `${x[0].padStart(5)} ${x[1].padEnd(8)} ${x[2].toFixed(1).padStart(5)} ${x[3].toFixed(1).padStart(5)}  ${x[4]}`).join('\n') + '\n\n[ q or Ctrl+C to quit ]'; out.scrollTop = out.scrollHeight; };
- draw(); const iv = setInterval(draw, 1000); startJob(() => { clearInterval(iv); d.textContent = d.textContent.replace(/\n\n\[ q or Ctrl\+C to quit \]$/, ''); }, 'top'); };
+  d.innerHTML = ansi(`\x1b[1mtop\x1b[0m - ${new Date().toLocaleTimeString('en-GB')} up ${Math.floor(up / 60)} min,  1 user,  load average: ${(tot / 100).toFixed(2)}, ${(tot / 120).toFixed(2)}, ${(tot / 150).toFixed(2)}\nTasks: ${r.length} total,   ${audio.paused ? 1 : 5} running,  ${r.length - (audio.paused ? 1 : 5)} sleeping\n%Cpu(s): ${tot.toFixed(1).padStart(5)} us,  1.2 sy,  0.0 ni, ${Math.max(0, 100 - tot).toFixed(1)} id\nMiB Mem :   6666.0 total,   4096.6 free,   1337.0 used,   1232.4 buff/cache\n\n\x1b[7m  PID USER      %CPU  %MEM  COMMAND   \x1b[0m\n` + r.map(x => `${A('33', x[0].padStart(5))} ${x[1].padEnd(8)} ${A(x[2] > 20 ? '1;31' : x[2] > 5 ? '33' : '32', x[2].toFixed(1).padStart(5))} ${x[3].toFixed(1).padStart(5)}  ${/vinyl|scope|spectrum|grimamp/.test(x[4]) ? A('1;36', x[4]) : x[4]}`).join('\n') + '\n\n' + A('2', '[ q or Ctrl+C to quit ]')); out.scrollTop = out.scrollHeight; };
+ draw(); const iv = setInterval(draw, 1000); startJob(() => { clearInterval(iv); d.lastChild && d.lastChild.remove && d.lastChild.remove(); }, 'top'); };
 const aptCmd = (a, su) => { const m = (a || '').match(/^(install|update|upgrade|remove)\s*(.*)$/); if (!m) return say('apt ' + GRIMOS_VERSION + ' (grimos)\nUsage: apt [install|remove|update|upgrade] <package>');
  if (!su && m[1] !== 'update') return say(`E: Could not open lock file /var/lib/dpkg/lock-frontend - open (13: Permission denied)\nE: Unable to acquire the dpkg frontend lock, are you root?`);
  if (m[1] === 'update') return say('Hit:1 https://thomasgrim.com/grimos stable InRelease\nHit:2 https://bandcamp.void downtempo InRelease\nReading package lists... Done\nAll packages are up to date. Stay warm.');
@@ -623,7 +659,7 @@ Object.assign(CMDS, {
  uname: a => say(/-a/.test(a || '') ? 'GrimOS grimos ' + GRIMOS_VERSION + '-warm #1 SMP PREEMPT lehigh-valley x86_64 GNU/Linux' : 'GrimOS'),
  date: () => say(new Date().toString().replace(/ GMT.*\(/, ' (')),
  uptime: () => { const s = Math.floor((Date.now() - T_START) / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); say(` ${new Date().toLocaleTimeString('en-GB')} up ${h ? h + ':' + String(m).padStart(2, '0') : m + ' min'}${h ? '' : ', ' + (s % 60) + ' sec'},  1 user,  load average: 0.66, 0.42, 0.13`); },
- echo: a => say((a || '').replace(/\$USER|\$\{USER\}/g, 'tom').replace(/\$HOME/g, HOME).replace(/\$SHELL/g, '/bin/grimsh').replace(/\$PWD/g, cwd).replace(/^["']|["']$/g, '')),
+ echo: a => say((a || '').replace(/\$USER|\$\{USER\}/g, 'tom').replace(/\$HOME/g, HOME).replace(/\$SHELL/g, '/bin/grimsh').replace(/\$PWD/g, cwd).replace(/["']/g, '')),
  history: () => say(hist.map((h, i) => String(i + 1).padStart(5) + '  ' + h).join('\n')),
  cls: () => CMDS.clear(), ping: pingCmd,
  ifconfig: () => say('grim0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500\n        inet 10.66.6.2  netmask 255.255.255.0  broadcast 10.66.6.255\n        inet6 fe80::7e:9a1d:6f0f:2026  prefixlen 64  scopeid 0x20<link>\n        ether 7c:6f:0f:20:26:66  txqueuelen 1000  (Ethernet)\n        RX packets 128000  bytes 166600000 (166.6 MB)\n        TX packets 4096  bytes 512000 (512.0 KB)\n\nlo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536\n        inet 127.0.0.1  netmask 255.0.0.0\n        loop  txqueuelen 1000  (Local Loopback)'),
@@ -633,22 +669,22 @@ Object.assign(CMDS, {
  df: () => say('Filesystem      Size  Used Avail Use% Mounted on\n/dev/grim0p1     66G   23G   43G  35% /\ntmpfs           3.3G  1.2M  3.3G   1% /dev/shm\n/dev/vinyl      120M  119M  1.0M  99% /music\n/dev/phosphor    16M  4.0M   12M  25% /sys/crt'),
  free: () => say('               total        used        free      shared  buff/cache   available\nMem:           6.5Gi       1.3Gi       4.0Gi        66Mi       1.2Gi       5.0Gi\nSwap:          2.0Gi          0B       2.0Gi'),
  neofetch: () => { const up = Math.floor((Date.now() - T_START) / 60000), t = curT();
-  const info = ['<b>tom</b>@<b>grimos</b>', '-----------', '<b>OS</b>: GrimOS ' + GRIMOS_VERSION + ' (Downtempo) x86_64', '<b>Host</b>: thomasgrim.com', '<b>Kernel</b>: ' + GRIMOS_VERSION + '-warm', `<b>Uptime</b>: ${up} mins`, `<b>Packages</b>: ${flat.length} (tracks)`, '<b>Shell</b>: grimsh ' + GRIMOS_VERSION + '', `<b>Theme</b>: ${curTheme()} [CRT]`, '<b>Terminal</b>: GRIMAMP tty', `<b>Now playing</b>: ${t ? esc2(t.title) : '—'}`, '<b>Location</b>: Lehigh Valley, PA'];
-  const rows = Math.max(NEO.length, info.length); let s = '<span class="neo">'; for (let i = 0; i < rows; i++) s += '<span style="color:var(--br)">' + esc2(NEO[i] || ' '.repeat(18)) + '</span>  ' + (info[i] || '') + '\n';
-  s += ' '.repeat(20) + THEMES.map(th => `<span class="theme-${th}" style="color:var(--fg)">███</span>`).join('') + '</span>'; say(s, true); },
- man: a => { a = (a || '').trim(); if (!a || /^tom(grim)?$/i.test(a)) return CMDS.bio(); say(MAN[a] ? `${a.toUpperCase()}(1)\n\n  ${MAN[a]}` : CMDS[a] ? `${a.toUpperCase()}(1)\n\n  ${a} — see "help" for usage.` : `No manual entry for ${a}`); },
+  const info = ['<b class="a14">tom</b>@<b class="a14">grimos</b>', '-----------', '<b>OS</b>: GrimOS ' + GRIMOS_VERSION + ' (Downtempo) x86_64', '<b>Host</b>: thomasgrim.com', '<b>Kernel</b>: ' + GRIMOS_VERSION + '-warm', `<b>Uptime</b>: ${up} mins`, `<b>Packages</b>: ${flat.length} (tracks)`, '<b>Shell</b>: grimsh ' + GRIMOS_VERSION + '', `<b>Theme</b>: ${curTheme()} [CRT]`, '<b>Terminal</b>: GRIMAMP tty', `<b>Now playing</b>: ${t ? esc2(t.title) : '—'}`, '<b>Location</b>: Lehigh Valley, PA'];
+  const rows = Math.max(NEO.length, info.length); let s = '<span class="neo">'; info.forEach((x, i) => { info[i] = x.replace(/<b>([^<]+)<\/b>/, '<b class="a3">$1</b>'); }); for (let i = 0; i < rows; i++) s += '<span style="color:var(--br)">' + esc2(NEO[i] || ' '.repeat(18)) + '</span>  ' + (info[i] || '') + '\n';
+  s += ' '.repeat(20) + [0, 1, 2, 3, 4, 5, 6, 7].map(c => `<span class="a${c}">███</span>`).join('') + '\n' + ' '.repeat(20) + [8, 9, 10, 11, 12, 13, 14, 15].map(c => `<span class="a${c}">███</span>`).join('') + '</span>'; say(s, true); },
+ man: a => { a = (a || '').trim(); if (!a || /^tom(grim)?$/i.test(a)) return CMDS.bio(); sayA(MAN[a] ? `${A('1', a.toUpperCase() + '(1)')}\n\n  ${MAN[a].replace(/(^|\s)(--?\w[\w-]*)/g, '$1' + E + '35m$2' + E + '0m').replace(/(<[^>]+>|\[[^\]]+\])/g, E + '3;33m$1' + E + '0m').replace(/^(\S+)/, E + '1;36m$1' + E + '0m')}` : CMDS[a] ? `${a.toUpperCase()}(1)\n\n  ${a} — see "help" for usage.` : `No manual entry for ${a}`); },
  which: a => (a || '').split(/\s+/).filter(Boolean).forEach(c => say(CMDS[c] ? '/usr/bin/' + c : `which: no ${c} in (/usr/local/bin:/usr/bin:/bin)`)),
  ssh: a => { const h = (a || '').split('@').pop() || ''; if (!h) return say('usage: ssh [user@]hostname'); say(`ssh: connect to host ${h} port 22: Connection refused\n(the only open port here is the dancefloor.)`); },
  curl: a => { a = (a || '').trim(); if (/(^|\s)(-O|--remote-name)(\s|$)/.test(a)) return getCmd(a.replace(/(^|\s)(-O|--remote-name|-L|-s)(?=\s|$)/g, ' ').trim()); if (!a) return say("curl: try 'curl --help' for more information");
   const u = a.replace(/(^|\s)-\S+/g, ' ').trim().replace(/^https?:\/\//, ''); if (/thomasgrim\.com/.test(u)) return say('<!doctype html>\n<html><head><title>GRIM/OS :: tomGRIM</title>…\n(you are already here.)'); if (/wttr\.in/.test(u)) return say('Weather: Lehigh Valley — 4°C, fog, low light. Perfect for downtempo.');
   if (/^[\d.]+$|^[a-z0-9-]+(\.[a-z0-9-]+)+/i.test(u)) return say(`curl: (6) Could not resolve host: ${u.replace(/^https?:\/\//, '').split('/')[0]}\n(GrimOS is offline-first. try "curl -O <track#>" to download a track.)`); getCmd(a); },
- apt: aptCmd, 'apt-get': aptCmd, fx: fxCmd,
+ apt: aptCmd, 'apt-get': aptCmd, fx: fxCmd, colors: colorsCmd, colours: colorsCmd,
  stop: () => { audio.pause(); try { audio.currentTime = 0; } catch {} $('#tcur').textContent = fmt(0); updateNP(); setTimeout(() => { if ('mediaSession' in navigator) { navigator.mediaSession.playbackState = 'none'; try { navigator.mediaSession.setPositionState({duration: audio.duration || 0, position: 0, playbackRate: 1}); } catch {} } }, 0); say('■ stopped. (00:00)'); },
  popout: () => termFloat(true), dock: () => termFloat(false),
 });
 $('#prompt').addEventListener('submit', e => { e.preventDefault(); if (job) return; const v = cmd.value.trim(); cmd.value = ''; if (!v) return; hist.push(v); hp = hist.length;
- if (/^(sudo\s+)?rm\s+-(rf|fr)\s+(--no-preserve-root\s+)?\/\*?$/i.test(v)) { say(prompt() + ' ' + v); return rmrf(); }
- say(prompt() + ' ' + v); const [c, ...rest] = v.split(/\s+/); const f = CMDS[c.toLowerCase()]; f ? f(rest.join(' ')) : say(`bash: ${c}: command not found`); });
+ if (/^(sudo\s+)?rm\s+-(rf|fr)\s+(--no-preserve-root\s+)?\/\*?$/i.test(v)) { sayCmd(v); return rmrf(); }
+ sayCmd(v); const [c, ...rest] = v.split(/\s+/); const f = CMDS[c.toLowerCase()]; f ? f(rest.join(' ')) : sayA(`bash: ${A('1;31', c)}: ${A('31', 'command not found')}`); });
 addEventListener('keydown', e => { if (!job) return; if ((e.ctrlKey && /^c$/i.test(e.key)) || (job.kind === 'top' && /^q$/i.test(e.key))) { e.preventDefault(); e.stopImmediatePropagation(); job.stop(); } }, true);
 cmd.addEventListener('keydown', e => { if (e.key === 'ArrowUp') { hp = Math.max(0, hp - 1); cmd.value = hist[hp] || ''; e.preventDefault(); } else if (e.key === 'ArrowDown') { hp = Math.min(hist.length, hp + 1); cmd.value = hist[hp] || ''; e.preventDefault(); }
  else if (e.key === 'Tab' && cmd.value) { e.preventDefault(); const v = cmd.value, sp = v.lastIndexOf(' ');
