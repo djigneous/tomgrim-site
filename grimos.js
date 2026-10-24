@@ -271,8 +271,8 @@ const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(6, Math.f
    m += vc + 4.5 * Math.log2(fa / 200 + 1) * .5; // gentle treble tilt in dB (pink-noise-ish), not a multiplier
    db[b] = m; if (m > fmax) fmax = m; }
   if (isFinite(fmax)) agc = fmax > agc ? agc + (fmax - agc) * .5 : Math.max(-60, agc - .12); // fast attack, slow release
-  const top = agc + 4, range = 58; // ~4 dB headroom above the recent peak
-  for (let b = 0; b < NB; b++) vals[b] = Math.max(0, Math.min(1, (db[b] - (top - range)) / range)) ** 1.35; }
+  const top = agc + 4, range = 42; // ~4 dB headroom above the recent peak
+  for (let b = 0; b < NB; b++) vals[b] = Math.max(0, Math.min(1, (db[b] - (top - range)) / range)) ** 1.5; }
  window.__specStat = vals; window.__specDbg = () => ({san: !!san, agc, ff: ffb && Array.from(ffb.slice(0, 6))});
  if (!playing) { idle += .03; vals = vals.map((v, b) => Math.max(v * .9, .04 + .03 * Math.sin(idle + b * .4))); }
  // spectrum
