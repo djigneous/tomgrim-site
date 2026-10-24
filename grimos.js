@@ -20,7 +20,7 @@ const boot = $('#boot'), bootlog = $('#bootlog');
 let booted = false;
 function endBoot() { if (booted) return; booted = true; if (!RM) try { glitch({intro: 750}); } catch (e) {} boot.classList.add('gone'); setTimeout(() => boot.remove(), 450); $('#cmd').blur(); sessionStorage.grimBooted = 1; }
 if (sessionStorage.grimBooted || RM) { boot.remove(); booted = true; }
-else { let i = 0; const step = () => { if (booted) return; if (i < bootLines.length) { bootlog.textContent += bootLines[i++] + '\n'; setTimeout(step, 60 + Math.random() * 110); } else setTimeout(endBoot, 500); }; step();
+else { let i = 0; const step = () => { if (booted) return; if (i < bootLines.length) { bootlog.textContent += bootLines[i++] + '\n'; setTimeout(step, 60 + Math.random() * 110); } else setTimeout(endBoot, 1500); }; step();
  addEventListener('keydown', e => { if (!booted) { e.preventDefault(); e.stopImmediatePropagation(); endBoot(); } }, true);
  boot.addEventListener('pointerdown', endBoot); }
 
