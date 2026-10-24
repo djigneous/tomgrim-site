@@ -151,11 +151,11 @@
   <section class="win cwin"><h2 class="wt" id="t-mail"><span>─[ mail tom@grimos ]─</span></h2>
     <div class="mbar"><a href="contact.html" target="_blank" rel="noopener">[ pop out ]</a><button class="mclose" aria-label="Close">[ esc ]</button></div>
     <form class="cform" novalidate>
-      <label>name:<input name="name" autocomplete="name" required maxlength="100"></label>
-      <label>email:<input name="email" type="email" autocomplete="email" required maxlength="150"></label>
-      <label>subject:<select name="subject"><option value="inquiry">inquiry</option><option value="booking">booking</option><option value="other">other</option></select></label>
-      <label>message:<textarea name="message" rows="6" required maxlength="5000"></textarea></label>
+      <label>name:<input name="name" autocomplete="name" maxlength="100"></label>
+      <label>email:<input name="email" type="email" autocomplete="email" maxlength="150"></label>
+      <label>message:<textarea name="message" rows="6" maxlength="5000"></textarea></label>
       <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <input type="hidden" name="_subject" value="Inquiry from GrimOS">
       <input type="hidden" name="_captcha" value="false">
       <div class="cbtns"><button type="submit">[ send ]</button><span class="cstatus" role="status" aria-live="polite"></span></div>
     </form>
