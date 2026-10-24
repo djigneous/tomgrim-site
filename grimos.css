@@ -42,7 +42,7 @@ kbd{font:inherit;color:var(--bg);background:var(--br);padding:0 .25em;margin-rig
 #tools select{cursor:pointer}#tools select option{background:#000;color:#fff}
 #tools button:hover{background:var(--barfg);color:var(--bar)}
 #clock{margin-left:.3em}
-#desk{flex:1;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.95fr) minmax(0,1fr);grid-template-areas:"fetch fetch man" "player tracks shell" "links links shell";grid-template-rows:auto minmax(0,1fr) auto;gap:14px;padding:16px 14px 10px;width:100%;max-width:2000px;margin:0 auto}
+#desk{flex:1;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.95fr) minmax(0,1fr);grid-template-areas:"fetch fetch man" "player tracks tracks" "links links links" "shell shell shell";grid-template-rows:auto;gap:14px;padding:16px 14px 10px;width:100%;max-width:2000px;margin:0 auto}
 #tracks{grid-area:tracks;display:flex;flex-direction:column;min-height:0}#tracks .plhead{margin-top:0}#fetch{grid-area:fetch}#man{grid-area:man}#player{grid-area:player}#links{grid-area:links}#shell{grid-area:shell}
 .win{border:2px double var(--br);padding:1.1em .8em .7em;position:relative;background:rgba(0,0,0,.3);box-shadow:0 0 14px -6px var(--fg) inset,0 0 6px -2px var(--fg);min-width:0;scroll-margin-top:3em}
 .win.focus{border-color:var(--hi);box-shadow:0 0 18px -4px var(--fg) inset,0 0 12px var(--fg)}
@@ -67,7 +67,14 @@ kbd{font:inherit;color:var(--bg);background:var(--br);padding:0 .25em;margin-rig
 #nptitle{color:var(--hi);font-size:1.35em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .transport{display:flex;flex-wrap:wrap;gap:.3em;margin-top:.2em}
 #bplay{color:var(--bg);background:var(--br);text-shadow:none;min-width:6em}
-#volbar{margin:0 .3em;letter-spacing:-1px;color:var(--br)}
+.row{min-width:0;max-width:100%}
+.volrow{display:flex;align-items:center;gap:.3em;width:100%;box-sizing:border-box;overflow:hidden;white-space:nowrap}
+.volrow button{flex:none}
+#volbar{flex:0 1 auto;min-width:0;overflow:hidden;white-space:nowrap;letter-spacing:-1px;color:var(--br)}
+#volpct{flex:none;white-space:pre}
+.np>*,.npinfo>*,.transport,.viz>*{min-width:0;max-width:100%;box-sizing:border-box}
+#player,#tracks,#links,#shell,#fetch,#man{min-width:0;box-sizing:border-box}
+.transport{overflow:hidden}
 .viz{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);grid-template-areas:"spec scope" "wave wave";gap:10px;margin-top:10px}
 .vizbox{border:1px solid var(--fg);padding:2px 6px 6px;min-width:0;display:flex;flex-direction:column}
 .vb-spec{grid-area:spec}.vb-scope{grid-area:scope}.vb-wave{grid-area:wave}
@@ -92,7 +99,7 @@ input{font:inherit;color:var(--hi);background:transparent;border:none;border-bot
 #playlist .tr.cur{color:var(--hi);font-weight:bold}
 #playlist .tr.cur .n::before{content:"▶";color:var(--br)}
 #playlist .tr.cur:not(.sel){box-shadow:inset 3px 0 0 var(--br);background:rgba(255,255,255,.06)}
-#out{min-height:12em;max-height:360px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+#out{min-height:18em;max-height:520px;overflow:auto;white-space:pre-wrap;word-break:break-word}
 #shell{display:flex;flex-direction:column}
 #prompt{display:flex;gap:.5em}#prompt label{color:var(--acc)}
 .lnk{list-style:none;padding:0;margin:0}.lnk li{color:var(--dim)}.lnk a{margin-left:.5em}
@@ -111,16 +118,15 @@ input{font:inherit;color:var(--hi);background:transparent;border:none;border-bot
 #matrix{position:fixed;inset:0;z-index:95;background:#000;cursor:pointer}
 /* large screens: fill the viewport, playlist absorbs remaining height */
 @media (min-width:1100px) and (min-height:900px){
- #desk{flex:none;height:calc(100vh - var(--tb,40px) - 1.6em);min-height:0;overflow:hidden}
  #player>*{flex:none}
  #tracks>#playlist{flex:1 1 0;max-height:none;min-height:0}
  #player{overflow:visible}
- #shell #out{flex:1;max-height:none;min-height:12em}
+ #shell #out{min-height:22em;max-height:60vh}
 }
 @media (min-width:1600px){
  html,body{font-size:21px}
 }
-@media (max-width:1099px){#desk{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"fetch man" "player tracks" "links tracks" "shell shell";grid-template-rows:auto}}
+@media (max-width:1099px){#desk{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"fetch man" "player tracks" "links links" "shell shell";grid-template-rows:auto}}
 @media (max-width:960px){
  #desk{grid-template-columns:1fr;grid-template-areas:"fetch" "player" "tracks" "links" "man" "shell";padding:12px 6px}
  html,body{font-size:18px}
@@ -167,3 +173,9 @@ body.nocrt .ph .frame::after{display:none}body.nocrt .ph{box-shadow:none}
 #lbimg{max-width:min(90vw,800px);max-height:calc(100vh - 7em);object-fit:contain;display:block;border:1px solid var(--dim)}
 .lbnav{display:flex;gap:.6em;align-items:center;margin-top:.4em}
 @media (max-width:960px){#photos{margin:12px 6px}.gal{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.ph .bar span+span{display:none}}
+
+/* photos as its own full-screen view */
+#photos{position:fixed;inset:0;z-index:90;margin:0;overflow:auto;background:var(--bg);padding:14px;box-sizing:border-box}
+#photos[hidden]{display:none}
+body.photos-open{overflow:hidden}
+.phhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}

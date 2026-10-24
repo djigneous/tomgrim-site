@@ -84,7 +84,7 @@
         <div id="nptitle" aria-live="polite">▶ select a track</div>
         <div id="npalbum" class="dim">—</div>
         <div class="row"><span id="tcur">00:00</span> / <span id="tdur">00:00</span> <span id="modes" class="dim"></span></div>
-        <div class="row">VOL <button id="voldn" aria-label="Volume down">-</button><span id="volbar"></span><button id="volup" aria-label="Volume up">+</button></div>
+        <div class="row volrow">VOL <button id="voldn" aria-label="Volume down">-</button><span id="volbar"></span><span id="volpct"></span><button id="volup" aria-label="Volume up">+</button></div>
         <div class="transport">
           <button id="bprev" aria-label="Previous track">|◀◀</button>
           <button id="bplay" aria-label="Play">▶ PLAY</button>
@@ -126,7 +126,8 @@
   </section>
 </main>
 
-<section id="photos" class="win" tabindex="-1" aria-labelledby="t-photos">
+<section id="photos" class="win" tabindex="-1" aria-labelledby="t-photos" hidden>
+  <div class="phhead"><button id="phback" aria-label="Back to player">◀ cd ~ (back)</button><span class="dim">esc closes</span></div>
   <h2 class="wt" id="t-photos"><span>─[ ls ~/photos :: 14 frames ]─</span></h2>
   <ul id="gallery" class="gal"></ul>
 </section>
