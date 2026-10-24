@@ -83,12 +83,13 @@ function effRepeat() { const t = flat[cur]; if (t && isLoopAlbum(t)) return loop
 window.tgTrack = function (kind, title) { try { const gc = window.goatcounter; if (!gc || typeof gc.count !== 'function') return;
  const slug = String(title || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled';
  gc.count({path: kind + '/' + slug, title: String(title || ''), event: true}); } catch (e) {} };
-const playedOnce = {};
+const playedOnce = {}; let ringAgc = .1;
 function play(i) {
  if (i == null || !flat[i]) i = sel >= 0 && flat[sel] ? sel : 0;
  ensureCtx();
  if (i !== cur || !playedOnce[i]) { playedOnce[i] = 1; window.tgTrack('play', flat[i].title); }
  if (i !== cur) { cur = i; audio.src = flat[i].file; setRecord(flat[i]); loadWave(flat[i]); }
+ setMediaMeta(flat[i]);
  audio.play().catch(err => say('play blocked: ' + err.message));
  select(i); updateNP();
 }
@@ -105,11 +106,11 @@ audio.addEventListener('play', updateNP); audio.addEventListener('pause', update
 audio.addEventListener('loadedmetadata', updateNP);
 audio.addEventListener('error', () => say('error: cannot load ' + (flat[cur]?.file || '')));
 audio.addEventListener('timeupdate', () => { $('#tcur').textContent = fmt(audio.currentTime); });
-const COVERS = ['ember-hours', 'elements', 'night-signals', 'phosphor-cache', 'get-out'];
+const COVERS = ['ember-hours', 'elements', 'night-signals', 'phosphor-cache', 'get-out', 'soundtracks'];
 let lastMeta = '';
 function artFor(t) { const id = t && COVERS.includes(t.al.id) ? t.al.id : 'tomgrim-default', base = new URL('assets/covers/', location.href).href;
  return [96, 192, 256, 512].map(s => ({src: `${base}${id}-${s}.png`, sizes: `${s}x${s}`, type: 'image/png'})); }
-function setMediaMeta(t) { if (!('mediaSession' in navigator) || !t || !window.MediaMetadata) return; const key = t.file; if (key === lastMeta) return; lastMeta = key;
+function setMediaMeta(t, force) { if (!t) return; audio.title = `${t.title} — tomGRIM`; if (!('mediaSession' in navigator) || !window.MediaMetadata) return; const key = t.file; if (key === lastMeta && !force && navigator.mediaSession.metadata) return; lastMeta = key;
  navigator.mediaSession.metadata = new MediaMetadata({title: t.title, artist: 'tomGRIM', album: t.single ? 'Single' : t.al.title, artwork: artFor(t)}); }
 function posState() { try { if ('mediaSession' in navigator && audio.duration && isFinite(audio.duration)) navigator.mediaSession.setPositionState({duration: audio.duration, playbackRate: audio.playbackRate, position: Math.min(audio.currentTime, audio.duration)}); } catch {} }
 if ('mediaSession' in navigator) { const ms = navigator.mediaSession, h = (a, f) => { try { ms.setActionHandler(a, f); } catch {} };
@@ -117,7 +118,9 @@ if ('mediaSession' in navigator) { const ms = navigator.mediaSession, h = (a, f)
  h('seekto', e => { if (e.fastSeek && 'fastSeek' in audio) audio.fastSeek(e.seekTime); else audio.currentTime = e.seekTime; posState(); });
  h('seekbackward', e => seek(-(e.seekOffset || 10))); h('seekforward', e => seek(e.seekOffset || 10));
  audio.addEventListener('loadedmetadata', posState); audio.addEventListener('seeked', posState);
- audio.addEventListener('play', () => { ms.playbackState = 'playing'; posState(); }); audio.addEventListener('pause', () => { ms.playbackState = 'paused'; }); }
+ audio.addEventListener('play', () => { ms.playbackState = 'playing'; posState(); });
+ audio.addEventListener('playing', () => { setMediaMeta(flat[cur], true); ms.playbackState = 'playing'; posState(); });
+ audio.addEventListener('durationchange', posState); audio.addEventListener('pause', () => { ms.playbackState = 'paused'; }); }
 function updateNP() {
  const t = flat[cur];
  $('#nptitle').textContent = t ? (audio.paused ? '❚❚ ' : '▶ ') + t.title + (t.special ? ' ★' : '') : '▶ select a track';
@@ -239,14 +242,15 @@ const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(6, Math.f
    line += ch; }
   s += line + (r < ROWS - 1 ? '\n' : ''); }
  specEl.innerHTML = s;
- // round oscilloscope ring around the record (amplitude clamped to the padding gap)
+ // round oscilloscope ring around the record (auto-gain + bass emphasis) (amplitude clamped to the padding gap)
  fitCanvas(ring); { const W = ring.width, H = ring.height, d = devicePixelRatio, pad = parseFloat(getComputedStyle(ring.parentElement).paddingLeft) * d || 22 * d;
   const cx = W / 2, cy = H / 2, rx = W / 2 - pad / 2, ry = H / 2 - pad / 2, amp = pad / 2 - 2 * d; rg.clearRect(0, 0, W, H);
   rg.strokeStyle = colors.dim; rg.globalAlpha = .35; rg.lineWidth = d; rg.beginPath(); rg.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); rg.stroke(); rg.globalAlpha = 1;
-  const live = an && playing; if (live) { tbuf = tbuf || new Uint8Array(an.fftSize); an.getByteTimeDomainData(tbuf); }
+  const live = an && playing; let gain = 1;
+  if (live) { tbuf = tbuf || new Uint8Array(an.fftSize); an.getByteTimeDomainData(tbuf); let sq = 0; for (let i = 0; i < tbuf.length; i += 4) { const x = (tbuf[i] - 128) / 128; sq += x * x; }
+   const rms = Math.sqrt(sq / (tbuf.length / 4)); ringAgc = Math.max(rms, ringAgc * .992, .02); gain = Math.min(9, Math.max(1.5, .55 / ringAgc)); }
   const N = 240; for (const [col, lw, blur] of [[colors.fg, 2.6, 10], [colors.hi, 1.1, 0]]) { rg.strokeStyle = col; rg.lineWidth = lw * d; rg.shadowColor = col; rg.shadowBlur = blur * d; rg.beginPath();
-   for (let i = 0; i <= N; i++) { const t = i % N, a = t / N * Math.PI * 2 - Math.PI / 2; let v = live ? (tbuf[Math.floor(t / N * (tbuf.length - 1))] - 128) / 128 : Math.sin(t / 6 + idle * 3) * .06;
-    v = Math.tanh(v * 1.6); const o = Math.max(-1, Math.min(1, v)) * amp, x = cx + Math.cos(a) * (rx + o), y = cy + Math.sin(a) * (ry + o); i ? rg.lineTo(x, y) : rg.moveTo(x, y); }
+   for (let i = 0; i <= N; i++) { const t = i % N, a = t / N * Math.PI * 2 - Math.PI / 2; let v; if (live) { const k = Math.floor(t / N * (tbuf.length - 1)), raw = (tbuf[k] - 128) / 128; let lp = 0; for (let q = -12; q <= 12; q += 3) lp += (tbuf[(k + q + tbuf.length) % tbuf.length] - 128) / 128; v = Math.tanh((raw + lp / 9 * .9) * gain); } else v = Math.sin(t / 6 + idle * 3) * .06; const o = Math.max(-1, Math.min(1, v)) * amp, x = cx + Math.cos(a) * (rx + o), y = cy + Math.sin(a) * (ry + o); i ? rg.lineTo(x, y) : rg.moveTo(x, y); }
    rg.closePath(); rg.stroke(); } rg.shadowBlur = 0; }
  drawWave(); spinRecord(performance.now());
  requestAnimationFrame(frame);

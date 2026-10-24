@@ -702,6 +702,24 @@
           "original": "OUTIFE RECOVER lv12-3FINAL.wav"
         }
       ]
+    },
+    {
+      "id": "soundtracks",
+      "title": "Soundtracks",
+      "type": "soundtrack",
+      "year": 2023,
+      "blurb": "Score and soundtrack work by tomGRIM.",
+      "cover": "assets/covers/soundtracks.jpg",
+      "tracks": [
+        {
+          "title": "Maguntsche",
+          "file": "assets/audio/soundtracks/01-maguntsche.mp3",
+          "duration_sec": 193.8,
+          "bpm": null,
+          "year": 2023,
+          "original": "MAGUNT-BACK IN SCHOOL.mp3 (title tag MAG-AUG23)"
+        }
+      ]
     }
   ]
 }

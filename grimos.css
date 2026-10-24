@@ -223,3 +223,7 @@ body.standalone .solo .iwin{height:calc(100vh - 6em);width:min(1100px,100%);disp
 
 #matrix.fx-intro{z-index:101;transition:opacity .15s linear}
 .np{flex-wrap:wrap;justify-content:center}.npinfo{flex:1 1 230px}
+
+.transport{flex-wrap:nowrap;gap:.25em}.transport button{padding-left:.35em;padding-right:.35em;white-space:nowrap}#bplay{min-width:0;padding-left:.6em;padding-right:.6em}
+.npinfo{align-self:flex-end;padding-bottom:4px}
+@media (max-width:960px){.npinfo{flex:0 0 auto;align-self:stretch}}
