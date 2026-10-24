@@ -3,7 +3,7 @@
 const $ = s => document.querySelector(s);
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const FALLBACK = {artist:'tomGRIM',albums:[{id:'ember-hours',title:'Ember Hours',type:'album',year:null,blurb:'',cover:'assets/covers/ember-hours.jpg',tracks:[
- {title:'Graveyard Over the Fire',file:'assets/track1.mp3'},{title:'Kickflip My Heart',file:'assets/track2.mp3'},{title:'Telling Me',file:'assets/track3.mp3'}]}]};
+ {title:'Graveyard Over the Fire',file:'assets/track1.mp3'},{title:'Kickflip My Heart',file:'assets/track2.mp3'}]}]};
 const audio = $('#audio');
 let groups = 0, data, flat = [], view = [], cur = -1, sel = 0, repeat = 'all', shuffle = true, vol = .8, actx, an, waveCache = {};
 const loopOverride = {};
@@ -42,8 +42,10 @@ async function load() {
   (al.tracks || []).forEach((t, ti) => flat.push({...t, al, ai: gi, ti, single})); });
  groups = gi + 1; let sc = 0; flat.forEach(t => { if (t.single) t.ti = sc++; });
  renderList(); updateModes();
- const s = new URLSearchParams(location.search).get('t'); if (s && flat[+s]) select(+s);
- else { const d = flat.findIndex(t => /^let me be your problem$/i.test(t.title)); if (d >= 0) { cur = d; audio.preload = 'metadata'; audio.src = flat[d].file; setRecord(flat[d]); loadWave(flat[d]); select(d); updateNP(); } }
+ const s = new URLSearchParams(location.search).get('t'), sl = x => String(x || '').toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+ const si = s == null ? -1 : /^\d+$/.test(s) ? (flat[+s] ? +s : -1) : flat.findIndex(t => sl(t.title) === sl(s) || (t.aliases || []).includes(sl(s)));
+ if (si >= 0) select(si);
+ else { const d = flat.findIndex(t => /^redline$/i.test(t.title)); if (d >= 0) { cur = d; audio.preload = 'metadata'; audio.src = flat[d].file; setRecord(flat[d]); loadWave(flat[d]); select(d); updateNP(); } }
 }
 
 /* ---------- playlist ---------- */
@@ -91,7 +93,7 @@ function play(i) {
  ensureCtx();
  if (i !== cur || !playedOnce[i]) { playedOnce[i] = 1; window.tgTrack('play', flat[i].title); }
  if (i !== cur) { cur = i; audio.src = flat[i].file; setRecord(flat[i]); loadWave(flat[i]); }
- setMediaMeta(flat[i]);
+ setMediaMeta(flat[i]); trackMood(flat[i]);
  audio.play().catch(err => say('play blocked: ' + err.message));
  select(i); updateNP();
 }
@@ -103,7 +105,7 @@ function next(d = 1) {
  else i = ((cur < 0 ? sel : cur) + d + flat.length) % flat.length;
  play(i);
 }
-audio.addEventListener('ended', () => { if (secret) { secret = null; return next(1); } const r = effRepeat(); if (r === 'one') { audio.currentTime = 0; audio.play(); } else if (r === 'all' || shuffle || cur < flat.length - 1) next(1); });
+audio.addEventListener('ended', () => { trackMood(null); if (secret) { secret = null; return next(1); } const r = effRepeat(); if (r === 'one') { audio.currentTime = 0; audio.play(); } else if (r === 'all' || shuffle || cur < flat.length - 1) next(1); });
 audio.addEventListener('play', updateNP); audio.addEventListener('pause', updateNP);
 audio.addEventListener('loadedmetadata', updateNP);
 audio.addEventListener('error', () => say('error: cannot load ' + (curT()?.file || '')));
@@ -266,7 +268,7 @@ const THEMES = ['cyan', 'green', 'amber', 'red', 'gray', 'fire', 'ice'];
 const themeSel = $('#themesel'); themeSel.innerHTML = THEMES.map(t => `<option value="${t}">${t}</option>`).join('');
 const curTheme = () => (document.body.className.match(/theme-(\w+)/) || [])[1] || 'cyan';
 function setTheme(t, quiet) { if (t === 'grey' || t === 'grayscale') t = 'gray'; if (!THEMES.includes(t)) return say('usage: theme ' + THEMES.join('|'));
- document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + t); localStorage.grimTheme = t; themeSel.value = t; refreshColors(); if (!quiet) say('theme → ' + t); }
+ document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + t); if (quiet !== 'mood') { localStorage.grimTheme = t; if (mood) mood.prev = t; } themeSel.value = t; refreshColors(); if (!quiet) say('theme → ' + t); }
 themeSel.addEventListener('change', () => setTheme(themeSel.value));
 function setCrt(on, quiet) { document.body.classList.toggle('nocrt', !on); localStorage.grimCrt = on ? '1' : '0'; const b = $('#bcrt'); b.textContent = 'CRT:' + (on ? 'on' : 'off'); b.setAttribute('aria-pressed', on); if (!quiet) say('crt filter: ' + (on ? 'on' : 'off')); }
 $('#bcrt').onclick = () => setCrt(document.body.classList.contains('nocrt'));
@@ -508,7 +510,7 @@ document.addEventListener('keydown', e => {
 
 /* ---------- ??? ---------- */
 const ZX = [['YXNzZXRzL2Jpbi9kNGU3YTkxYy5tcDM=']];
-function zach() { const f = atob(ZX[0][0]), t = {title: 'Screw Detention', id3_artist: 'Zach feat. Lori', file: f, al: {id: 'x', title: 'Zach feat. Lori', year: 2026}, single: false};
+function zach() { const f = atob(ZX[0][0]), t = {title: 'Screw Detention', id3_artist: 'Zach feat. Lori', file: f, al: {id: 'x', title: 'Zach feat. Lori', year: 2026}, single: false}; trackMood(null);
  const art = [' _____   _    ____ _   _ ', '|__  /  / \\  / ___| | | |', '  / /  / _ \\| |   | |_| |', ' / /_ / ___ \\ |___|  _  |', '/____/_/   \\_\\____|_| |_|  feat. LORI', '', '  >> unlocking /home/zach/secret …', '  >> ACCESS GRANTED: SCREW DETENTION'];
  let k = 0; const step = () => { if (k < art.length) { say(art[k++]); setTimeout(step, RM ? 0 : 110); } else go(); };
  const go = () => { ensureCtx(); secret = t; audio.src = f; setRecord({al: {id: 'zach-lori', title: 'ZACH'}, title: 'SCREW DETENTION', single: true}); loadWave(t); setMediaMeta(t, true);
@@ -540,7 +542,7 @@ async function getTrack(i) { const t = flat[i], fn = fname(t), url = new URL(t.f
  const a = document.createElement('a'); a.href = t.file; a.download = fn; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove();
  say(`'${fn}' saved [${size ?? '?'}/${size ?? '?'}]`); window.tgTrack('download', t.title); }
 async function getCmd(a) { a = (a || '').trim();
- if (!a) return say("usage: get [OPTION]... <TRACK|NAME>\n       get album <NAME>\n       get --list | ls\n\n  TRACK       track number as shown by 'ls' (1-" + flat.length + ")\n  NAME        track title or part of it\n  album NAME  download every track of an album\n  -l, --list  list downloadable files with sizes\n  -h, --help  show this help\n\naliases: wget, curl -O.  example: get let me be your problem");
+ if (!a) return say("usage: get [OPTION]... <TRACK|NAME>\n       get album <NAME>\n       get --list | ls\n\n  TRACK       track number as shown by 'ls' (1-" + flat.length + ")\n  NAME        track title or part of it\n  album NAME  download every track of an album\n  -l, --list  list downloadable files with sizes\n  -h, --help  show this help\n\naliases: wget, curl -O.  example: get redline");
  if (/^(-h|--help)$/.test(a)) return getCmd('');
  if (/^(-l|--list|ls)$/.test(a)) { say('fetching index of /assets/audio …'); const sz = await Promise.all(flat.map(fsize)); let tot = 0;
   flat.forEach((t, i) => { tot += sz[i] || 0; say(`-rw-r--r-- tom grim ${hsize(sz[i]).padStart(6)}  ${String(i + 1).padStart(3)}  ${fname(t)}`); }); return say(`total ${hsize(tot)} in ${flat.length} files`); }
@@ -574,12 +576,39 @@ lb.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, {passive:
 new ResizeObserver(() => updateModes()).observe($('.volrow'));
 new ResizeObserver(() => document.documentElement.style.setProperty('--tb', $('#topbar').offsetHeight + 'px')).observe($('#topbar'));
 
+/* ---------- track moods: Graveyard → fire theme + smoke ---------- */
+let mood = null;
+function trackMood(t) {
+ const want = t && /^graveyard over the fire$/i.test(t.title);
+ if (want && !mood) { mood = {prev: curTheme()}; if (THEMES.includes('fire')) setTheme('fire', 'mood'); smoke(true); }
+ else if (!want && mood) { const p = mood.prev; mood = null; setTheme(p, 'mood'); smoke(false); }
+}
+let smk = null;
+function smoke(on) {
+ if (!on) { if (smk) { cancelAnimationFrame(smk.raf); smk.c.remove(); smk = null; } return; }
+ if (smk || RM) return;
+ const mob = matchMedia('(max-width: 960px), (pointer: coarse)').matches;
+ const c = document.createElement('canvas'); c.id = 'smoke'; c.setAttribute('aria-hidden', 'true');
+ c.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:9000;opacity:' + (mob ? .18 : .28) + ';mix-blend-mode:screen;filter:blur(' + (mob ? 6 : 10) + 'px)';
+ document.body.appendChild(c); const g = c.getContext('2d'), sc = mob ? .35 : .5;
+ const rs = () => { c.width = innerWidth * sc; c.height = innerHeight * sc; }; rs(); addEventListener('resize', rs);
+ const P = Array.from({length: mob ? 14 : 28}, () => ({x: Math.random(), y: Math.random(), r: .12 + Math.random() * .22, vx: (Math.random() - .5) * .00012, vy: -.00006 - Math.random() * .0001, a: .25 + Math.random() * .35, ph: Math.random() * 6}));
+ let lt = 0; smk = {c, raf: 0};
+ const step = ts => { smk.raf = requestAnimationFrame(step); if (ts - lt < (mob ? 50 : 33)) return; const dt = Math.min(80, ts - (lt || ts)); lt = ts;
+  const W = c.width, H = c.height; g.clearRect(0, 0, W, H);
+  for (const p of P) { p.x += p.vx * dt + Math.sin(ts / 4000 + p.ph) * .00003 * dt; p.y += p.vy * dt; if (p.y < -p.r) { p.y = 1 + p.r; p.x = Math.random(); } if (p.x < -p.r) p.x = 1 + p.r; if (p.x > 1 + p.r) p.x = -p.r;
+   const R0 = p.r * Math.max(W, H), x = p.x * W, y = p.y * H, gr = g.createRadialGradient(x, y, 0, x, y, R0);
+   gr.addColorStop(0, `rgba(210,205,200,${p.a})`); gr.addColorStop(1, 'rgba(210,205,200,0)'); g.fillStyle = gr; g.fillRect(x - R0, y - R0, R0 * 2, R0 * 2); } };
+ smk.raf = requestAnimationFrame(step);
+}
+window.__mood = () => ({mood: !!mood, theme: curTheme(), saved: localStorage.grimTheme, smoke: !!document.getElementById('smoke')});
+
 /* ---------- init ---------- */
 setTheme(THEMES.includes(localStorage.grimTheme) ? localStorage.grimTheme : 'cyan', true); setCrt(localStorage.grimCrt !== '0', true);
 if (localStorage.grimFlicker === '1' || (localStorage.grimFlicker == null && !RM)) document.body.classList.add('flicker');
 refreshColors(); updateModes();
 say('GRIM/OS grimsh 2.6 — type "help". press ? for keys.');
-say('motd: every track is free to download — type "get <track#>" or "get --list".');
-document.querySelectorAll('.getlink').forEach(b => b.addEventListener('click', e => { e.preventDefault(); const c = $('#cmd'); jump('shell'); c.value = b.dataset.get; c.focus({preventScroll: true}); c.setSelectionRange(c.value.length, c.value.length); }));
+say('motd: every track is free to download — type <button class="getlink" data-get="get ">get &lt;track#&gt;</button> or <button class="getlink" data-get="get --list">get --list</button> · try <button class="getlink" data-run="fire">fire</button> <button class="getlink" data-run="starfield">starfield</button> <button class="getlink" data-run="plasma">plasma</button> <button class="getlink" data-run="donut">donut</button> <button class="getlink" data-run="pipes">pipes</button>', true);
+document.querySelectorAll('.getlink').forEach(b => b.addEventListener('click', e => { e.preventDefault(); const c = $('#cmd'); jump('shell'); if (b.dataset.run) { c.value = b.dataset.run; $('#prompt').requestSubmit(); return; } c.value = b.dataset.get; c.focus({preventScroll: true}); c.setSelectionRange(c.value.length, c.value.length); }));
 load().then(() => requestAnimationFrame(frame));
 })();

@@ -10,32 +10,35 @@
       "cover": "assets/covers/ember-hours.jpg",
       "tracks": [
         {
+          "title": "Redline",
+          "file": "assets/audio/ember-hours/01-redline.mp3",
+          "duration_sec": 219.0,
+          "bpm": 161,
+          "original": "01M5Q186FXKM9DCGF3EJ4T0R6Q.wav"
+        },
+        {
           "title": "Graveyard Over the Fire",
-          "file": "assets/audio/ember-hours/01-graveyard-over-the-fire.mp3",
+          "file": "assets/audio/ember-hours/02-graveyard-over-the-fire.mp3",
           "duration_sec": 226.0,
           "bpm": 123,
           "original": "assets/track1.mp3"
         },
         {
           "title": "Kickflip My Heart",
-          "file": "assets/audio/ember-hours/02-kickflip-my-heart.mp3",
+          "file": "assets/audio/ember-hours/03-kickflip-my-heart.mp3",
           "duration_sec": 140.0,
           "bpm": 129,
           "original": "assets/track2.mp3"
         },
         {
-          "title": "Telling Me",
-          "file": "assets/audio/ember-hours/03-telling-me.mp3",
-          "duration_sec": 270.0,
-          "bpm": 99,
-          "original": "assets/track3.mp3"
-        },
-        {
-          "title": "Let Me Be Your Problem",
-          "file": "assets/audio/ember-hours/04-let-me-be-your-problem.mp3",
+          "title": "Jack'd",
+          "file": "assets/audio/ember-hours/04-jackd.mp3",
           "duration_sec": 153.7,
           "bpm": 129,
-          "original": "01M5Q17WZ6CYJWNE7R1BE5CRMZ.mp3"
+          "original": "01M5Q17WZ6CYJWNE7R1BE5CRMZ.mp3",
+          "aliases": [
+            "let-me-be-your-problem"
+          ]
         },
         {
           "title": "Do It Again",
@@ -52,36 +55,29 @@
           "original": "01M5Q17SPD256RZYXARAZN12QW.mp3"
         },
         {
-          "title": "Redline",
-          "file": "assets/audio/ember-hours/07-redline.mp3",
-          "duration_sec": 219.0,
-          "bpm": 161,
-          "original": "01M5Q186FXKM9DCGF3EJ4T0R6Q.wav"
-        },
-        {
           "title": "Low Light",
-          "file": "assets/audio/ember-hours/08-low-light.mp3",
+          "file": "assets/audio/ember-hours/07-low-light.mp3",
           "duration_sec": 300.6,
           "bpm": 129,
           "original": "01M5Q196P5C32WGTVQWK6TTFSQ.mp3"
         },
         {
           "title": "Glass Hours",
-          "file": "assets/audio/ember-hours/09-glass-hours.mp3",
+          "file": "assets/audio/ember-hours/08-glass-hours.mp3",
           "duration_sec": 167.3,
           "bpm": 129,
           "original": "01M5Q946T0M782ZN4M72DC4GZE.wav"
         },
         {
           "title": "Walking Green (chan.32 Remix)",
-          "file": "assets/audio/ember-hours/10-walking-green-chan-32-remix.mp3",
+          "file": "assets/audio/ember-hours/09-walking-green-chan-32-remix.mp3",
           "duration_sec": 221.1,
           "bpm": 124,
           "original": "01M5Q19G4KBPFK65P2ZGSERGKF.mp3"
         },
         {
           "title": "Walking Green (pinkF Remix)",
-          "file": "assets/audio/ember-hours/11-walking-green-pinkf-remix.mp3",
+          "file": "assets/audio/ember-hours/10-walking-green-pinkf-remix.mp3",
           "duration_sec": 245.3,
           "bpm": 129,
           "original": "01M5Q19M8QTJPQ9S4TP5AGV3TF.mp3"
@@ -164,11 +160,14 @@
           "original": "ANIMALS4.mp3"
         },
         {
-          "title": "Unnamed Frequency",
-          "file": "assets/audio/night-signals/03-unnamed-frequency.mp3",
+          "title": "On The Run",
+          "file": "assets/audio/night-signals/03-on-the-run.mp3",
           "duration_sec": 153.0,
           "bpm": 129,
-          "original": "IG3-NO TITLE.wav"
+          "original": "IG3-NO TITLE.wav",
+          "aliases": [
+            "unnamed-frequency"
+          ]
         },
         {
           "title": "Ninety-Six Something",
