@@ -291,7 +291,7 @@ let fxs = null;
 function level() { if (an && !audio.paused) { fbuf = fbuf || new Uint8Array(an.frequencyBinCount); an.getByteFrequencyData(fbuf); let b = 0, m = 0; for (let i = 0; i < 24; i++) b += fbuf[i]; for (let i = 0; i < 256; i++) m += fbuf[i]; return {bass: b / 24 / 255, lvl: m / 256 / 255}; }
  const t = performance.now() / 1000, beat = Math.pow(1 - (t * 2.1 % 1), 3); return {bass: beat * .8, lvl: .25 + beat * .35}; }
 let saverMode = false;
-function fxRun(name, msg, init, draw, dur, intro) { if (fxs || mx) return; refreshColors(); const saver = saverMode; if (saver) msg = ''; const c = document.createElement('canvas'); c.id = 'matrix'; c.className = 'fx-' + name; c.setAttribute('aria-label', name + ' effect, press any key to exit'); document.body.appendChild(c);
+function fxRun(name, msg, init, draw, dur, intro) { if (fxs || mx || (dead && name !== 'glitch')) return; refreshColors(); const saver = saverMode; if (saver) msg = ''; const c = document.createElement('canvas'); c.id = 'matrix'; c.className = 'fx-' + name; c.setAttribute('aria-label', name + ' effect, press any key to exit'); document.body.appendChild(c);
  const g = c.getContext('2d'), mob = innerWidth < 760 || matchMedia('(pointer:coarse)').matches, st = {mob, t0: performance.now()};
  const size = () => { const dpr = mob ? 1 : Math.min(2, devicePixelRatio || 1); c.width = innerWidth * dpr; c.height = innerHeight * dpr; st.dpr = dpr; init(g, c, st); }; size(); addEventListener('resize', size);
  const stop = () => { if (!fxs) return; cancelAnimationFrame(fxs.raf); clearTimeout(fxs.to); c.remove(); removeEventListener('keydown', onKey, true); removeEventListener('resize', size); fxs = null; if (msg) say(msg); };
@@ -406,12 +406,37 @@ function pipes() { const BOX = {'0,0': '─', '1,1': '│', '2,2': '─', '3,3':
   for (let s = 0; s < steps; s++) for (const p of st.p) { let nd = p.d; if (Math.random() < .18) nd = (p.d + (Math.random() < .5 ? 1 : 3)) % 4; const chr = BOX[p.d + ',' + nd] || '─';
    g.fillStyle = '#000'; g.fillRect(p.x * cw, p.y * fs, cw, fs); g.fillStyle = p.c; g.shadowColor = p.c; g.shadowBlur = 6 * st.dpr; g.fillText(chr, p.x * cw, p.y * fs); g.shadowBlur = 0; st.used++;
    p.d = nd; p.x += DX[nd]; p.y += DY[nd]; if (p.x < 0 || p.y < 0 || p.x >= W || p.y >= H) { p.x = Math.random() * W | 0; p.y = Math.random() * H | 0; p.d = Math.random() * 4 | 0; p.c = cols[Math.random() * cols.length | 0]; } } }); }
+/* ---------- rm -rf / ---------- */
+let dead = false;
+function rmrf() { if (dead) return; dead = true; window.tgTrack('easter-rmrf', 'rm -rf /'); saver.on = false; saverStop(); if (fxs) fxs.stop(); if (mx) mx.stop();
+ cueClear(); smoke(false); cmd.disabled = true; cmd.blur(); jump('shell');
+ const P = ['/bin/bash', '/bin/sh', '/bin/ls', '/etc/passwd', '/etc/shadow', '/etc/hosts', '/etc/fstab', '/boot/vmlinuz-grim', '/usr/lib/libc.so.6', '/usr/lib/libgrimamp.so.2', '/usr/lib/x86_64-linux-gnu/libasound.so.2', '/usr/share/fonts/vt323.ttf', '/usr/bin/grimsh', '/usr/bin/python3', '/lib/modules/6.6.6-grim/kernel/sound/bass.ko', '/sys/vinyl/spin.ko', '/sys/vinyl/needle', '/sys/class/crt/phosphor', '/var/log/scope', '/var/log/syslog', '/var/cache/waveform.db', '/dev/bass', '/dev/kick0', '/opt/grimos/themes/cyan.css', '/home/tomgrim/.bash_history', '/home/tomgrim/irc/#tomgrim.log'];
+ flat.slice(0, 40).forEach(t => P.push('/home/tomgrim/music/' + t.file.split('/').pop())); for (let i = P.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [P[i], P[j]] = [P[j], P[i]]; }
+ const items = [...pl.querySelectorAll('li')], T0 = performance.now(), DUR = 3500, v0 = audio.volume; let n = 0, k = 0;
+ const step = () => { const el = performance.now() - T0, f = Math.min(1, el / DUR);
+  const burst = 1 + Math.floor(f * f * 14); for (let i = 0; i < burst; i++) { const p = P[k++ % P.length]; say("removed '" + (k > P.length ? p.replace(/(\.\w+)?$/, '.' + (k % 97) + '$1') : p) + "'"); }
+  while (n < items.length * f) { const li = items[n++]; if (li) li.style.visibility = 'hidden'; }
+  audio.volume = Math.max(0, v0 * (1 - f)); if (f > .55 && !audio.paused) audio.pause();
+  if (Math.random() < .15 + f * .5) { const th = THEMES[Math.random() * THEMES.length | 0]; document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + th); refreshColors(); }
+  document.body.style.filter = Math.random() < f * .4 ? 'invert(1) hue-rotate(' + (Math.random() * 360 | 0) + 'deg)' : '';
+  if (f < 1) setTimeout(step, Math.max(12, 90 - f * 80)); else { document.body.style.filter = ''; say('rm: cannot remove /proc/1: Device or resource busy'); setTimeout(() => { glitch({intro: 1300}); setTimeout(blackout, 1300); }, 150); } };
+ step(); }
+function blackout() { audio.pause(); try { audio.removeAttribute('src'); audio.load(); } catch {}
+ if ('mediaSession' in navigator) { const ms = navigator.mediaSession; ms.metadata = null; ms.playbackState = 'none'; ['play', 'pause', 'previoustrack', 'nexttrack', 'seekto', 'seekbackward', 'seekforward', 'stop'].forEach(a => { try { ms.setActionHandler(a, null); } catch {} }); }
+ if (fxs) fxs.stop(); smoke(false); cueBlack(0);
+ const d = document.createElement('div'); d.id = 'dead'; d.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#000;cursor:none;font:16px/1.3 "IBM Plex Mono",monospace;color:#555;padding:24px;box-sizing:border-box';
+ document.body.appendChild(d); document.documentElement.style.overflow = 'hidden';
+ const block = e => { if (e.type === 'keydown' && (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && /^r$/i.test(e.key)))) return; e.preventDefault(); e.stopImmediatePropagation(); };
+ ['keydown', 'keyup', 'keypress', 'pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'dblclick', 'contextmenu', 'touchstart', 'touchend', 'wheel', 'mousemove', 'focusin'].forEach(ev => addEventListener(ev, block, {capture: true, passive: false}));
+ if (document.activeElement) document.activeElement.blur();
+ setTimeout(() => { d.innerHTML = 'Kernel panic - not syncing: Attempted to kill init!<span class="kcur">_</span>'; const c = d.querySelector('.kcur'); setInterval(() => { c.style.visibility = c.style.visibility === 'hidden' ? '' : 'hidden'; }, 530); }, 3000); }
+
 /* ---------- idle screensaver ---------- */
 const SAVERS = {matrix: () => matrix(), fire: () => fire(), starfield: () => starfield(), plasma, tunnel, rain, dvd, life, cube: () => cube(), donut: () => cube('donut'), snow, pipes};
 const saver = {on: localStorage.grimSaver !== 'off', sec: +localStorage.grimSaverSec || 60, fx: localStorage.grimSaverFx || 'random', last: Date.now(), active: false, started: 0};
 function saverStop() { if (!saver.active) return; saver.active = false; if (fxs && fxs.saver) fxs.stop(); else if (mx && mx.saver) mx.stop(); }
 ['mousemove', 'keydown', 'touchstart', 'wheel', 'scroll', 'pointerdown'].forEach(ev => addEventListener(ev, e => { saver.last = Date.now(); if (saver.active && Date.now() - saver.started > 400) { saverStop(); if (ev === 'keydown') { e.preventDefault(); e.stopImmediatePropagation(); } } }, {capture: true, passive: ev !== 'keydown'}));
-setInterval(() => { if (saver.active && !fxs && !mx) saver.active = false;
+setInterval(() => { if (dead) return; if (saver.active && !fxs && !mx) saver.active = false;
  if (!saver.on || saver.active || fxs || mx || !booted || Date.now() - saver.last < saver.sec * 1000) return;
  const ae = document.activeElement, busy = openM || !$('#photos').hidden || !$('#lb').hidden || !$('#help').hidden || (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.value);
  if (busy) return; const names = Object.keys(SAVERS), pick = mood && SAVERS.fire ? 'fire' : SAVERS[saver.fx] ? saver.fx : names[Math.random() * names.length | 0];
@@ -445,6 +470,7 @@ const CMDS = {
  sudo: () => say('tom is not in the sudoers file. This incident will be reported to the bassline.'), exit: () => say('there is no exit. only the next track.'),
 };
 $('#prompt').addEventListener('submit', e => { e.preventDefault(); const v = cmd.value.trim(); cmd.value = ''; if (!v) return; hist.push(v); hp = hist.length;
+ if (/^(sudo\s+)?rm\s+-(rf|fr)\s+(--no-preserve-root\s+)?\/\*?$/i.test(v)) { say('tom@grimos:~$ ' + v); return rmrf(); }
  say('tom@grimos:~$ ' + v); const [c, ...rest] = v.split(/\s+/); const f = CMDS[c.toLowerCase()]; f ? f(rest.join(' ')) : say(`grimsh: command not found: ${c} (try help)`); });
 cmd.addEventListener('keydown', e => { if (e.key === 'ArrowUp') { hp = Math.max(0, hp - 1); cmd.value = hist[hp] || ''; e.preventDefault(); } else if (e.key === 'ArrowDown') { hp = Math.min(hist.length, hp + 1); cmd.value = hist[hp] || ''; e.preventDefault(); }
  else if (e.key === 'Tab' && cmd.value) { const m = Object.keys(CMDS).filter(k => k.startsWith(cmd.value)); if (m.length === 1) { cmd.value = m[0] + ' '; e.preventDefault(); } } });
@@ -610,7 +636,7 @@ function cueFxStop() { if (cue.fx) { cue.fx = false; if (fxs && fxs.cue) fxs.sto
 function cueClear() { cueFxStop(); cueBlack(0); cue.dismissed = false; }
 function cueDismiss() { cue.dismissed = true; cueFxStop(); cueBlack(0); }
 ['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, e => { if (cue.el && !cue.fx && !cue.dismissed) { cueDismiss(); if (ev === 'keydown') { e.preventDefault(); e.stopImmediatePropagation(); } } }, {capture: true}));
-setInterval(() => { if (!mood) return; const t = audio.currentTime;
+setInterval(() => { if (!mood || dead) return; const t = audio.currentTime;
  if (cue.fx && !(fxs && fxs.cue)) { cue.fx = false; cue.dismissed = true; cueBlack(0); } // user closed the fire
  if (t < CUE_B) { if (cue.fx || cue.el) cueFxStop(), cueBlack(0); cue.dismissed = false; return; }
  if (cue.dismissed) return;
