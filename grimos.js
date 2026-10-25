@@ -1059,9 +1059,9 @@ document.querySelectorAll('.getlink').forEach(b => b.addEventListener('click', e
 load().then(() => requestAnimationFrame(frame));
 // screensaver now-playing readout (bottom-left, command-line style; never intercepts the click/key that dismisses the saver)
 (() => { let el = null;
- const render = () => { const mxEl = document.getElementById('matrix'), on = !!mxEl && !mxEl.classList.contains('fx-weather') && !dead, t = curT();
-  if (!on || !t) { if (el) { el.remove(); el = null; } return; }
-  if (!el) { el = document.createElement('div'); el.id = 'npov'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'off'); document.body.appendChild(el); }
+ const render = () => { const mxEl = document.getElementById('matrix'), on = !!mxEl && !mxEl.classList.contains('fx-weather') && !mxEl.classList.contains('fx-intro') && booted && !dead, t = curT();
+  if (!el) { el = document.getElementById('npov'); if (!el) { el = document.createElement('div'); el.id = 'npov'; el.hidden = true; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'off'); document.body.appendChild(el); } }
+  if (!on || !t) { el.hidden = true; return; } el.hidden = false;
   const dur = audio.duration || t.duration_sec || 0, cur = audio.currentTime || 0, w = innerWidth < 500 ? 14 : 22, f = dur ? Math.round(cur / dur * w) : 0;
   const al = t.al || {}, meta = [al.title && !t.single ? al.title : (t.single ? 'Single' : ''), al.year ? `(${al.year})` : ''].filter(Boolean).join(' ') + (t.bpm ? ` · ${t.bpm} bpm` : '');
   const r = typeof effRepeat === 'function' ? effRepeat() : repeat;

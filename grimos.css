@@ -368,6 +368,7 @@ body.nocolor .sx-bad{text-decoration:none}
 /* spectrum: no pale band across the top rows (bars hang from the top, so the old .h highlight read as a solid white bar) */
 #spec .h{color:inherit!important}
 /* screensaver now-playing readout */
+#npov[hidden]{display:none!important}
 #npov{position:fixed;left:calc(14px + env(safe-area-inset-left));bottom:calc(14px + env(safe-area-inset-bottom));z-index:9100;pointer-events:none;white-space:pre;font:13px/1.35 "IBM Plex Mono",monospace;color:var(--fg);background:rgba(0,0,0,.55);border:1px solid color-mix(in srgb,var(--fg) 45%,transparent);padding:.45em .7em;max-width:calc(100vw - 28px);overflow:hidden;text-shadow:0 0 3px rgba(0,0,0,.9);-webkit-backdrop-filter:blur(1.5px);backdrop-filter:blur(1.5px)}
 #npov b{color:var(--hi);font-weight:600}
 #npov .np-p{color:var(--acc)}#npov .np-d{color:color-mix(in srgb,var(--fg) 70%,#999)}
