@@ -339,7 +339,7 @@ const HELP = () => [
  ['shell', 'help ls albums pause stop next prev bio links mail irc clear themes repeat shuffle whoami fetch', [['help', '[section|cmd|-a]', 'this help (? works the same)'], ['share', '', 'copy a link to this track at this moment'], ['play', '<n|name>', 'play a track by number or name'], ['theme', '<' + THEMES.join('|') + '>', 'switch color theme'], ['crt', 'on|off', 'CRT filter'], ['vol', '<0-100>', 'set volume'], ['man', '<cmd>', 'manual page for a command']]],
  ['get', '', [['get', '<n|name>', 'download a track'], ['get album', '<name>', 'download a whole album'], ['get', '--list', 'list everything downloadable']], 'aliases: wget, curl -O'],
  ['net', 'mail irc', [], 'mail = contact form · irc = #tomgrim on irc.unrealircd.org'],
- ['fun', 'matrix glitch fire hack starfield plasma tunnel rain dvd life cube torus donut snow pipes', [['cowsay', '<text>', 'a cow says it']], 'any key or click exits an effect'],
+ ['fun', 'weather matrix glitch fire hack starfield plasma tunnel rain dvd life cube torus donut snow pipes', [['cowsay', '<text>', 'a cow says it']], 'any key or click exits an effect'],
  ['system', 'pwd dir history cls hostname date uptime ifconfig top htop ps neofetch exit', [['cd', '<dir>', 'change directory'], ['ls', '-la [path]', 'list files'], ['cat', '<file>', 'print a file'], ['echo', '<text>', 'print text'], ['uname', '-a', 'system info'], ['ping', '<host>', 'ping a host'], ['ip', 'a', 'network interfaces'], ['df', '-h', 'disk usage'], ['free', '-h', 'memory usage'], ['which', '<cmd>', 'locate a command'], ['ssh', '<host>', 'connect (sort of)'], ['curl', '<url>', 'fetch a url'], ['apt', 'install <pkg>', 'install a package'], ['sudo', '<cmd>', 'try your luck']]],
  ['fx', '', [['fx', '', 'show knob values'], ['fx', 'reset', 'all knobs back to default'], ['fx', '<filter|res|verb|crush> <value>', 'set a knob (or drag it)']]],
  ['look', '', [['colors', 'on|off', 'ANSI colors in the terminal']]],
@@ -540,8 +540,8 @@ function saverStop() { if (!saver.active) return; saver.active = false; if (fxs 
 setInterval(() => { if (dead || document.hidden || RM) return; if (saver.active && !fxs && !mx) saver.active = false;
  if (!saver.on || saver.active || fxs || mx || !booted || Date.now() - saver.last < saver.sec * 1000) return;
  const ae = document.activeElement, busy = openM || !$('#photos').hidden || !$('#lb').hidden || !$('#help').hidden || (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.value);
- if (busy) return; const names = Object.keys(SAVERS), pick = mood && SAVERS.fire ? 'fire' : SAVERS[saver.fx] ? saver.fx : names[Math.random() * names.length | 0];
- saverMode = true; try { SAVERS[pick](); } finally { saverMode = false; } if (fxs || mx) { saver.active = true; saver.started = Date.now(); } }, 1000);
+ if (busy) return; const names = Object.keys(SAVERS), pick = wxMood ? 'weather' : mood && SAVERS.fire ? 'fire' : SAVERS[saver.fx] ? saver.fx : names[Math.random() * names.length | 0];
+ saverMode = true; try { (pick === 'weather' ? weatherFx : SAVERS[pick])(); } finally { saverMode = false; } if (fxs || mx) { saver.active = true; saver.started = Date.now(); } }, 1000);
 function screensaverCmd(a) { a = (a || '').trim().toLowerCase();
  if (!a) return say(`screensaver: ${saver.on ? 'on' : 'off'} · after ${saver.sec}s idle · effect: ${saver.fx}\nusage: screensaver on|off|<seconds>|<effect>|random   effects: ${Object.keys(SAVERS).join(' ')}`);
  if (a === 'on' || a === 'off') saver.on = a === 'on'; else if (/^\d+$/.test(a)) { saver.sec = Math.max(5, Math.min(3600, +a)); saver.on = true; } else if (a === 'random' || SAVERS[a]) saver.fx = a; else if (a === 'now' || a === 'test') { saver.last = 0; return say('screensaver: starting…'); } else return say('screensaver: unknown option ' + a);
@@ -564,7 +564,7 @@ const CMDS = {
  pause: () => audio.pause(), next: () => next(1), prev: () => next(-1), repeat: cycleRepeat, shuffle: () => { shuffle = !shuffle; updateModes(); say('shuffle: ' + shuffle); },
  vol: a => { setVol((+a || 0) / 100); say('volume ' + Math.round(vol * 100) + '%'); },
  bio: () => { say(document.querySelector('.manbody').innerText); jump('man'); },
- man: a => CMDS.bio(), whoami: () => say('tomGRIM — formerly dj ign3ous. Lehigh Valley, PA.'), fetch: () => jump('fetch'), grimfetch: () => jump('fetch'),
+ man: a => CMDS.bio(), whoami: () => say('tomGRIM — formerly dj ign3ous. Lehigh Valley, PA.'), fetch: () => jump('fetch'), weather: () => weatherFx(true), wx: () => weatherFx(true), grimfetch: () => jump('fetch'),
  links: () => LINKS.forEach(([n, u]) => say(`${n.padEnd(12)} <a href="${u}" target="_blank" rel="noopener">${u}</a>`, true)),
  contact: () => { say('opening mail client…'); openModal('mail'); }, mail: () => CMDS.contact(), irc: () => { say('opening irc #tomgrim on irc.unrealircd.org…'); openModal('irc'); }, chat: () => CMDS.irc(),
  zach: () => zach(), get: a => getCmd(a), wget: a => getCmd(a), curl: a => getCmd((a || '').replace(/(^|\s)(-O|--remote-name|-L|-s)(?=\s|$)/g, ' ').trim()),
@@ -710,7 +710,7 @@ const aptCmd = (a, su) => { const m = (a || '').match(/^(install|update|upgrade|
   if (p >= 100) { clearInterval(iv); job = null; say(`Unpacking ${pkg} (${GRIMOS_VERSION}) ...\nSetting up ${pkg} (${GRIMOS_VERSION}) ...\nProcessing triggers for vinyl-spin (1.0) ...\n${pkg}: installed. (it was always there, deep in the mix.)`); } }, 120);
  startJob(() => { clearInterval(iv); say('^C\nE: Sub-process /usr/bin/dpkg received signal 2.'); }, 'apt'); };
 const NEO = ['████████╗ ██████╗ ', '╚══██╔══╝██╔════╝ ', '   ██║   ██║  ███╗', '   ██║   ██║   ██║', '   ██║   ╚██████╔╝', '   ╚═╝    ╚═════╝ ', '  >_ tomGRIM       ', '                  '];
-const MAN = {share: 'share — copies a link to the current track at the current time (thomasgrim.com/?t=<track>&at=<seconds>). Opening it selects the track; press play and it starts at that moment.', help: 'help [section|cmd|-a] — list commands grouped by section. Commands with flags or args get their own line (args colored, dim description); simple commands flow together separated by •. help <section> shows one section (shell get net fun system fx look idle), help <cmd> opens its man page, help -a shows everything. ? is identical to help in every form: ?, ? fx, ? -a, ? <cmd>. Outside the prompt the ? key opens the keyboard help.', '?': 'see help — ? is an alias of help.', ls: 'ls [-la] [path] — without args lists every track; with a path lists the fake filesystem.', play: 'play <n|name> — play a track by number (see ls) or name.', get: 'get <n|name> — download a track. get album <name>, get --list.', cd: 'cd [dir] — change directory. try ~/albums, /etc, /var/log.', cat: 'cat <file> — print a file. try /etc/motd or readme.txt.', ping: 'ping <host> — send 4 ICMP echo requests (Ctrl+C stops).', top: 'top — live process list. q to quit.', theme: 'theme <name> — switch color theme: ' + THEMES.join(' ') + ' (cyan is the default). silicon, nightshift and neon are full-color palettes; Tab completes names.', screensaver: 'screensaver on|off|<seconds>|<effect>|random', apt: 'apt install <pkg> — needs sudo. you know how this ends.'};
+const MAN = {weather: 'weather — GRIM/WX: a 90s "local on the 8s" weather screen for Allentown, Bethlehem and Easton with live data from open-meteo.com (current conditions, latest observations, extended and local forecast). It also takes over the screensaver while any Walking Green version plays. Any key or click exits. Alias: wx.', share: 'share — copies a link to the current track at the current time (thomasgrim.com/?t=<track>&at=<seconds>). Opening it selects the track; press play and it starts at that moment.', help: 'help [section|cmd|-a] — list commands grouped by section. Commands with flags or args get their own line (args colored, dim description); simple commands flow together separated by •. help <section> shows one section (shell get net fun system fx look idle), help <cmd> opens its man page, help -a shows everything. ? is identical to help in every form: ?, ? fx, ? -a, ? <cmd>. Outside the prompt the ? key opens the keyboard help.', '?': 'see help — ? is an alias of help.', ls: 'ls [-la] [path] — without args lists every track; with a path lists the fake filesystem.', play: 'play <n|name> — play a track by number (see ls) or name.', get: 'get <n|name> — download a track. get album <name>, get --list.', cd: 'cd [dir] — change directory. try ~/albums, /etc, /var/log.', cat: 'cat <file> — print a file. try /etc/motd or readme.txt.', ping: 'ping <host> — send 4 ICMP echo requests (Ctrl+C stops).', top: 'top — live process list. q to quit.', theme: 'theme <name> — switch color theme: ' + THEMES.join(' ') + ' (cyan is the default). silicon, nightshift and neon are full-color palettes; Tab completes names.', screensaver: 'screensaver on|off|<seconds>|<effect>|random', apt: 'apt install <pkg> — needs sudo. you know how this ends.'};
 Object.assign(CMDS, {
  ls: a => { a = (a || '').trim(); if (!a) return flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}${t.special ? ' ★' : ''}  [${t.single ? 'single' : t.al.title}]`)); lsPath(a); },
  ll: a => lsPath('-la ' + (a || '')), pwd: () => say(cwd),
@@ -893,7 +893,10 @@ new ResizeObserver(() => document.documentElement.style.setProperty('--tb', $('#
 
 /* ---------- track moods: Graveyard → fire theme + smoke ---------- */
 let mood = null;
+let wxMood = false;
 function trackMood(t) {
+ const wg = !!(t && /walking green/i.test(t.title));
+ if (wg !== wxMood) { wxMood = wg; if (saver.active && fxs && fxs.saver && (wg ? fxs.name !== 'weather' : fxs.name === 'weather')) { saverStop(); if (wg) { saverMode = true; try { weatherFx(); } finally { saverMode = false; } if (fxs) { saver.active = true; saver.started = Date.now(); } } } }
  const want = t && /^graveyard over the fire$/i.test(t.title);
  if (want && !mood) { mood = {prev: curTheme()}; if (THEMES.includes('fire')) setTheme('fire', 'mood'); smoke(true); }
  else if (!want && mood) { const p = mood.prev; mood = null; setTheme(p, 'mood'); smoke(false); cueClear(); }
@@ -934,6 +937,82 @@ setInterval(() => { if (!mood || dead || document.hidden) return; const t = audi
  if (cue.fx) cueBlack(0); }, 100);
 window.__cue = () => ({black: cue.el ? +cue.el.style.opacity : 0, fire: !!(fxs && fxs.cue), dismissed: cue.dismissed, t: audio.currentTime});
 window.__mood = () => ({mood: !!mood, theme: curTheme(), saved: localStorage.grimTheme, smoke: !!document.getElementById('smoke')});
+
+/* ---------- Walking Green → GRIM/WX "local on the 8s" weather screensaver (live Open-Meteo data) ---------- */
+const WX_CITIES = [['Allentown', 40.6084, -75.4902], ['Bethlehem', 40.6259, -75.3705], ['Easton', 40.6884, -75.2207]];
+const wxCache = {t: 0, data: null, p: null};
+function wxFetch() {
+ if (wxCache.data && Date.now() - wxCache.t < 600000) return Promise.resolve(wxCache.data);
+ if (wxCache.p) return wxCache.p;
+ const q = 'latitude=' + WX_CITIES.map(c => c[1]).join(',') + '&longitude=' + WX_CITIES.map(c => c[2]).join(',') +
+  '&current=temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,visibility,is_day' +
+  '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America%2FNew_York&forecast_days=4';
+ const ctl = 'AbortController' in window ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
+ wxCache.p = fetch('https://api.open-meteo.com/v1/forecast?' + q, ctl ? {signal: ctl.signal} : {}).then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+  .then(j => { const a = Array.isArray(j) ? j : [j]; if (a.length < 3 || !a[0].current) throw new Error('bad data'); wxCache.data = a; wxCache.t = Date.now(); return a; })
+  .catch(() => wxCache.data).finally(() => { clearTimeout(to); wxCache.p = null; });
+ return wxCache.p;
+}
+function wxCond(c, day, short) { day = day !== 0;
+ const M = {0: day ? 'Sunny' : 'Clear', 1: 'Fair', 2: 'Partly Cloudy', 3: 'Cloudy', 45: 'Fog', 48: 'Freezing Fog', 51: 'Lt Drizzle', 53: 'Drizzle', 55: 'Hvy Drizzle', 56: 'Frzg Drizzle', 57: 'Frzg Drizzle', 61: 'Light Rain', 63: 'Rain', 65: 'Heavy Rain', 66: 'Frzg Rain', 67: 'Frzg Rain', 71: 'Light Snow', 73: 'Snow', 75: 'Heavy Snow', 77: 'Snow Grains', 80: 'Showers', 81: 'Showers', 82: 'Hvy Showers', 85: 'Snow Showers', 86: 'Snow Showers', 95: "T'Storms", 96: "T'Storms", 99: "T'Storms"};
+ const s = M[c] || 'Fair'; return short ? s.replace('Partly Cloudy', 'P Cloudy').replace('Snow Showers', 'Snw Shwrs') : s; }
+function wxKind(c, day) { if (c >= 95) return 'storm'; if ((c >= 71 && c <= 77) || c === 85 || c === 86) return 'snow'; if (c >= 51 && c <= 82) return 'rain'; if (c === 45 || c === 48) return 'fog'; if (c === 3) return 'cloud'; if (c === 2) return day === 0 ? 'cloud' : 'partly'; return day === 0 ? 'moon' : 'sun'; }
+function wxIcon(k) {
+ const sun = (x, y, r) => `<g fill="#ffd21f" stroke="#ff9a00" stroke-width="2">${Array.from({length: 8}, (_, i) => { const a = i * Math.PI / 4, c = Math.cos(a), s = Math.sin(a); return `<line x1="${x + c * (r + 4)}" y1="${y + s * (r + 4)}" x2="${x + c * (r + 13)}" y2="${y + s * (r + 13)}" stroke="#ffd21f" stroke-width="5" stroke-linecap="square"/>`; }).join('')}<circle cx="${x}" cy="${y}" r="${r}"/></g>`;
+ const cloud = (dx, dy, f) => `<g transform="translate(${dx} ${dy})" fill="${f || '#e8ecf4'}" stroke="#8a93b0" stroke-width="2"><path d="M14 58 h62 a14 14 0 0 0 0 -28 a20 20 0 0 0 -38 -6 a14 14 0 0 0 -24 10 a12 12 0 0 0 0 24z"/></g>`;
+ const drops = (col, ch) => Array.from({length: 4}, (_, i) => ch === '*' ? `<text x="${22 + i * 16}" y="${86 + (i % 2) * 8}" font-size="18" fill="#fff" font-family="monospace" font-weight="bold">*</text>` : `<line x1="${26 + i * 16}" y1="${74 + (i % 2) * 5}" x2="${20 + i * 16}" y2="${90 + (i % 2) * 5}" stroke="${col}" stroke-width="4"/>`).join('');
+ const body = {sun: sun(50, 50, 20), moon: `<path d="M62 18 a32 32 0 1 0 22 50 a26 26 0 1 1 -22 -50z" fill="#fff6c0" stroke="#c9b75a" stroke-width="2"/>`, partly: sun(36, 36, 16) + cloud(8, 22), cloud: cloud(-6, 6, '#c9cfdc') + cloud(6, 18),
+  rain: cloud(0, 4, '#b8bfcf') + drops('#5aa0ff'), snow: cloud(0, 4) + drops('', '*'), storm: cloud(0, 0, '#9aa2b6') + `<path d="M50 56 l-12 22 h10 l-6 18 l20 -26 h-10 l8 -14z" fill="#ffd21f" stroke="#ff9a00" stroke-width="2"/>` + drops('#5aa0ff').replace(/x1="(26|42)"[^>]*\/>/g, ''),
+  fog: [30, 44, 58, 72].map((y, i) => `<rect x="${12 + (i % 2) * 8}" y="${y}" width="${70 - (i % 2) * 8}" height="6" fill="#c9cfdc"/>`).join('')}[k] || '';
+ return `<svg viewBox="0 0 100 100" class="wx-ic" aria-hidden="true">${body}</svg>`; }
+function wxDir(d) { return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(((d || 0) % 360) / 45) % 8]; }
+const wxR = v => v == null || isNaN(v) ? '--' : Math.round(v);
+function wxWind(c) { const s = Math.round(c.wind_speed_10m || 0); return s < 3 ? 'Calm' : wxDir(c.wind_direction_10m) + ' ' + s + (c.wind_gusts_10m > s + 9 ? ' G' + Math.round(c.wind_gusts_10m) : ''); }
+function wxInHg(h) { return h ? (h * 0.02953).toFixed(2) : '--'; }
+function wxVis(ft) { if (ft == null) return '--'; const m = ft / 5280; return m >= 10 ? '10 mi.' : (m < 1 ? m.toFixed(1) : Math.round(m)) + ' mi.'; }
+function wxFeels(c) { const T = c.temperature_2m, s = c.wind_speed_10m || 0; if (T <= 50 && s > 3) return ['Wind Chill', wxR(c.apparent_temperature) + '°']; if (T >= 80) return ['Heat Index', wxR(c.apparent_temperature) + '°']; return null; }
+let wx = null;
+function weatherFx(preview) {
+ if (fxs || mx) return; const saverOn = saverMode;
+ const el = document.createElement('div'); el.id = 'matrix'; el.className = 'fx-weather' + (RM ? ' wx-rm' : ''); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'GRIM/WX local weather for the Lehigh Valley, press any key to exit');
+ el.innerHTML = `<div class="wx-scr"><header class="wx-top"><div class="wx-badge"><span>THE GRIM</span><span>WEATHER</span><span>CHANNEL</span></div><h3 class="wx-ttl"><span class="wx-t1"></span><span class="wx-t2"></span></h3><div class="wx-clk"><span class="wx-time"></span><span class="wx-date"></span></div></header><main class="wx-main"></main><footer class="wx-tick"><div class="wx-tk"></div></footer></div><div class="wx-vhs" aria-hidden="true"></div>`;
+ document.body.appendChild(el);
+ const $w = s => el.querySelector(s), main = $w('.wx-main');
+ const st = {slide: 0, city: 0, data: null, failed: false, iv: 0, clk: 0};
+ const fmtT = new Intl.DateTimeFormat('en-US', {timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', second: '2-digit'}), fmtD = new Intl.DateTimeFormat('en-US', {timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric'});
+ const tick = () => { const n = new Date(); $w('.wx-time').textContent = fmtT.format(n); $w('.wx-date').textContent = fmtD.format(n).replace(',', '').toUpperCase(); };
+ const title = (a, b) => { $w('.wx-t1').textContent = a; $w('.wx-t2').textContent = b; };
+ const NA = '<div class="wx-na">DATA UNAVAILABLE</div><div class="wx-na2">THE GRIM WEATHER SATELLITE IS NOT RESPONDING. PLEASE STAND BY.</div>';
+ const dayName = s => new Date(s + 'T12:00:00').toLocaleDateString('en-US', {weekday: 'short'}).toUpperCase();
+ const slides = [
+  () => { const i = st.city, d = st.data && st.data[i]; title(WX_CITIES[i][0], 'Current Conditions'); if (!d) return NA; const c = d.current, f = wxFeels(c);
+   return `<div class="wx-cc"><div class="wx-ccl"><div class="wx-big">${wxR(c.temperature_2m)}°</div><div class="wx-cond">${wxCond(c.weather_code, c.is_day)}</div>${wxIcon(wxKind(c.weather_code, c.is_day))}</div>
+   <dl class="wx-ccr"><dt>Humidity:</dt><dd>${wxR(c.relative_humidity_2m)}%</dd><dt>Dewpoint:</dt><dd>${wxR(c.dew_point_2m)}°</dd><dt>Wind:</dt><dd>${wxWind(c)}</dd><dt>Pressure:</dt><dd>${wxInHg(c.pressure_msl)}</dd><dt>Visibility:</dt><dd>${wxVis(c.visibility)}</dd>${f ? `<dt>${f[0]}:</dt><dd>${f[1]}</dd>` : `<dt>Feels Like:</dt><dd>${wxR(c.apparent_temperature)}°</dd>`}</dl></div>`; },
+  () => { title('Latest Observations', 'Lehigh Valley'); if (!st.data) return NA;
+   return `<table class="wx-obs"><thead><tr><th></th><th>°F</th><th>WEATHER</th><th>WIND</th></tr></thead><tbody>${st.data.map((d, i) => `<tr><td>${WX_CITIES[i][0]}</td><td>${wxR(d.current.temperature_2m)}</td><td>${wxCond(d.current.weather_code, d.current.is_day, 1)}</td><td>${wxWind(d.current)}</td></tr>`).join('')}</tbody></table>`; },
+  () => { title(WX_CITIES[0][0], 'Extended Forecast'); const d = st.data && st.data[0]; if (!d) return NA; const y = d.daily;
+   return `<div class="wx-ext">${[1, 2, 3].map(k => `<div class="wx-day"><div class="wx-dn">${dayName(y.time[k])}</div>${wxIcon(wxKind(y.weather_code[k]))}<div class="wx-dc">${wxCond(y.weather_code[k], 1, 1)}</div><div class="wx-hl"><span>Lo</span><span>Hi</span><b class="lo">${wxR(y.temperature_2m_min[k])}</b><b>${wxR(y.temperature_2m_max[k])}</b></div></div>`).join('')}</div>`; },
+  () => { title('Local Forecast', 'Lehigh Valley'); const d = st.data && st.data[0]; if (!d) return NA; const y = d.daily, p = k => y.precipitation_probability_max[k] || 0, w = k => Math.round(y.wind_speed_10m_max[k] || 0);
+   const now = new Date(), hr = +new Intl.DateTimeFormat('en-US', {timeZone: 'America/New_York', hour: 'numeric', hourCycle: 'h23'}).format(now), first = hr >= 17 ? 'TONIGHT' : 'TODAY';
+   const s1 = first === 'TODAY' ? `${first}...${wxCond(y.weather_code[0], 1).toUpperCase()}. HIGH ${wxR(y.temperature_2m_max[0])}. ` : `${first}...LOW ${wxR(y.temperature_2m_min[1])}. `;
+   const s2 = `${first === 'TODAY' ? 'WINDS UP TO ' + w(0) + ' MPH. ' : ''}${p(0) >= 20 ? 'CHANCE OF PRECIPITATION ' + p(0) + ' PERCENT.' : 'PRECIPITATION NOT EXPECTED.'}`;
+   const s3 = ` ${dayName(y.time[1]).replace(/^(\w+)$/, m => ({SUN: 'SUNDAY', MON: 'MONDAY', TUE: 'TUESDAY', WED: 'WEDNESDAY', THU: 'THURSDAY', FRI: 'FRIDAY', SAT: 'SATURDAY'})[m] || m)}...${wxCond(y.weather_code[1], 1).toUpperCase()}. HIGH ${wxR(y.temperature_2m_max[1])}.${p(1) >= 20 ? ' CHANCE OF PRECIPITATION ' + p(1) + ' PERCENT.' : ''}`;
+   return `<div class="wx-txt">${s1}${s2}${s3}</div>`; }];
+ const ticker = () => { const tk = $w('.wx-tk'); if (!st.data) { tk.textContent = 'GRIM/WX · DATA UNAVAILABLE · CHECK YOUR CONNECTION · NOW PLAYING ON GRIM/OS'; return; }
+  tk.textContent = st.data.map((d, i) => { const c = d.current; return `${WX_CITIES[i][0].toUpperCase()}: HUMIDITY ${wxR(c.relative_humidity_2m)}%  DEWPOINT ${wxR(c.dew_point_2m)}°  PRESSURE ${wxInHg(c.pressure_msl)} in.`; }).join('   ·   ') + '   ·   DATA: OPEN-METEO.COM'; };
+ const show = () => { main.classList.remove('wx-in'); void main.offsetWidth; main.innerHTML = slides[st.slide](); main.classList.add('wx-in'); };
+ st.go = n => { st.slide = n % slides.length; show(); };
+ const adv = () => { st.slide = (st.slide + 1) % slides.length; if (st.slide === 0) st.city = (st.city + 1) % WX_CITIES.length; show(); };
+ const stop = () => { if (!fxs || fxs.wx !== st) return; clearInterval(st.iv); clearInterval(st.clk); el.remove(); removeEventListener('keydown', onKey, true); fxs = null; wx = null; };
+ const onKey = e => { e.preventDefault(); e.stopImmediatePropagation(); stop(); };
+ fxs = {raf: 0, stop, name: 'weather', saver: saverOn, wx: st}; wx = st;
+ el.addEventListener('pointerdown', stop); setTimeout(() => addEventListener('keydown', onKey, true), 50);
+ tick(); st.clk = setInterval(tick, 1000); title('GRIM/WX', 'Lehigh Valley'); main.innerHTML = '<div class="wx-na2">RECEIVING SATELLITE DATA...</div>'; ticker();
+ wxFetch().then(d => { if (fxs && fxs.wx === st) { st.data = d || null; ticker(); show(); st.iv = setInterval(adv, RM ? 15000 : 9000); } });
+ if (preview) say('GRIM/WX: local on the 8s for the Lehigh Valley · live data from open-meteo.com · any key or click exits');
+}
+window.__wx = () => ({on: !!wx, slide: wx && wx.slide, city: wx && wx.city, data: !!(wx && wx.data), cached: !!wxCache.data});
+window.__wxGo = (n, city) => { if (!wx || !wx.go) return; if (city != null) wx.city = city; wx.go(n); };
 
 /* ---------- init ---------- */
 document.querySelectorAll('.brand').forEach(b => { b.textContent = 'GRIM/OS ' + GRIMOS_VERSION; });
