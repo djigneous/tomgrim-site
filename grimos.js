@@ -93,15 +93,46 @@ document.addEventListener('visibilitychange', () => { if (!audio.paused) wakeCtx
 addEventListener('pageshow', () => { if (!audio.paused) wakeCtx(); }); addEventListener('focus', () => { if (!audio.paused) wakeCtx(); });
 audio.addEventListener('playing', wakeCtx);
 setInterval(() => { if (!audio.paused) wakeCtx(); }, 2000); // watchdog (throttled to ~1/min when hidden, still harmless)
-function msState() { if ('mediaSession' in navigator) { navigator.mediaSession.playbackState = audio.paused ? (audio.currentTime ? 'paused' : 'none') : 'playing'; posState(); } }
+function msState() { if ('mediaSession' in navigator) { navigator.mediaSession.playbackState = isPlaying() ? 'playing' : (outEl().currentTime ? 'paused' : 'none'); posState(); } }
 ['play', 'pause', 'playing', 'ratechange', 'durationchange'].forEach(ev => audio.addEventListener(ev, () => msState()));
+/* ---------- background handoff ----------
+ Root cause of Android background dropouts: <audio> is captured by createMediaElementSource, so its ONLY output is the AudioContext.
+ Android Chrome suspends/throttles that context (and timers) in background tabs, so sound stops even though the element still "plays";
+ resuming afterwards (400e131) races the OS. Fix: when the page is hidden, hand playback to a second, untapped <audio> (native media
+ output, keeps the media notification) at the same position; hand back to the Web Audio path (FX/visualizers) when visible again. */
+const bgEl = new Audio(); bgEl.preload = 'auto'; bgEl.setAttribute('aria-hidden', 'true'); let bgMode = false, handing = false;
+const outEl = () => bgMode ? bgEl : audio, isPlaying = () => !outEl().paused;
+function outPause() { outEl().pause(); }
+function toBg() { if (bgMode || handing || audio.paused || !actx || !audio.currentSrc) return; handing = true;
+ bgEl.src = audio.currentSrc; bgEl.volume = audio.volume; bgEl.muted = audio.muted; bgEl.loop = false;
+ const go = () => { try { bgEl.currentTime = audio.currentTime; } catch {} bgEl.play().then(() => { bgMode = true; handing = false; audio.pause(); msState(); }, () => { handing = false; wakeCtx(); }); };
+ bgEl.readyState >= 1 ? go() : bgEl.addEventListener('loadedmetadata', go, {once: true}); }
+function toFg() { if (!bgMode) return; const t = bgEl.currentTime, src = bgEl.currentSrc, was = !bgEl.paused; bgMode = false;
+ if (audio.currentSrc !== src) audio.src = src; const go = () => { try { audio.currentTime = t; } catch {} if (was) { wakeCtx(); audio.play().then(() => bgEl.pause(), () => { bgMode = true; }); } else bgEl.pause(); updateNP(); msState(); };
+ audio.readyState >= 1 ? go() : audio.addEventListener('loadedmetadata', go, {once: true}); }
+bgEl.addEventListener('ended', () => { if (bgMode) onEnded(); });
+['play', 'pause', 'playing'].forEach(ev => bgEl.addEventListener(ev, () => { if (bgMode) msState(); }));
+bgEl.addEventListener('timeupdate', () => { if (bgMode) { const el = $('#tcur'); if (el) el.textContent = fmt(bgEl.currentTime); } });
+document.addEventListener('visibilitychange', () => { document.hidden ? toBg() : toFg(); });
+addEventListener('pagehide', toBg); addEventListener('pageshow', () => { if (!document.hidden) toFg(); });
+window.__bg = () => ({bgMode, bgPaused: bgEl.paused, bgT: bgEl.currentTime, bgSrc: bgEl.currentSrc.split('/').pop(), aPaused: audio.paused, aT: audio.currentTime, ctx: actx && actx.state, cur});
+function shareUrl() { const t = curT(); if (!t || secret) return null; const i = flat.indexOf(t), sec = Math.floor(outEl().currentTime || 0), slug = t.title.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+ return {t, sec, url: `${location.origin}/?t=${slug || i + 1}${sec > 3 ? '&at=' + sec : ''}`}; }
+function toast(html) { let el = $('#toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
+ el.innerHTML = html; el.classList.add('on'); clearTimeout(toast.tm); toast.tm = setTimeout(() => el.classList.remove('on'), 1800); }
+function shareTrack(btn) { const s = shareUrl(); if (!s) { if (btn) toast('<span class="p">$</span> share: pick a track first'); return say('share: nothing playing — pick a track first'); }
+ window.tgTrack('share', s.t.title); const title = 'tomGRIM - ' + s.t.title;
+ const copied = ok => { say(`share: ${ok ? 'copied' : 'link'} → <a href="${escH(s.url)}">${escH(s.url)}</a>${s.sec > 3 ? ' (starts at ' + fmt(s.sec) + ')' : ''}`, true); if (btn) toast(ok ? '<span class="p">$</span> share: link copied' : escH(s.url)); };
+ const copy = () => navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(s.url).then(() => copied(1), () => copied(0)) : copied(0);
+ if (btn && navigator.share && matchMedia('(pointer:coarse)').matches) navigator.share({title, text: title, url: s.url}).catch(e => { if (e && e.name !== 'AbortError') copy(); }); else copy(); }
 const isLoopAlbum = t => t && t.al.type === 'loops';
 function effRepeat() { const t = flat[cur]; if (t && isLoopAlbum(t)) return loopOverride[t.ai] ?? (repeat === 'off' ? 'one' : repeat); return repeat; }
 window.tgTrack = function (kind, title) { try { const gc = window.goatcounter; if (!gc || typeof gc.count !== 'function') return;
  const slug = String(title || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled';
  gc.count({path: kind + '/' + slug, title: String(title || ''), event: true}); } catch (e) {} };
 let pendingAt = null, lazySrc = null; // default track: no audio bytes until the first play
-const playedOnce = {}; let ringAgc = .1, secret = null;
+const playedOnce = {};
+document.getElementById('bshare')?.addEventListener('click', () => shareTrack(true)); let ringAgc = .1, secret = null;
 const curT = () => secret || flat[cur];
 function play(i) {
  secret = null;
@@ -112,10 +143,11 @@ function play(i) {
  if (i !== cur) { cur = i; audio.src = flat[i].file; setRecord(flat[i]); loadWave(flat[i]); }
  if (pendingAt && pendingAt.i === i) { const t0 = pendingAt.t; pendingAt = null; const go = () => { try { audio.currentTime = Math.min(t0, (audio.duration || t0 + 1) - 1); } catch {} }; audio.readyState >= 1 ? go() : audio.addEventListener('loadedmetadata', go, {once: true}); }
  setMediaMeta(flat[i]); trackMood(flat[i]);
+ if (bgMode) { const f = new URL(flat[i].file, location.href).href; if (bgEl.src !== f) bgEl.src = f; bgEl.play().catch(() => {}); } else
  audio.play().catch(err => say('play blocked: ' + err.message));
  select(i); updateNP();
 }
-function toggle() { if (cur < 0 || audio.paused) play(cur < 0 ? sel : cur); else audio.pause(); }
+function toggle() { if (cur < 0 || !isPlaying()) play(cur < 0 ? sel : cur); else outPause(); }
 function next(d = 1) {
  if (!flat.length) return;
  let i;
@@ -123,7 +155,8 @@ function next(d = 1) {
  else i = ((cur < 0 ? sel : cur) + d + flat.length) % flat.length;
  play(i);
 }
-audio.addEventListener('ended', () => { trackMood(null); if (secret) { secret = null; return next(1); } const r = effRepeat(); if (r === 'one') { audio.currentTime = 0; audio.play(); } else if (r === 'all' || shuffle || cur < flat.length - 1) next(1); });
+function onEnded() { trackMood(null); if (secret) { secret = null; return next(1); } const r = effRepeat(); if (r === 'one') { const el = bgMode ? bgEl : audio; el.currentTime = 0; el.play(); } else if (r === 'all' || shuffle || cur < flat.length - 1) next(1); }
+audio.addEventListener('ended', () => { if (!bgMode) onEnded(); });
 audio.addEventListener('play', updateNP); audio.addEventListener('pause', updateNP);
 audio.addEventListener('loadedmetadata', updateNP);
 audio.addEventListener('error', () => say('error: cannot load ' + (curT()?.file || '')));
@@ -134,22 +167,22 @@ function artFor(t) { const id = t && COVERS.includes(t.al.id) ? t.al.id : 'tomgr
  return [96, 192, 256, 512].map(s => ({src: `${base}${id}-${s}.png`, sizes: `${s}x${s}`, type: 'image/png'})); }
 function setMediaMeta(t, force) { if (!t) return; audio.title = `${t.id3_title || t.title} — ${t.id3_artist || 'tomGRIM'}`; if (!('mediaSession' in navigator) || !window.MediaMetadata) return; const key = t.file; if (key === lastMeta && !force && navigator.mediaSession.metadata) return; lastMeta = key;
  navigator.mediaSession.metadata = new MediaMetadata({title: t.id3_title || t.title, artist: t.id3_artist || 'tomGRIM', album: t.single ? 'Single' : t.al.title, artwork: artFor(t)}); }
-function posState() { try { if ('mediaSession' in navigator && audio.duration && isFinite(audio.duration)) navigator.mediaSession.setPositionState({duration: audio.duration, playbackRate: audio.playbackRate, position: Math.min(audio.currentTime, audio.duration)}); } catch {} }
+function posState() { try { const el = outEl(); if ('mediaSession' in navigator && el.duration && isFinite(el.duration)) navigator.mediaSession.setPositionState({duration: el.duration, playbackRate: el.playbackRate || 1, position: Math.min(el.currentTime, el.duration)}); } catch {} }
 if ('mediaSession' in navigator) { const ms = navigator.mediaSession, h = (a, f) => { try { ms.setActionHandler(a, f); } catch {} };
- h('play', () => play(cur < 0 ? sel : cur)); h('pause', () => audio.pause()); h('nexttrack', () => next(1)); h('previoustrack', () => next(-1));
- h('seekto', e => { if (e.fastSeek && 'fastSeek' in audio) audio.fastSeek(e.seekTime); else audio.currentTime = e.seekTime; posState(); });
+ h('play', () => play(cur < 0 ? sel : cur)); h('pause', () => outPause()); h('nexttrack', () => next(1)); h('previoustrack', () => next(-1));
+ h('seekto', e => { const el = outEl(); if (e.fastSeek && 'fastSeek' in el) el.fastSeek(e.seekTime); else el.currentTime = e.seekTime; posState(); });
  h('seekbackward', e => seek(-(e.seekOffset || 10))); h('seekforward', e => seek(e.seekOffset || 10));
  audio.addEventListener('loadedmetadata', posState); audio.addEventListener('seeked', posState);
  audio.addEventListener('play', () => { ms.playbackState = 'playing'; posState(); });
  audio.addEventListener('playing', () => { setMediaMeta(curT(), true); ms.playbackState = 'playing'; posState(); });
- audio.addEventListener('durationchange', posState); audio.addEventListener('pause', () => { ms.playbackState = 'paused'; }); }
+ audio.addEventListener('durationchange', posState); audio.addEventListener('pause', () => msState()); }
 function updateNP() {
  const t = curT();
- $('#nptitle').textContent = t ? (audio.paused ? '❚❚ ' : '▶ ') + t.title + (t.special ? ' ★' : '') : '▶ select a track';
+ $('#nptitle').textContent = t ? (!isPlaying() ? '❚❚ ' : '▶ ') + t.title + (t.special ? ' ★' : '') : '▶ select a track';
  $('#npalbum').textContent = t ? `${data.artist || 'tomGRIM'} — ${t.al.title}${t.al.year ? ' (' + t.al.year + ')' : ''}${t.bpm ? ' · ' + Math.round(t.bpm) + ' bpm' : ''}` : '—';
  $('#tdur').textContent = fmt(audio.duration || t?.duration_sec);
- const b = $('#bplay'); b.textContent = audio.paused ? '▶ PLAY' : '❚❚ PAUSE'; b.setAttribute('aria-label', audio.paused ? 'Play' : 'Pause');
- document.title = t && !audio.paused ? `▶ ${t.title} · tomGRIM` : 'tomGRIM :: GRIM/OS terminal';
+ const b = $('#bplay'); b.textContent = !isPlaying() ? '▶ PLAY' : '❚❚ PAUSE'; b.setAttribute('aria-label', !isPlaying() ? 'Play' : 'Pause');
+ document.title = t && !!isPlaying() ? `▶ ${t.title} · tomGRIM` : 'tomGRIM :: GRIM/OS terminal';
  mark(); updateModes();
  setMediaMeta(t);
 }
@@ -561,7 +594,7 @@ const CMDS = {
  ls: () => flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}${t.special ? ' ★' : ''}  [${t.single ? 'single' : t.al.title}]`)),
  albums: () => data.albums.forEach((a, i) => say(`[${String.fromCharCode(65 + (flat.find(t => t.al === a)?.ai ?? i))}] ${a.title}${a.year ? ' (' + a.year + ')' : ''} — ${a.type || 'album'}, ${a.tracks.length} tracks${a.blurb ? ' · ' + a.blurb : ''}`)),
  play: a => { if (!a) return toggle(); const n = parseInt(a, 10); if (n >= 1 && n <= flat.length) { play(n - 1); say('playing ' + flat[n - 1].title); } else { const i = flat.findIndex(t => t.title.toLowerCase().includes(a.toLowerCase())); i >= 0 ? (play(i), say('playing ' + flat[i].title)) : say('no such track: ' + a); } },
- pause: () => audio.pause(), next: () => next(1), prev: () => next(-1), repeat: cycleRepeat, shuffle: () => { shuffle = !shuffle; updateModes(); say('shuffle: ' + shuffle); },
+ pause: () => outPause(), next: () => next(1), prev: () => next(-1), repeat: cycleRepeat, shuffle: () => { shuffle = !shuffle; updateModes(); say('shuffle: ' + shuffle); },
  vol: a => { setVol((+a || 0) / 100); say('volume ' + Math.round(vol * 100) + '%'); },
  bio: () => { say(document.querySelector('.manbody').innerText); jump('man'); },
  man: a => CMDS.bio(), whoami: () => say('tomGRIM — formerly dj ign3ous. Lehigh Valley, PA.'), fetch: () => jump('fetch'), weather: () => weatherFx(true), wx: () => weatherFx(true), grimfetch: () => jump('fetch'),
@@ -745,11 +778,8 @@ Object.assign(CMDS, {
   const u = a.replace(/(^|\s)-\S+/g, ' ').trim().replace(/^https?:\/\//, ''); if (/thomasgrim\.com/.test(u)) return say('<!doctype html>\n<html><head><title>GRIM/OS :: tomGRIM</title>…\n(you are already here.)'); if (/wttr\.in/.test(u)) return say('Weather: Lehigh Valley — 4°C, fog, low light. Perfect for downtempo.');
   if (/^[\d.]+$|^[a-z0-9-]+(\.[a-z0-9-]+)+/i.test(u)) return say(`curl: (6) Could not resolve host: ${u.replace(/^https?:\/\//, '').split('/')[0]}\n(GrimOS is offline-first. try "curl -O <track#>" to download a track.)`); getCmd(a); },
  apt: aptCmd, 'apt-get': aptCmd, fx: fxCmd, colors: colorsCmd, colours: colorsCmd,
- share: () => { const t = curT(); if (!t || secret) return say('share: nothing playing — pick a track first'); const i = flat.indexOf(t), sec = Math.floor(audio.currentTime || 0), slug = t.title.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  const url = `${location.origin}/?t=${slug || i + 1}${sec > 3 ? '&at=' + sec : ''}`; window.tgTrack('share', t.title);
-  const done = ok => say(`share: ${ok ? 'copied' : 'link'} → <a href="${escH(url)}">${escH(url)}</a>${sec > 3 ? ' (starts at ' + fmt(sec) + ')' : ''}`, true);
-  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => done(1), () => done(0)); else done(0); },
- stop: () => { audio.pause(); try { audio.currentTime = 0; } catch {} $('#tcur').textContent = fmt(0); updateNP(); setTimeout(() => { if ('mediaSession' in navigator) { navigator.mediaSession.playbackState = 'none'; try { navigator.mediaSession.setPositionState({duration: audio.duration || 0, position: 0, playbackRate: 1}); } catch {} } }, 0); say('■ stopped. (00:00)'); },
+ share: () => shareTrack(false),
+ stop: () => { if (bgMode) { bgEl.pause(); bgMode = false; } audio.pause(); try { audio.currentTime = 0; } catch {} $('#tcur').textContent = fmt(0); updateNP(); setTimeout(() => { if ('mediaSession' in navigator) { navigator.mediaSession.playbackState = 'none'; try { navigator.mediaSession.setPositionState({duration: audio.duration || 0, position: 0, playbackRate: 1}); } catch {} } }, 0); say('■ stopped. (00:00)'); },
  popout: () => termFloat(true), dock: () => termFloat(false),
 });
 $('#prompt').addEventListener('submit', e => { e.preventDefault(); if (job) return; const v = cmd.value.trim(); cmd.value = ''; if (!v) return; hist.push(v); hp = hist.length;

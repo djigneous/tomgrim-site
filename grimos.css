@@ -414,3 +414,7 @@ body.nocolor .sx-bad{text-decoration:none}
  .wx-ccr{width:100%;font-size:6.6cqw;gap:1.2cqh 3cqw}.wx-obs{font-size:6.2cqw}.wx-obs td{padding:3cqh 0}
  .wx-ext{grid-template-columns:1fr;gap:1.4cqh}.wx-day{flex-direction:row;padding:1cqh 3cqw}.wx-day .wx-ic{width:16cqw;height:16cqw}.wx-dn{font-size:7cqw;width:18cqw}.wx-dc{font-size:5.4cqw;flex:1}.wx-hl{font-size:4.4cqw}.wx-hl b{font-size:8cqw}
  .wx-txt{font-size:7.6cqw}.wx-na{font-size:12cqw}.wx-na2{font-size:6cqw}.wx-tick{height:9cqw;font-size:5.6cqw}}
+/* share button: same fixed-size transport style; toast */
+#bshare{width:auto;flex-grow:3.4}
+#toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9200;pointer-events:none;font:14px/1.3 "IBM Plex Mono",monospace;color:var(--fg);background:rgba(0,0,0,.8);border:1px solid var(--br);padding:.35em .7em;opacity:0;transition:opacity .2s}
+#toast.on{opacity:1}#toast .p{color:var(--acc)}
