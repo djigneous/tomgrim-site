@@ -407,6 +407,7 @@ body.nocolor .sx-bad{text-decoration:none}
 .wx-np{flex:0 0 auto;display:flex;align-items:center;gap:2cqw;height:6.4cqh;margin:-1.2cqh 4cqw 1.2cqh;padding:0 2cqw 0 0;background:linear-gradient(90deg,#c22a0a 0%,#ef5a10 18%,#2c1f8a 34%,#1e1470 100%);border:.3cqh solid #7a6ff0;border-radius:.5cqh;font-size:3.8cqh;white-space:nowrap;overflow:hidden}
 .wx-np[hidden]{display:none}.wx-npl{padding:0 2cqw;color:#fff;flex:0 0 auto}.wx-npt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:#ffe02a}.wx-nps{flex:0 0 auto;color:#fff}
 .wx-rm .wx-tk{animation:none;padding-left:2cqw}.wx-rm .wx-main.wx-in{animation:none}
+@media (pointer:coarse),(max-width:760px){.wx-scr{filter:none}.wx-ic{filter:none}}
 @media (prefers-reduced-motion:reduce){.wx-tk{animation:none;padding-left:2cqw}.wx-main.wx-in{animation:none}}
 @media (max-aspect-ratio:1/1){
  #matrix.fx-weather{align-items:flex-start}

@@ -933,9 +933,16 @@ new ResizeObserver(() => document.documentElement.style.setProperty('--tb', $('#
 /* ---------- track moods: Graveyard → fire theme + smoke ---------- */
 let mood = null;
 let wxMood = false;
+const wxAuto = {t: null, dismissed: false, opening: false};
+function wxAutoCheck() { if (!wxMood || wxAuto.dismissed || audio.paused || document.hidden || dead || !booted || mx) return;
+ if (fxs) { if (fxs.name === 'weather') return; if (!fxs.saver) return; saverStop(); }
+ wxAuto.opening = true; try { weatherFx(); } finally { wxAuto.opening = false; } }
+audio.addEventListener('playing', wxAutoCheck); document.addEventListener('visibilitychange', () => setTimeout(wxAutoCheck, 50));
 function trackMood(t) {
  const wg = !!(t && /walking green/i.test(t.title));
- if (wg !== wxMood) { wxMood = wg; if (saver.active && fxs && fxs.saver && (wg ? fxs.name !== 'weather' : fxs.name === 'weather')) { saverStop(); if (wg) { saverMode = true; try { weatherFx(); } finally { saverMode = false; } if (fxs) { saver.active = true; saver.started = Date.now(); } } } }
+ if (t !== wxAuto.t) { wxAuto.t = t; wxAuto.dismissed = false; }
+ if (!wg && wxMood && fxs && fxs.name === 'weather' && fxs.auto) fxs.stop();
+ if (wg !== wxMood) { wxMood = wg; if (saver.active && fxs && fxs.saver && (wg ? fxs.name !== 'weather' : fxs.name === 'weather')) { saverStop(); if (wg) { saverMode = true; try { weatherFx(); } finally { saverMode = false; } if (fxs) { saver.active = true; saver.started = Date.now(); } } } if (wg) setTimeout(wxAutoCheck, 0); }
  const want = t && /^graveyard over the fire$/i.test(t.title);
  if (want && !mood) { mood = {prev: curTheme()}; if (THEMES.includes('fire')) setTheme('fire', 'mood'); smoke(true); }
  else if (!want && mood) { const p = mood.prev; mood = null; setTheme(p, 'mood'); smoke(false); cueClear(); }
@@ -1044,9 +1051,9 @@ function weatherFx(preview) {
  const show = () => { main.classList.remove('wx-in'); void main.offsetWidth; main.innerHTML = slides[st.slide](); main.classList.add('wx-in'); };
  st.go = n => { st.slide = n % slides.length; show(); };
  const adv = () => { st.slide = (st.slide + 1) % slides.length; if (st.slide === 0) st.city = (st.city + 1) % WX_CITIES.length; show(); };
- const stop = () => { if (!fxs || fxs.wx !== st) return; clearInterval(st.iv); clearInterval(st.clk); el.remove(); removeEventListener('keydown', onKey, true); fxs = null; wx = null; };
- const onKey = e => { e.preventDefault(); e.stopImmediatePropagation(); stop(); };
- fxs = {raf: 0, stop, name: 'weather', saver: saverOn, wx: st}; wx = st;
+ const stop = e => { if (!fxs || fxs.wx !== st) return; if (e && fxs.auto) wxAuto.dismissed = true; clearInterval(st.iv); clearInterval(st.clk); el.remove(); removeEventListener('keydown', onKey, true); fxs = null; wx = null; };
+ const onKey = e => { e.preventDefault(); e.stopImmediatePropagation(); stop(e); };
+ fxs = {raf: 0, stop, name: 'weather', saver: saverOn, wx: st, auto: wxAuto.opening}; wx = st;
  el.addEventListener('pointerdown', stop); setTimeout(() => addEventListener('keydown', onKey, true), 50);
  tick(); npUpd(); st.clk = setInterval(() => { tick(); npUpd(); }, 500); title('GRIM/WX', 'Lehigh Valley'); main.innerHTML = '<div class="wx-na2">RECEIVING SATELLITE DATA...</div>'; ticker();
  wxFetch().then(d => { if (fxs && fxs.wx === st) { st.data = d || null; ticker(); show(); st.iv = setInterval(adv, RM ? 15000 : 9000); } });
