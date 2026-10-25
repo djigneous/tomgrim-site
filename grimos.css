@@ -421,3 +421,9 @@ body.nocolor .sx-bad{text-decoration:none}
 #bshare{width:auto;flex-grow:3.4}
 #toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9200;pointer-events:none;font:14px/1.3 "IBM Plex Mono",monospace;color:var(--fg);background:rgba(0,0,0,.8);border:1px solid var(--br);padding:.35em .7em;opacity:0;transition:opacity .2s}
 #toast.on{opacity:1}#toast .p{color:var(--acc)}
+/* perf: keep the scope canvas and the ASCII record on separate compositor layers so a ring redraw never repaints the glowing record text (and vice versa) */
+#ring{will-change:transform;transform:translateZ(0)}
+.ringwrap .cover{will-change:transform;transform:translateZ(0)}
+/* perf on phones: the per-frame ASCII visualizers repaint hundreds of glowing glyphs; drop their text-shadow on touch devices and isolate layout */
+#spec{contain:strict}
+@media (pointer:coarse){#spec,#cover,#cover *{text-shadow:none!important}}

@@ -211,10 +211,10 @@ const PALS = [['#ff7a3d', '@%#*+=-:. ', 2, 3], ['#7dffa0', '§&$%#oO0o:', 3, 5],
 let rec = {ang: 0, spd: 0, pal: PALS[0], label: 'TG', title: '', seed: 0}, recLast = 0;
 function hash(str) { let h = 7; for (const c of str) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
 function setRecord(t) { const h = hash(t.al.id || t.al.title); rec.pal = PALS[h % PALS.length]; rec.seed = h; rec.label = t.single ? 'S' : (t.al.title.replace(/[^A-Za-z0-9]/g, '')[0] || 'T').toUpperCase(); rec.title = (t.single ? t.title : t.al.title).toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 9); coverEl.style.setProperty('--rec', rec.pal[0]); drawRecord(); }
-const recGeom = {cw: 6.6, lh: 11, R: 104};
+const recGeom = {cw: 6.6, lh: 11, R: 104, ox: 150, oy: 130};
 function measureRec() { const cs = getComputedStyle(coverEl), pl = parseFloat(cs.paddingLeft) || 0, pt = parseFloat(cs.paddingTop) || 0;
- const w = coverEl.clientWidth - 2 * pl, h = coverEl.clientHeight - 2 * pt; if (w > 0 && h > 0) { recGeom.cw = w / 37; recGeom.lh = h / 19; recGeom.R = Math.min(w, h) / 2 * .86; } }
-new ResizeObserver(() => { measureRec(); drawRecord(); }).observe(coverEl);
+ const w = coverEl.clientWidth - 2 * pl, h = coverEl.clientHeight - 2 * pt; if (w > 0 && h > 0) { recGeom.cw = w / 37; recGeom.lh = h / 19; recGeom.R = Math.min(w, h) / 2 * .86;  const wr = document.getElementById('ring').getBoundingClientRect(), cr = coverEl.getBoundingClientRect(); recGeom.ox = cr.left + cr.width / 2 - wr.left; recGeom.oy = cr.top + cr.height / 2 - wr.top; } }
+{ const ro = new ResizeObserver(() => { measureRec(); drawRecord(); }); ro.observe(coverEl); ro.observe(document.getElementById('ring')); }
 function drawRecord() {
  const W = 37, H = 19, cx = (W - 1) / 2, cy = (H - 1) / 2, [, chars, arms, tight] = rec.pal, a = rec.ang; let out = '';
  // true circle: convert cells to CSS px using the measured character box (chars are ~0.6:1, rows 1:1)
@@ -262,10 +262,15 @@ async function loadWave(t) {
 function css(v) { return getComputedStyle(document.body).getPropertyValue(v).trim(); }
 let colors = {};
 function refreshColors() { colors = {fg:css('--fg'), dim:css('--dim'), hi:css('--hi'), acc:css('--acc'), ring:css('--ring') || css('--fg')}; }
-function fitCanvas(c) { const w = c.clientWidth * devicePixelRatio | 0, h = c.clientHeight * devicePixelRatio | 0; if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } }
+// perf: canvas shadowBlur at phone DPR (2.6x) was the main-thread hotspot (~95% CPU at 6x throttle) → glow faked with a wide translucent stroke, ring canvas capped at 1.5x
+const RING_D = 1.5;
+function fitCanvas(c, maxD) { const dp = Math.min(devicePixelRatio, maxD || 9), w = c.clientWidth * dp | 0, h = c.clientHeight * dp | 0; if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } }
+let waveKey = '';
 function drawWave() {
- fitCanvas(wave); const W = wave.width, H = wave.height; wg.clearRect(0, 0, W, H);
+ fitCanvas(wave, 2); const W = wave.width, H = wave.height;
  const t = curT(), p = t && waveCache[t.file], pos = audio.duration ? audio.currentTime / audio.duration : 0;
+ const key = W + 'x' + H + ':' + (t && t.file) + ':' + (p && p.length) + ':' + Math.round(pos * W) + ':' + colors.fg; if (key === waveKey) return; waveKey = key; // perf: redraw only when the playhead moves a pixel
+ wg.clearRect(0, 0, W, H);
  if (p && p.length) { const bw = W / p.length;
   for (let i = 0; i < p.length; i++) { const h = Math.max(1, p[i] * H * .95); wg.fillStyle = i / p.length < pos ? colors.fg : colors.dim; wg.fillRect(i * bw, (H - h) / 2, Math.max(1, bw - .5), h); } }
  else { wg.fillStyle = colors.dim; wg.font = 14 * devicePixelRatio + 'px monospace'; wg.fillText(t ? (p === 'loading' ? 'decoding waveform…' : 'waveform n/a') : 'no track loaded', 8, H / 2 + 5); }
@@ -297,7 +302,9 @@ let cw = 0, NBc = 32;
 function measure() { const m = document.createElement('span'); m.textContent = '█'.repeat(20); specEl.appendChild(m); cw = m.getBoundingClientRect().width / 20 || 8; m.remove();
  const w = specEl.clientWidth || 300; NBc = Math.max(12, Math.floor(w / cw)); specEl.style.letterSpacing = ((w - NBc * cw) / NBc) + 'px'; }
 new ResizeObserver(measure).observe(specEl);
+const COARSE = matchMedia('(pointer:coarse)').matches; let lastFrame = 0;
 function frame() {
+ if (COARSE) { const now = performance.now(); if (now - lastFrame < 31) return requestAnimationFrame(frame); lastFrame = now; } // perf: ~30 fps visualizers on phones
 const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(6, Math.floor((specEl.clientHeight || 100) / 12) - 1); let vals = new Array(NB).fill(0);
  if (san && playing) { ffb = ffb || new Float32Array(san.frequencyBinCount); san.getFloatFrequencyData(ffb);
   const n = ffb.length, nyq = (actx.sampleRate || 44100) / 2, f0 = 30, f1 = Math.min(16000, nyq);
@@ -326,18 +333,18 @@ const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(6, Math.f
   s += line + (r < ROWS - 1 ? '\n' : ''); }
  specEl.innerHTML = s;
  // round oscilloscope ring around the record (auto-gain + bass emphasis) (amplitude clamped to the padding gap)
- fitCanvas(ring); { const W = ring.width, H = ring.height, d = devicePixelRatio, pad = parseFloat(getComputedStyle(ring.parentElement).paddingLeft) * d || 22 * d;
+ fitCanvas(ring, RING_D); { const W = ring.width, H = ring.height, d = Math.min(devicePixelRatio, RING_D), pad = parseFloat(getComputedStyle(ring.parentElement).paddingLeft) * d || 22 * d;
   // concentric with the record: same center as the ASCII disc, true circle in device px
-  const wr = ring.getBoundingClientRect(), cr = coverEl.getBoundingClientRect(), sx = W / (wr.width || 1), sy = H / (wr.height || 1);
-  const cx = (cr.left + cr.width / 2 - wr.left) * sx, cy = (cr.top + cr.height / 2 - wr.top) * sy, amp = pad / 2 - 2 * d;
+  const sx = W / (ring.clientWidth || 1), sy = H / (ring.clientHeight || 1); // offsets cached on resize (no per-frame getBoundingClientRect → no forced layout)
+  const cx = recGeom.ox * sx, cy = recGeom.oy * sy, amp = pad / 2 - 2 * d;
   const rr = Math.min(recGeom.R * sx + amp + 9 * d, cx - amp - d, cy - amp - d, W - cx - amp - d, H - cy - amp - d), rx = rr, ry = rr; rg.clearRect(0, 0, W, H);
   rg.strokeStyle = colors.dim; rg.globalAlpha = .35; rg.lineWidth = d; rg.beginPath(); rg.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); rg.stroke(); rg.globalAlpha = 1;
   const live = an && playing; let gain = 1;
   if (live) { tbuf = tbuf || new Uint8Array(an.fftSize); an.getByteTimeDomainData(tbuf); let sq = 0; for (let i = 0; i < tbuf.length; i += 4) { const x = (tbuf[i] - 128) / 128; sq += x * x; }
    const rms = Math.sqrt(sq / (tbuf.length / 4)); ringAgc = Math.max(rms, ringAgc * .992, .02); gain = Math.min(9, Math.max(1.5, .55 / ringAgc)); }
-  const N = 240; for (const [col, lw, blur] of [[colors.ring || colors.fg, 2.6, 10], [colors.hi, 1.1, 0]]) { rg.strokeStyle = col; rg.lineWidth = lw * d; rg.shadowColor = col; rg.shadowBlur = blur * d; rg.beginPath();
+  const N = 240; for (const [col, lw, al] of [[colors.ring || colors.fg, 8, .18], [colors.ring || colors.fg, 2.6, 1], [colors.hi, 1.1, 1]]) { rg.strokeStyle = col; rg.lineWidth = lw * d; rg.globalAlpha = al; rg.beginPath();
    for (let i = 0; i <= N; i++) { const t = i % N, a = t / N * Math.PI * 2 - Math.PI / 2; let v; if (live) { const k = Math.floor(t / N * (tbuf.length - 1)), raw = (tbuf[k] - 128) / 128; let lp = 0; for (let q = -12; q <= 12; q += 3) lp += (tbuf[(k + q + tbuf.length) % tbuf.length] - 128) / 128; v = Math.tanh((raw + lp / 9 * .9) * gain); } else v = Math.sin(t / 6 + idle * 3) * .06; const o = Math.max(-.35, Math.min(1, v)) * amp, x = cx + Math.cos(a) * (rx + o), y = cy + Math.sin(a) * (ry + o); i ? rg.lineTo(x, y) : rg.moveTo(x, y); }
-   rg.closePath(); rg.stroke(); } rg.shadowBlur = 0; }
+   rg.closePath(); rg.stroke(); } rg.globalAlpha = 1; }
  drawWave(); spinRecord(performance.now());
  requestAnimationFrame(frame);
 }
