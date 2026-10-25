@@ -808,6 +808,7 @@ const ICONS = { // 8x8 pixel glyphs
  shell: ['11111111','10000001','10100001','10010001','10100001','10001101','10000001','11111111'],
  irc: ['11111110','10000010','10101010','10000010','11111110','00100000','01000000','00000000'],
  mail: ['00000000','11111111','11000011','10100101','10011001','10000001','11111111','00000000'],
+ weather: ['00000000','00011000','00100110','01000001','10000001','11111111','00100100','01001000'],
  photos: ['00011000','11111111','10000001','10011001','10100101','10011001','10000001','11111111']};
 document.querySelectorAll('#topbar nav button').forEach(b => { const m = ICONS[b.dataset.ico]; if (!m) return; let r = ''; m.forEach((row, y) => [...row].forEach((v, x) => { if (v === '1') r += `<rect x="${x}" y="${y}" width="1" height="1"/>`; }));
  b.insertAdjacentHTML('afterbegin', `<svg class="ico" viewBox="0 0 8 8" aria-hidden="true" shape-rendering="crispEdges">${r}</svg>`); });
@@ -870,6 +871,7 @@ function openModal(id) { closeModal(); const m = $('#' + id + 'm'); if (!m) retu
  else m.querySelector('input[name=name]').focus(); }
 function closeModal() { if (!openM) return; openM.hidden = true; openM = null; mLast?.focus?.(); }
 document.querySelectorAll('.modal').forEach(m => { m.addEventListener('click', e => { if (e.target === m) closeModal(); }); m.querySelector('.mclose').onclick = closeModal; });
+document.querySelectorAll('[data-wx]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); b.blur(); weatherFx(true); }));
 document.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); openModal(b.dataset.open); }));
 addEventListener('keydown', e => { if (openM && e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeModal(); } }, true);
 window.tgContactInit && tgContactInit($('#mailm'));
@@ -1005,12 +1007,14 @@ let wx = null;
 function weatherFx(preview) {
  if (fxs || mx) return; const saverOn = saverMode;
  const el = document.createElement('div'); el.id = 'matrix'; el.className = 'fx-weather' + (RM ? ' wx-rm' : ''); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'GRIM/WX local weather for the Lehigh Valley, press any key to exit');
- el.innerHTML = `<div class="wx-scr"><header class="wx-top"><div class="wx-badge"><span>THE GRIM</span><span>WEATHER</span><span>CHANNEL</span></div><h3 class="wx-ttl"><span class="wx-t1"></span><span class="wx-t2"></span></h3><div class="wx-clk"><span class="wx-time"></span><span class="wx-date"></span></div></header><main class="wx-main"></main><footer class="wx-tick"><div class="wx-tk"></div></footer></div><div class="wx-vhs" aria-hidden="true"></div>`;
+ el.innerHTML = `<div class="wx-scr"><header class="wx-top"><div class="wx-badge"><span>THE GRIM</span><span>WEATHER</span><span>CHANNEL</span></div><h3 class="wx-ttl"><span class="wx-t1"></span><span class="wx-t2"></span></h3><div class="wx-clk"><span class="wx-time"></span><span class="wx-date"></span></div></header><main class="wx-main"></main><div class="wx-np" role="status" aria-live="off"></div><footer class="wx-tick"><div class="wx-tk"></div></footer></div><div class="wx-vhs" aria-hidden="true"></div>`;
  document.body.appendChild(el);
  const $w = s => el.querySelector(s), main = $w('.wx-main');
  const st = {slide: 0, city: 0, data: null, failed: false, iv: 0, clk: 0};
  const fmtT = new Intl.DateTimeFormat('en-US', {timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', second: '2-digit'}), fmtD = new Intl.DateTimeFormat('en-US', {timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric'});
  const tick = () => { const n = new Date(); $w('.wx-time').textContent = fmtT.format(n); $w('.wx-date').textContent = fmtD.format(n).replace(',', '').toUpperCase(); };
+ const npUpd = () => { const b = $w('.wx-np'), t = curT(); if (!t) { b.hidden = true; return; } b.hidden = false; const dur = audio.duration || t.duration_sec || 0;
+  b.innerHTML = `<span class="wx-npl">NOW PLAYING</span><span class="wx-npt">tomGRIM — ${escH(t.title)}</span><span class="wx-nps">${audio.paused ? '❚❚' : '▶'} ${fmt(audio.currentTime || 0)} / ${fmt(dur)}</span>`; };
  const title = (a, b) => { $w('.wx-t1').textContent = a; $w('.wx-t2').textContent = b; };
  const NA = '<div class="wx-na">DATA UNAVAILABLE</div><div class="wx-na2">THE GRIM WEATHER SATELLITE IS NOT RESPONDING. PLEASE STAND BY.</div>';
  const dayName = s => new Date(s + 'T12:00:00').toLocaleDateString('en-US', {weekday: 'short'}).toUpperCase();
@@ -1037,7 +1041,7 @@ function weatherFx(preview) {
  const onKey = e => { e.preventDefault(); e.stopImmediatePropagation(); stop(); };
  fxs = {raf: 0, stop, name: 'weather', saver: saverOn, wx: st}; wx = st;
  el.addEventListener('pointerdown', stop); setTimeout(() => addEventListener('keydown', onKey, true), 50);
- tick(); st.clk = setInterval(tick, 1000); title('GRIM/WX', 'Lehigh Valley'); main.innerHTML = '<div class="wx-na2">RECEIVING SATELLITE DATA...</div>'; ticker();
+ tick(); npUpd(); st.clk = setInterval(() => { tick(); npUpd(); }, 500); title('GRIM/WX', 'Lehigh Valley'); main.innerHTML = '<div class="wx-na2">RECEIVING SATELLITE DATA...</div>'; ticker();
  wxFetch().then(d => { if (fxs && fxs.wx === st) { st.data = d || null; ticker(); show(); st.iv = setInterval(adv, RM ? 15000 : 9000); } });
  if (preview) say('GRIM/WX: local on the 8s for the Lehigh Valley · live data from open-meteo.com · any key or click exits');
 }
@@ -1055,7 +1059,7 @@ document.querySelectorAll('.getlink').forEach(b => b.addEventListener('click', e
 load().then(() => requestAnimationFrame(frame));
 // screensaver now-playing readout (bottom-left, command-line style; never intercepts the click/key that dismisses the saver)
 (() => { let el = null;
- const render = () => { const on = !!document.getElementById('matrix') && !dead, t = curT();
+ const render = () => { const mxEl = document.getElementById('matrix'), on = !!mxEl && !mxEl.classList.contains('fx-weather') && !dead, t = curT();
   if (!on || !t) { if (el) { el.remove(); el = null; } return; }
   if (!el) { el = document.createElement('div'); el.id = 'npov'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'off'); document.body.appendChild(el); }
   const dur = audio.duration || t.duration_sec || 0, cur = audio.currentTime || 0, w = innerWidth < 500 ? 14 : 22, f = dur ? Math.round(cur / dur * w) : 0;
