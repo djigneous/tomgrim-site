@@ -103,7 +103,7 @@ function msState() { if ('mediaSession' in navigator) { navigator.mediaSession.p
 const bgEl = new Audio(); bgEl.preload = 'auto'; bgEl.setAttribute('aria-hidden', 'true'); let bgMode = false, handing = false;
 const outEl = () => bgMode ? bgEl : audio, isPlaying = () => !outEl().paused;
 function outPause() { outEl().pause(); }
-function toBg() { if (bgMode || handing || audio.paused || !actx || !audio.currentSrc) return; handing = true;
+function toBg() { if (!BG_HANDOFF || bgMode || handing || audio.paused || !actx || !audio.currentSrc) return; handing = true;
  bgEl.src = audio.currentSrc; bgEl.volume = audio.volume; bgEl.muted = audio.muted; bgEl.loop = false;
  const go = () => { try { bgEl.currentTime = audio.currentTime; } catch {} bgEl.play().then(() => { bgMode = true; handing = false; audio.pause(); msState(); }, () => { handing = false; wakeCtx(); }); };
  bgEl.readyState >= 1 ? go() : bgEl.addEventListener('loadedmetadata', go, {once: true}); }
@@ -113,8 +113,8 @@ function toFg() { if (!bgMode) return; const t = bgEl.currentTime, src = bgEl.cu
 bgEl.addEventListener('ended', () => { if (bgMode) onEnded(); });
 ['play', 'pause', 'playing'].forEach(ev => bgEl.addEventListener(ev, () => { if (bgMode) msState(); }));
 bgEl.addEventListener('timeupdate', () => { if (bgMode) { const el = $('#tcur'); if (el) el.textContent = fmt(bgEl.currentTime); } });
-document.addEventListener('visibilitychange', () => { document.hidden ? toBg() : toFg(); });
-addEventListener('pagehide', toBg); addEventListener('pageshow', () => { if (!document.hidden) toFg(); });
+// handoff DISABLED (caused stutter/cutouts on Android after fa6a2f2) — single-element playback + 400e131 resume logic only
+const BG_HANDOFF = false;
 window.__bg = () => ({bgMode, bgPaused: bgEl.paused, bgT: bgEl.currentTime, bgSrc: bgEl.currentSrc.split('/').pop(), aPaused: audio.paused, aT: audio.currentTime, ctx: actx && actx.state, cur});
 function shareUrl() { const t = curT(); if (!t || secret) return null; const i = flat.indexOf(t), sec = Math.floor(outEl().currentTime || 0), slug = t.title.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
  return {t, sec, url: `${location.origin}/?t=${slug || i + 1}${sec > 3 ? '&at=' + sec : ''}`}; }
