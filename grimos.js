@@ -1033,7 +1033,7 @@ function weatherFx(preview) {
    const s3 = ` ${dayName(y.time[1]).replace(/^(\w+)$/, m => ({SUN: 'SUNDAY', MON: 'MONDAY', TUE: 'TUESDAY', WED: 'WEDNESDAY', THU: 'THURSDAY', FRI: 'FRIDAY', SAT: 'SATURDAY'})[m] || m)}...${wxCond(y.weather_code[1], 1).toUpperCase()}. HIGH ${wxR(y.temperature_2m_max[1])}.${p(1) >= 20 ? ' CHANCE OF PRECIPITATION ' + p(1) + ' PERCENT.' : ''}`;
    return `<div class="wx-txt">${s1}${s2}${s3}</div>`; }];
  const ticker = () => { const tk = $w('.wx-tk'); if (!st.data) { tk.textContent = 'GRIM/WX · DATA UNAVAILABLE · CHECK YOUR CONNECTION · NOW PLAYING ON GRIM/OS'; return; }
-  tk.textContent = st.data.map((d, i) => { const c = d.current; return `${WX_CITIES[i][0].toUpperCase()}: HUMIDITY ${wxR(c.relative_humidity_2m)}%  DEWPOINT ${wxR(c.dew_point_2m)}°  PRESSURE ${wxInHg(c.pressure_msl)} in.`; }).join('   ·   ') + '   ·   DATA: OPEN-METEO.COM'; };
+  tk.textContent = st.data.map((d, i) => { const c = d.current; return `${WX_CITIES[i][0].toUpperCase()}: HUMIDITY ${wxR(c.relative_humidity_2m)}%  DEWPOINT ${wxR(c.dew_point_2m)}°  PRESSURE ${wxInHg(c.pressure_msl)} in.`; }).join('   ·   ') + '   ·   DATA: OPEN-METEO.COM'; tk.style.animationDuration = Math.max(20, tk.textContent.length * .2) + 's'; };
  const show = () => { main.classList.remove('wx-in'); void main.offsetWidth; main.innerHTML = slides[st.slide](); main.classList.add('wx-in'); };
  st.go = n => { st.slide = n % slides.length; show(); };
  const adv = () => { st.slide = (st.slide + 1) % slides.length; if (st.slide === 0) st.city = (st.city + 1) % WX_CITIES.length; show(); };
