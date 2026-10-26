@@ -789,6 +789,16 @@
           "original": "radiohead-climbinguothewalls-tgremix.mp3",
           "id3_title": "Climbing Up The Walls (tomGRIM 8bit Remix)",
           "id3_artist": "Radiohead"
+        },
+        {
+          "title": "Gus Gus - Believe (TG Remix)",
+          "file": "assets/audio/remixes/02-believe.mp3",
+          "duration_sec": 225.6,
+          "bpm": 120,
+          "year": 2025,
+          "original": "gus-gus-believe01test-mix3.mp3",
+          "id3_title": "Believe (TG Remix)",
+          "id3_artist": "Gus Gus"
         }
       ]
     }
