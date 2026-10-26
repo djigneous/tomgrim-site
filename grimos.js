@@ -85,14 +85,31 @@ function ensureCtx() {
  const AC = window.AudioContext || window.webkitAudioContext; try { actx = new AC({latencyHint: 'playback'}); } catch { actx = new AC(); }
  // background-audio fix: Android Chrome suspends/interrupts the context when the tab is backgrounded; since the <audio> is routed
  // through createMediaElementSource, its output dies with the context while the element keeps "playing". Resume whenever we should be audible.
- actx.onstatechange = () => { if (actx.state !== 'running' && !audio.paused) wakeCtx(); };
- const src = actx.createMediaElementSource(audio);
+ actx.onstatechange = () => { if (actx.state !== 'running' && !audio.paused) wakeCtx(); applyOut(); };
+ // NATIVE mode (Chrome/Android/Firefox): the <audio> element keeps its own native output — so Android treats it as ordinary media
+ // (notification, audio focus, background) and a suspended AudioContext can no longer silence or stall playback. Visualizers/FX read
+ // a copy via captureStream(); when FX are engaged (and the page is visible) the element is muted and the FX chain becomes audible.
+ // Fallback (Safari/iOS: no captureStream): the classic createMediaElementSource graph.
+ let src; if (NATIVE) { try { src = streamSrc(); } catch (e) { NATIVE = false; } }
+ if (!NATIVE) src = actx.createMediaElementSource(audio);
  an = actx.createAnalyser(); an.fftSize = 2048; an.smoothingTimeConstant = .75;
- an.connect(actx.destination);
+ outG = actx.createGain(); outG.gain.value = NATIVE ? 0 : 1; an.connect(outG); outG.connect(actx.destination);
  // spectrum tap: pre-FX/pre-limiter, float dB, volume-compensated + AGC below (was the output analyser in bytes with maxDecibels -30 → loud masters pegged)
  san = actx.createAnalyser(); san.fftSize = 2048; san.smoothingTimeConstant = .6; san.minDecibels = -100; san.maxDecibels = 0; src.connect(san); const sink = actx.createGain(); sink.gain.value = 0; san.connect(sink); sink.connect(actx.destination);
  fxInit(src);
 }
+let NATIVE = !!(HTMLMediaElement.prototype.captureStream || HTMLMediaElement.prototype.mozCaptureStream) && !/iP(hone|ad|od)/.test(navigator.userAgent), outG = null, boundTrack = null;
+function streamSrc() { const st = (audio.captureStream || audio.mozCaptureStream).call(audio), tr = st.getAudioTracks()[0]; if (!tr) { boundTrack = null; return actx.createGain(); } // placeholder until 'playing' rebinds
+ boundTrack = tr.id; return actx.createMediaStreamSource(new MediaStream([tr])); }
+// the captured track changes whenever src changes → rebind the graph input (cheap, no rebuffering of the element)
+function rebindStream() { if (!NATIVE || !actx || !fxg) return; try { const st = (audio.captureStream || audio.mozCaptureStream).call(audio), tr = st.getAudioTracks()[0]; if (!tr || tr.id === boundTrack) return;
+ const old = fxg.src; boundTrack = tr.id; fxg.src = actx.createMediaStreamSource(new MediaStream([tr])); try { old.disconnect(); } catch {} fxg.sig = null; fxRoute(); } catch {} }
+audio.addEventListener('playing', () => setTimeout(rebindStream, 30)); audio.addEventListener('loadeddata', () => setTimeout(rebindStream, 30));
+// who is audible: element (native) or the FX chain. FX are bypassed while the page is hidden so background audio is always native.
+function fxEngaged() { try { return Math.abs(fxv.filter) >= 3 || fxv.verb > 0 || fxv.crush > 0; } catch { return false; } }
+function applyOut() { if (!NATIVE) { audio.volume = vol; return; } const fxOut = fxEngaged() && !document.hidden && actx && actx.state === 'running';
+ audio.volume = fxOut ? 0 : vol; if (outG) outG.gain.setTargetAtTime(fxOut ? vol : 0, actx.currentTime, .01); }
+document.addEventListener('visibilitychange', applyOut);
 function wakeCtx() { if (actx && actx.state !== 'running' && actx.state !== 'closed') actx.resume().catch(() => {}); }
 document.addEventListener('visibilitychange', () => { if (!audio.paused) wakeCtx(); msState(); });
 addEventListener('pageshow', () => { if (!audio.paused) wakeCtx(); }); addEventListener('focus', () => { if (!audio.paused) wakeCtx(); });
@@ -152,7 +169,14 @@ function play(i) {
  audio.play().catch(err => say('play blocked: ' + err.message));
  select(i); updateNP();
 }
-function toggle() { if (cur < 0 || !isPlaying()) play(cur < 0 ? sel : cur); else outPause(); }
+function toggle() { if (cur < 0 || !isPlaying()) play(cur < 0 ? sel : cur); else { userPaused = true; outPause(); } }
+// stall recovery: if we're meant to be playing but the playhead hasn't moved for ~9s while starving (network/decoder hiccup), reload at
+// the same position. Never fights a deliberate pause (user, notification, headset, or a phone call → those leave the element paused).
+let userPaused = false, stallT = -1, stallN = 0, stallTries = 0;
+audio.addEventListener('play', () => { userPaused = false; }); audio.addEventListener('playing', () => { stallTries = 0; audio.preload = 'auto'; msState(); });
+setInterval(() => { if (audio.paused || audio.ended || !audio.src) { stallN = 0; return; } if (audio.currentTime !== stallT) { stallT = audio.currentTime; stallN = 0; return; }
+ if (++stallN < 3 || audio.readyState >= 3 || stallTries >= 3) return; stallN = 0; stallTries++; const t = audio.currentTime;
+ audio.load(); audio.addEventListener('loadedmetadata', () => { try { audio.currentTime = t; } catch {} }, {once: true}); audio.play().catch(() => {}); }, 3000);
 function next(d = 1) {
  if (!flat.length) return;
  let i;
@@ -174,7 +198,8 @@ function setMediaMeta(t, force) { if (!t) return; audio.title = `${t.id3_title |
  navigator.mediaSession.metadata = new MediaMetadata({title: t.id3_title || t.title, artist: t.id3_artist || 'tomGRIM', album: t.single ? 'Single' : t.al.title, artwork: artFor(t)}); }
 function posState() { try { const el = outEl(); if ('mediaSession' in navigator && el.duration && isFinite(el.duration)) navigator.mediaSession.setPositionState({duration: el.duration, playbackRate: el.playbackRate || 1, position: Math.min(el.currentTime, el.duration)}); } catch {} }
 if ('mediaSession' in navigator) { const ms = navigator.mediaSession, h = (a, f) => { try { ms.setActionHandler(a, f); } catch {} };
- h('play', () => play(cur < 0 ? sel : cur)); h('pause', () => outPause()); h('nexttrack', () => next(1)); h('previoustrack', () => next(-1));
+ // idempotent: act on the element's real state, then re-assert it (a stale notification could otherwise toggle the wrong way)
+ h('play', () => { if (isPlaying()) msState(); else play(cur < 0 ? sel : cur); }); h('pause', () => { if (isPlaying()) { userPaused = true; outPause(); } else msState(); }); h('nexttrack', () => next(1)); h('previoustrack', () => next(-1));
  h('seekto', e => { const el = outEl(); if (e.fastSeek && 'fastSeek' in el) el.fastSeek(e.seekTime); else el.currentTime = e.seekTime; posState(); });
  h('seekbackward', e => seek(-(e.seekOffset || 10))); h('seekforward', e => seek(e.seekOffset || 10));
  audio.addEventListener('loadedmetadata', posState); audio.addEventListener('seeked', posState);
@@ -204,7 +229,7 @@ function cycleRepeat() {
  else { repeat = order[(order.indexOf(repeat) + 1) % 3]; say('repeat: ' + repeat); }
  updateModes();
 }
-function setVol(v) { vol = Math.max(0, Math.min(1, v)); audio.volume = vol; updateModes(); }
+function setVol(v) { vol = Math.max(0, Math.min(1, v)); applyOut(); updateModes(); }
 function seek(d) { if (audio.duration) audio.currentTime = Math.max(0, Math.min(audio.duration - .1, audio.currentTime + d)); }
 $('#bplay').onclick = toggle; $('#bnext').onclick = () => next(1); $('#bprev').onclick = () => next(-1);
 $('#brep').onclick = cycleRepeat; $('#bshuf').onclick = () => { shuffle = !shuffle; updateModes(); };
@@ -313,7 +338,7 @@ function frame() {
 const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(6, Math.floor((specEl.clientHeight || 100) / 12) - 1); let vals = new Array(NB).fill(0);
  if (san && playing) { ffb = ffb || new Float32Array(san.frequencyBinCount); san.getFloatFrequencyData(ffb);
   const n = ffb.length, nyq = (actx.sampleRate || 44100) / 2, f0 = 30, f1 = Math.min(16000, nyq);
-  const vc = audio.volume > .001 ? -20 * Math.log10(audio.volume) : 0; // undo the volume slider (no-op on iOS where volume is fixed at 1)
+  const vc = !NATIVE && audio.volume > .001 ? -20 * Math.log10(audio.volume) : 0; // undo the volume slider (no-op on iOS where volume is fixed at 1)
   const db = new Array(NB); let fmax = -200;
   for (let b = 0; b < NB; b++) { const fa = f0 * Math.pow(f1 / f0, b / NB), fb = f0 * Math.pow(f1 / f0, (b + 1) / NB);
    const lo = fa / nyq * n, hi = fb / nyq * n; let m = -200;
@@ -645,7 +670,8 @@ function fxInit(src) { const c = actx, g = fxg = {src, c};
  const code = `class C extends AudioWorkletProcessor{static get parameterDescriptors(){return[{name:'bits',defaultValue:16},{name:'down',defaultValue:1}]}constructor(){super();this.h=[0,0];this.n=0}process(i,o,p){const a=i[0],b=o[0];if(!a||!a.length)return true;const bits=p.bits[0],dn=Math.max(1,p.down[0]|0),q=Math.pow(2,bits-1),comp=1/(1+(16-bits)*.012);for(let ch=0;ch<b.length;ch++){const x=a[ch]||a[0],y=b[ch];let n=this.n;for(let s=0;s<y.length;s++){if(n%dn===0)this.h[ch]=Math.round(x[s]*q)/q;y[s]=this.h[ch]*comp;n++}if(ch===b.length-1)this.n=n}return true}}registerProcessor('grim-crush',C);`;
  if (c.audioWorklet) c.audioWorklet.addModule(URL.createObjectURL(new Blob([code], {type: 'application/javascript'}))).then(() => { g.crush = new AudioWorkletNode(c, 'grim-crush', {outputChannelCount: [2]}); g.sig = null; fxRoute(); }).catch(() => {});
  g.crushFb = c.createWaveShaper(); g.sig = null; fxRoute(); }
-function fxRoute() { const g = fxg; if (!g) return; const c = g.c, now = c.currentTime;
+function fxRoute() { try { return fxRouteInner(); } finally { applyOut(); } }
+function fxRouteInner() { const g = fxg; if (!g) return; const c = g.c, now = c.currentTime;
  const fOn = Math.abs(fxv.filter) >= 3, vOn = fxv.verb > 0, cOn = fxv.crush > 0, sig = [fOn, vOn, cOn, !!g.crush].join(), wire = sig !== g.sig; g.sig = sig;
  if (fOn) { const t = (Math.abs(fxv.filter) - 3) / 97, Q = 0.7 * Math.pow(15 / 0.7, fxv.res / 100), ty = fxv.filter < 0 ? 'lowpass' : 'highpass';
   if (g.filt.type !== ty) g.filt.type = ty; g.filt.frequency.setTargetAtTime(fxv.filter < 0 ? 20000 * Math.pow(80 / 20000, t) : 20 * Math.pow(8000 / 20, t), now, .015);
