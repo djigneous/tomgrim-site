@@ -622,7 +622,8 @@ function saverExitEv(ev, e) { if (ev === 'keydown' || ev === 'wheel') return tru
  return false; }
 let lastTouch = 0; addEventListener('touchstart', () => { lastTouch = Date.now(); }, {capture: true, passive: true});
 function dblExit(stop) { let last = 0; return e => { const now = Date.now(); if (e && e.cancelable) e.preventDefault();
- if (now - last < 350) { last = 0; saverHint(null); return stop(e); } last = now; saverHint(e && e.pointerType === 'mouse' ? 'double-click to exit' : 'double-tap to exit'); }; }
+ if (now - last < 350) { last = 0; saverHint(null); return stop(e); } last = now; tapFlash(); saverHint(e && e.pointerType === 'mouse' ? 'double-click to exit' : 'double-tap to exit'); }; }
+function tapFlash() { if (RM) return; const f = document.createElement('div'); f.className = 'tapflash'; document.body.appendChild(f); setTimeout(() => f.remove(), 220); }
 function saverHint(txt) { let h = document.getElementById('dblhint'); if (!txt) { if (h) h.remove(); return; }
  if (!h) { h = document.createElement('div'); h.id = 'dblhint'; h.setAttribute('role', 'status'); document.body.appendChild(h); }
  h.innerHTML = '<span class="p">$</span> ' + escH(txt); h.classList.add('on'); clearTimeout(saverHint.tm); saverHint.tm = setTimeout(() => { if (h.isConnected) h.remove(); }, 1400); }
@@ -1112,14 +1113,15 @@ let wx = null;
 function weatherFx(preview, opt) { opt = opt || {};
  if (fxs || mx) return; const saverOn = saverMode;
  const el = document.createElement('div'); el.id = 'matrix'; el.className = 'fx-weather' + (RM ? ' wx-rm' : ''); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'GRIM/WX local weather for the Lehigh Valley, press any key to exit');
- el.innerHTML = `<div class="wx-scr"><header class="wx-top"><div class="wx-badge"><span>THE GRIM</span><span>WEATHER</span><span>CHANNEL</span></div><h3 class="wx-ttl"><span class="wx-t1"></span><span class="wx-t2"></span></h3><div class="wx-clk"><span class="wx-time"></span><span class="wx-date"></span></div></header><main class="wx-main"></main><div class="wx-np" role="status" aria-live="off"></div><footer class="wx-tick"><div class="wx-tk"></div></footer></div><div class="wx-vhs" aria-hidden="true"></div>`;
+ el.innerHTML = `<div class="wx-scr"><header class="wx-top"><div class="wx-badge"><span>THE GRIM</span><span>WEATHER</span><span>CHANNEL</span></div><div class="wx-face" role="img" aria-label="ASCII portrait of tomGRIM in sunglasses"><i></i></div><h3 class="wx-ttl"><span class="wx-t1"></span><span class="wx-t2"></span></h3><div class="wx-clk"><span class="wx-time"></span><span class="wx-date"></span></div></header><main class="wx-main"></main><div class="wx-np" role="status" aria-live="off"></div><footer class="wx-tick"><div class="wx-tk"></div></footer></div><div class="wx-vhs" aria-hidden="true"></div>`;
  document.body.appendChild(el);
  const $w = s => el.querySelector(s), main = $w('.wx-main');
  const st = {slide: 0, city: 0, data: null, failed: false, iv: 0, clk: 0};
  const fmtT = new Intl.DateTimeFormat('en-US', {timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', second: '2-digit'}), fmtD = new Intl.DateTimeFormat('en-US', {timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric'});
  const tick = () => { const n = new Date(); $w('.wx-time').textContent = fmtT.format(n); $w('.wx-date').textContent = fmtD.format(n).replace(',', '').toUpperCase(); };
  const npUpd = () => { const b = $w('.wx-np'), t = curT(); if (!t) { b.hidden = true; return; } b.hidden = false; const dur = audio.duration || t.duration_sec || 0;
-  b.innerHTML = `<span class="wx-npl">NOW PLAYING</span><span class="wx-npt">tomGRIM — ${escH(t.title)}</span><span class="wx-nps">${audio.paused ? '❚❚' : '▶'} ${fmt(audio.currentTime || 0)} / ${fmt(dur)}</span>`; };
+  if (!b.firstChild) b.innerHTML = '<span class="wx-npl">NOW PLAYING</span><span class="wx-npr"><span class="wx-npt"></span><button type="button" class="wx-skip" aria-label="skip to next song" title="next song"><svg viewBox="0 0 9 7" aria-hidden="true" shape-rendering="crispEdges"><path d="M0 0h1v1h1v1h1v1h1v1h-1v1h-1v1h-1v1h-1zM4 0h1v1h1v1h1v1h1v1h-1v1h-1v1h-1v1h-1zM8 0h1v7h-1z"/></svg></button></span><span class="wx-nps"></span>';
+  const tt = 'tomGRIM — ' + t.title, ss = `${audio.paused ? '❚❚' : '▶'} ${fmt(audio.currentTime || 0)} / ${fmt(dur)}`; if (b.querySelector('.wx-npt').textContent !== tt) b.querySelector('.wx-npt').textContent = tt; b.querySelector('.wx-nps').textContent = ss; };
  const title = (a, b) => { $w('.wx-t1').textContent = a; $w('.wx-t2').textContent = b; };
  const NA = '<div class="wx-na">DATA UNAVAILABLE</div><div class="wx-na2">THE GRIM WEATHER SATELLITE IS NOT RESPONDING. PLEASE STAND BY.</div>';
  const dayName = s => new Date(s + 'T12:00:00').toLocaleDateString('en-US', {weekday: 'short'}).toUpperCase();
@@ -1152,6 +1154,8 @@ function weatherFx(preview, opt) { opt = opt || {};
  const tuneIn = () => { if (!st.tune) return; st.tune = false; const b = $w('.wx-tune'); if (b) b.remove(); try { if (!isPlaying()) toggle(); } catch (e) {} };
  if (opt.link) { st.tune = true; $w('.wx-scr').insertAdjacentHTML('beforeend', '<button type="button" class="wx-tune"><span>TAP TO TUNE IN</span><small>THE GRIM WEATHER CHANNEL · MUSIC BY tomGRIM</small></button>');
   el.addEventListener('pointerdown', e => { if (st.tune) e.stopImmediatePropagation(); }, true); el.addEventListener('click', () => tuneIn()); }
+ el.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('.wx-skip')) { e.stopPropagation(); if (e.cancelable) e.preventDefault(); next(1); } }, true);
+ el.addEventListener('click', e => { if (e.target.closest && e.target.closest('.wx-skip')) e.stopPropagation(); }, true);
  el.addEventListener('pointerdown', dblExit(stop)); setTimeout(() => addEventListener('keydown', onKey, true), 50);
  tick(); npUpd(); st.clk = setInterval(() => { tick(); npUpd(); }, 500); title('GRIM/WX', 'Lehigh Valley'); main.innerHTML = '<div class="wx-na2">RECEIVING SATELLITE DATA...</div>'; ticker();
  Promise.all([wxFetch(), wxRegFetch(), wxRadFetch()]).then(([d, rg, rd]) => { if (fxs && fxs.wx === st) { st.data = d || null; st.reg = rg || null; st.rad = rd || null; ticker(); show(); st.iv = setInterval(adv, RM ? 15000 : 9000); } });
