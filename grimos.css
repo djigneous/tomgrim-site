@@ -36,7 +36,7 @@ kbd{font:inherit;color:var(--bg);background:var(--br);padding:0 .25em;margin-rig
 #topbar{position:sticky;top:0;z-index:20;display:flex;gap:.8em;align-items:center;background:var(--bar);color:var(--barfg);text-shadow:none;padding:.1em .6em;flex-wrap:wrap}
 #topbar .brand{font-weight:bold;letter-spacing:.1em}
 #topbar nav{display:flex;gap:.25em;flex-wrap:wrap;flex:1}
-#topbar nav button{color:var(--barfg);border:1px solid transparent;text-shadow:none;display:inline-flex;align-items:center;gap:.35em;min-height:32px}
+#topbar nav button{color:var(--barfg);border:1px solid transparent;text-shadow:none;display:inline-flex;align-items:center;gap:.35em;min-height:32px;height:32px;line-height:1} /* fixed height: no CLS when the webfont swaps in */
 #topbar nav button:hover{border-color:var(--barfg);background:transparent;color:var(--barfg)}
 #topbar nav button.on,#topbar nav button[aria-current=true]{background:var(--barfg);color:var(--bar);border-color:var(--barfg)}
 .ico{width:16px;height:16px;flex:none;image-rendering:pixelated;shape-rendering:crispEdges}
@@ -195,7 +195,6 @@ body.photos-open{overflow:hidden}
 .modal .win{background:var(--bg);max-width:100%;max-height:100%;overflow:auto;box-sizing:border-box}
 .cwin{width:min(560px,100%)}
 .iwin{width:min(1000px,100%);height:min(720px,100%);display:flex;flex-direction:column}
-#ircf{flex:1;width:100%;min-height:0;border:1px solid var(--br);background:#fff}
 .mbar{display:flex;gap:1em;justify-content:flex-end;align-items:center;margin-bottom:.6em}.mbar .dim{margin-right:auto}
 .cform{display:flex;flex-direction:column;gap:.5em}
 .cform label{display:flex;flex-direction:column;gap:.15em;color:var(--br)}
