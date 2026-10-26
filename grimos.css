@@ -11,7 +11,9 @@
 .theme-fire .lbl{background:linear-gradient(90deg,#c4251a,#ff8a00)}
 .theme-ice .lbl{background:linear-gradient(90deg,#6aa8cc,#dff4ff)}
 *{box-sizing:border-box}
-html,body{margin:0;background:#000;color:var(--fg);font:20px/1.15 "VT323","IBM Plex Mono",monospace;min-height:100%}
+/* metric-matched local fallback for VT323 (0.4em advance) so text wraps the same before the webfont swaps in → no layout shift */
+@font-face{font-family:"VT323 fb";src:local("DejaVu Sans Mono"),local("Droid Sans Mono"),local("Roboto Mono"),local("Menlo"),local("Consolas"),local("Courier New");size-adjust:66.5%;ascent-override:120%;descent-override:30%;line-gap-override:0%}
+html,body{margin:0;background:#000;color:var(--fg);font:20px/1.15 "VT323","IBM Plex Mono","VT323 fb",monospace;min-height:100%}
 body{background:radial-gradient(ellipse at center,var(--bg) 60%,#000 100%)}
 #crt{position:relative;min-height:100vh;display:flex;flex-direction:column;padding:0 0 1.6em;text-shadow:var(--glow);background:radial-gradient(ellipse at 50% 40%,rgba(255,255,255,.04),transparent 70%)}
 /* CRT filter: scanlines + vignette/curvature + glow + flicker; body.nocrt turns all off */
