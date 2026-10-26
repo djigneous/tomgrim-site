@@ -437,3 +437,15 @@ body.nocolor .sx-bad{text-decoration:none}
 #matrix,#matrix *,[class*="wx"]{touch-action:manipulation}
 #dblhint{position:fixed;left:50%;top:calc(18px + env(safe-area-inset-top));transform:translateX(-50%);z-index:9300;pointer-events:none;font:14px/1.3 "IBM Plex Mono",monospace;color:var(--fg);background:rgba(0,0,0,.75);border:1px solid color-mix(in srgb,var(--fg) 50%,transparent);padding:.35em .7em}
 #dblhint .p{color:var(--acc)}
+/* GRIM/WX maps, radar, almanac, tune-in */
+.wx-map{display:block;width:100%;height:100%;border:.3cqh solid #7a6ff0;box-sizing:border-box}
+.wx-main:has(.wx-map){padding:1.4cqh 1.6cqw}
+.wx-radw{position:relative;height:100%}.wx-radt{position:absolute;right:1.4cqw;top:1.2cqh;font-size:5cqh;color:#ffe02a;background:rgba(8,6,48,.7);padding:0 .5em}
+.wx-radn{position:absolute;left:1.4cqw;top:1.2cqh;font-size:5cqh;color:#ffe02a;background:rgba(8,6,48,.78);border:.3cqh solid #7a6ff0;padding:.2em .7em;white-space:nowrap}
+.wx-cred{position:absolute;left:1.2cqw;bottom:.8cqh;font-size:2.8cqh;color:#cfd6ff;background:rgba(8,6,48,.6);padding:0 .4em}
+.wx-pp{font-size:3.8cqh;color:#8fd0ff}
+.wx-alm{width:100%;border-collapse:collapse;font-size:5.4cqh}.wx-alm th{color:#ffe02a;font-weight:normal;text-align:left;padding-bottom:1cqh}.wx-alm td{padding:1.1cqh 0;border-top:.25cqh solid rgba(160,150,255,.3)}.wx-alm td:not(:first-child){color:#ffe02a}
+.wx-tune{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;display:flex;flex-direction:column;align-items:center;gap:.4em;font:inherit;font-size:8cqh;color:#fff;background:linear-gradient(180deg,#c22a0a,#ef5a10 55%,#f7a22a);border:.5cqh solid #fff;box-shadow:.8cqh .8cqh 0 #000;padding:.4em 1em;cursor:pointer;text-shadow:.09em .09em 0 #000;animation:wxblink 1.2s steps(2) infinite}
+.wx-tune small{font-size:.42em;color:#ffe02a}@keyframes wxblink{50%{filter:brightness(1.25)}}
+@media (prefers-reduced-motion:reduce){.wx-tune{animation:none}}
+@media (max-aspect-ratio:1/1){.wx-main:has(.wx-map){padding:2cqw}.wx-radt{font-size:6cqw}.wx-radn{font-size:5.6cqw}.wx-cred{font-size:3.4cqw}.wx-pp{font-size:4.2cqw}.wx-alm{font-size:5.6cqw}.wx-alm td{padding:2.2cqw 0}.wx-tune{font-size:9cqw;width:80%}}

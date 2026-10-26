@@ -20,7 +20,8 @@ const bootLines = ['GRIM/OS ' + GRIMOS_VERSION + '-warm #1 SMP PREEMPT lehigh-va
 const boot = $('#boot'), bootlog = $('#bootlog');
 let booted = false;
 function endBoot() { if (booted) return; booted = true; if (!RM) try { glitch({intro: 750}); } catch (e) {} boot.classList.add('gone'); setTimeout(() => boot.remove(), 450); $('#cmd').blur(); sessionStorage.grimBooted = 1; }
-if (sessionStorage.grimBooted || RM) { boot.remove(); booted = true; }
+const WXLINK = new URLSearchParams(location.search).has('wx'); // thomasgrim.com/weather → /?wx=1
+if (sessionStorage.grimBooted || RM || WXLINK) { boot.remove(); booted = true; }
 else { let i = 0; const step = () => { if (booted) return; if (i < bootLines.length) { bootlog.textContent += bootLines[i++] + '\n'; setTimeout(step, 60 + Math.random() * 110); } else setTimeout(endBoot, 1500); }; step();
  addEventListener('keydown', e => { if (!booted) { e.preventDefault(); e.stopImmediatePropagation(); endBoot(); } }, true);
  boot.addEventListener('pointerdown', endBoot); }
@@ -48,8 +49,9 @@ async function load() {
  const si2 = si >= 0 || s == null ? si : flat.findIndex(t => lo(t.title) === lo(s) || (t.aliases || []).some(a => lo(a) === lo(s))); // tolerant: jack-d / jackd / Jack’d
  const at = parseInt(new URLSearchParams(location.search).get('at'), 10); if (si2 >= 0 && at > 0) pendingAt = {i: si2, t: at};
  // shared link (?t=<slug|n>&at=<s>): cue that track exactly like the default one — current track, record, waveform, seek on first play
- const d = si2 >= 0 ? si2 : flat.findIndex(t => /^redline$/i.test(t.title));
+ const d = si2 >= 0 ? si2 : WXLINK ? Math.random() * flat.length | 0 : flat.findIndex(t => /^redline$/i.test(t.title));
  { if (d >= 0) { cur = d; audio.preload = 'none'; lazySrc = flat[d].file; setRecord(flat[d]); loadWave(flat[d]); select(d); updateNP();
+  if (WXLINK) setTimeout(() => { if (!fxs && !mx) weatherFx(false, {link: true}); }, 200);
   if (si2 >= 0) { if (pendingAt) $('#tcur').textContent = fmt(pendingAt.t); setTimeout(() => say(`cued: ${flat[d].title}${pendingAt ? ' @ ' + fmt(pendingAt.t) : ''} — press ▶ PLAY (or space) to start`), 50); } } }
 }
 
@@ -1006,8 +1008,8 @@ function wxFetch() {
  if (wxCache.data && Date.now() - wxCache.t < 600000) return Promise.resolve(wxCache.data);
  if (wxCache.p) return wxCache.p;
  const q = 'latitude=' + WX_CITIES.map(c => c[1]).join(',') + '&longitude=' + WX_CITIES.map(c => c[2]).join(',') +
-  '&current=temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,visibility,is_day' +
-  '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America%2FNew_York&forecast_days=4';
+  '&current=temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,visibility,is_day,precipitation&hourly=pressure_msl&past_hours=3&forecast_hours=1' +
+  '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,sunrise,sunset,uv_index_max&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America%2FNew_York&forecast_days=4';
  const ctl = 'AbortController' in window ? new AbortController() : null; const to = setTimeout(() => ctl && ctl.abort(), 8000);
  wxCache.p = fetch('https://api.open-meteo.com/v1/forecast?' + q, ctl ? {signal: ctl.signal} : {}).then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
   .then(j => { const a = Array.isArray(j) ? j : [j]; if (a.length < 3 || !a[0].current) throw new Error('bad data'); wxCache.data = a; wxCache.t = Date.now(); return a; })
@@ -1029,11 +1031,50 @@ function wxIcon(k) {
 function wxDir(d) { return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(((d || 0) % 360) / 45) % 8]; }
 const wxR = v => v == null || isNaN(v) ? '--' : Math.round(v);
 function wxWind(c) { const s = Math.round(c.wind_speed_10m || 0); return s < 3 ? 'Calm' : wxDir(c.wind_direction_10m) + ' ' + s + (c.wind_gusts_10m > s + 9 ? ' G' + Math.round(c.wind_gusts_10m) : ''); }
+function wxTrend(d) { const h = d && d.hourly && d.hourly.pressure_msl, n = d && d.current.pressure_msl; if (!h || !h.length || !n) return ''; const dp = n - h[0]; return dp > .6 ? 'R' : dp < -.6 ? 'F' : 'S'; }
 function wxInHg(h) { return h ? (h * 0.02953).toFixed(2) : '--'; }
 function wxVis(ft) { if (ft == null) return '--'; const m = ft / 5280; return m >= 10 ? '10 mi.' : (m < 1 ? m.toFixed(1) : Math.round(m)) + ' mi.'; }
 function wxFeels(c) { const T = c.temperature_2m, s = c.wind_speed_10m || 0; if (T <= 50 && s > 3) return ['Wind Chill', wxR(c.apparent_temperature) + '°']; if (T >= 80) return ['Heat Index', wxR(c.apparent_temperature) + '°']; return null; }
+/* GRIM/WX regional map + radar (RainViewer tiles, max zoom 7) */
+const WX_REG = [['Scranton', 41.409, -75.662], ['Hazleton', 40.958, -75.975], ['Stroudsburg', 40.987, -75.195], ['Pottsville', 40.686, -76.196], ['Allentown', 40.608, -75.490], ['Easton', 40.688, -75.221], ['Reading', 40.336, -75.927], ['Harrisburg', 40.274, -76.884], ['Lancaster', 40.038, -76.306], ['Doylestown', 40.310, -75.130], ['Philadelphia', 39.953, -75.165], ['Trenton', 40.217, -74.743], ['Morristown', 40.797, -74.481], ['New York', 40.713, -74.006], ['Wilmington', 39.740, -75.547], ['New Brunswick', 40.486, -74.452]];
+const wxRegC = {t: 0, data: null, p: null}, wxRadC = {t: 0, data: null, p: null};
+function wxGet(c, url, ok) { if (c.data && Date.now() - c.t < 600000) return Promise.resolve(c.data); if (c.p) return c.p;
+ const ctl = 'AbortController' in window ? new AbortController() : null, to = setTimeout(() => ctl && ctl.abort(), 8000);
+ c.p = fetch(url, ctl ? {signal: ctl.signal} : {}).then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); }).then(j => { const v = ok(j); if (!v) throw new Error('bad'); c.data = v; c.t = Date.now(); return v; })
+  .catch(() => c.data).finally(() => { clearTimeout(to); c.p = null; }); return c.p; }
+const wxRegFetch = () => wxGet(wxRegC, 'https://api.open-meteo.com/v1/forecast?latitude=' + WX_REG.map(c => c[1]).join(',') + '&longitude=' + WX_REG.map(c => c[2]).join(',') + '&current=temperature_2m,weather_code,is_day,precipitation&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=America%2FNew_York', j => { const a = Array.isArray(j) ? j : [j]; return a.length === WX_REG.length && a[0].current ? a : null; });
+const wxRadFetch = () => wxGet(wxRadC, 'https://api.rainviewer.com/public/weather-maps.json', j => j && j.host && j.radar && j.radar.past && j.radar.past.length ? {host: j.host, frames: j.radar.past.slice(-6)} : null);
+const WXZ = 7, WXW = 256 * 2 ** WXZ, wxX = lon => (lon + 180) / 360 * WXW, wxY = lat => { const r = lat * Math.PI / 180; return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * WXW; };
+const WX_GEO = { // simplified outlines [lat, lon]
+ river: [[42.0, -75.36], [41.95, -75.28], [41.77, -75.06], [41.6, -75.06], [41.48, -74.99], [41.37, -74.69], [41.32, -74.8], [41.22, -74.86], [41.09, -75.0], [40.97, -75.14], [40.92, -75.1], [40.83, -75.08], [40.69, -75.21], [40.59, -75.19], [40.53, -75.06], [40.37, -74.95], [40.3, -74.87], [40.21, -74.77], [40.15, -74.72], [40.08, -74.86], [39.95, -75.13], [39.85, -75.24], [39.81, -75.42]],
+ bay: [[39.81, -75.42], [39.66, -75.56], [39.4, -75.55], [39.4, -75.35], [39.6, -75.47], [39.75, -75.36], [39.85, -75.24]],
+ ocean: [[39.2, -74.6], [39.5, -74.32], [39.75, -74.11], [39.9, -74.08], [40.1, -74.03], [40.3, -73.98], [40.47, -74.0], [40.43, -74.15], [40.5, -74.26], [40.58, -74.05], [40.6, -73.75], [40.6, -72.5], [39.2, -72.5]],
+ pa: [[42.0, -80], [42.0, -75.36]], ny: [[41.37, -74.69], [41.0, -73.9]], md: [[39.72, -80], [39.72, -75.79], [39.76, -75.71], [39.8, -75.62], [39.83, -75.52], [39.84, -75.42]], de: [[39.72, -75.79], [39.0, -75.79]]};
+function wxMapBox(aspect) { const cx = wxX(-75.35), cy = wxY(40.55); let h = wxY(39.75) - wxY(41.45), w = h * aspect; const wMax = wxX(-73.6) - wxX(-77.1), wMin = wxX(-74.2) - wxX(-76.4); if (w > wMax) { w = wMax; h = w / aspect; } if (w < wMin) { w = wMin; h = w / aspect; } return [cx - w / 2, cy - h / 2, w, h]; }
+function wxMapBase(b) { const P = a => a.map(([la, lo]) => (wxX(lo) - b[0]).toFixed(1) + ',' + (wxY(la) - b[1]).toFixed(1)).join(' '), u = Math.min(b[2], b[3]) / 100;
+ return `<defs><linearGradient id="wxland" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a52c8"/><stop offset="1" stop-color="#22309a"/></linearGradient></defs><rect width="${b[2]}" height="${b[3]}" fill="url(#wxland)"/>
+ <polygon points="${P(WX_GEO.ocean)}" fill="#0c1460"/><polygon points="${P(WX_GEO.bay)}" fill="#0c1460"/><polyline points="${P(WX_GEO.river)}" fill="none" stroke="#0c1460" stroke-width="${(u * .9).toFixed(2)}" stroke-linejoin="round"/>
+ ${['pa', 'ny', 'md', 'de'].map(k => `<polyline points="${P(WX_GEO[k])}" fill="none" stroke="#9fb0ff" stroke-width="${(u * .35).toFixed(2)}" stroke-dasharray="${u * 1.6} ${u * 1.1}"/>`).join('')}
+ ${[['PA', 41.15, -76.55], ['NJ', 40.05, -74.5], ['NY', 41.75, -74.3], ['DE', 39.55, -75.7]].map(([s, la, lo]) => `<text x="${wxX(lo) - b[0]}" y="${wxY(la) - b[1]}" font-size="${u * 6}" fill="#7d8ff0" opacity=".7" text-anchor="middle">${s}</text>`).join('')}`; }
+function wxRegSlide(box, data) { const b = wxMapBox(box.w / box.h), u = Math.min(b[2], b[3]) / 100, fs = u * (b[2] > b[3] ? 6.2 : 7.4), cities = [];
+ WX_REG.forEach((c, i) => { const x = wxX(c[2]) - b[0], y = wxY(c[1]) - b[1]; if (x < fs * 2.2 || x > b[2] - fs * 2.2 || y < fs * 1.6 || y > b[3] - fs * .4) return;
+  if (cities.some(o => Math.abs(o.x - x) < fs * 3.6 && Math.abs(o.y - y) < fs * 1.9)) return; cities.push({x, y, n: c[0], d: data && data[i]}); });
+ return `<svg class="wx-map" viewBox="0 0 ${b[2].toFixed(1)} ${b[3].toFixed(1)}" preserveAspectRatio="xMidYMid slice" font-family="VT323,monospace">${wxMapBase(b)}${cities.map(c => `<g transform="translate(${c.x.toFixed(1)} ${c.y.toFixed(1)})"><circle r="${u * .7}" fill="#fff"/><text y="${-fs * .25}" font-size="${fs * 1.35}" text-anchor="middle" fill="#ffe02a" stroke="#000" stroke-width="${u * .5}" paint-order="stroke">${c.d ? wxR(c.d.current.temperature_2m) : '--'}</text><text y="${fs * .95}" font-size="${fs * .78}" text-anchor="middle" fill="#fff" stroke="#000" stroke-width="${u * .4}" paint-order="stroke">${c.n}</text></g>`).join('')}</svg>`; }
+function wxRadSlide(box, rad, reg) { const b = wxMapBox(box.w / box.h), u = Math.min(b[2], b[3]) / 100, fs = u * (b[2] > b[3] ? 6.2 : 7.4);
+ const tx0 = Math.floor(b[0] / 256), tx1 = Math.floor((b[0] + b[2]) / 256), ty0 = Math.floor(b[1] / 256), ty1 = Math.floor((b[1] + b[3]) / 256);
+ const fr = rad ? (RM ? rad.frames.slice(-1) : rad.frames) : [];
+ const layers = fr.map((f, k) => { let g = ''; for (let x = tx0; x <= tx1; x++) for (let y = ty0; y <= ty1; y++) g += `<image href="${rad.host}${f.path}/256/${WXZ}/${x}/${y}/4/1_1.png" x="${x * 256 - b[0]}" y="${y * 256 - b[1]}" width="256" height="256" style="image-rendering:pixelated"/>`;
+  return `<g class="wx-rf" data-t="${f.time}" opacity="${k === fr.length - 1 ? 1 : 0}">${g}</g>`; }).join('');
+ const dry = reg && reg.every(d => !(d.current.precipitation > 0) && d.current.weather_code < 51);
+ const marks = WX_REG.filter((c, i) => [0, 4, 6, 10, 11, 13].includes(i)).map(c => { const x = wxX(c[2]) - b[0], y = wxY(c[1]) - b[1]; return x > fs && x < b[2] - fs * 2 && y > fs && y < b[3] - fs ? `<circle cx="${x}" cy="${y}" r="${u * .6}" fill="#fff"/><text x="${x + u * 1.4}" y="${y + fs * .3}" font-size="${fs * .8}" fill="#fff" stroke="#000" stroke-width="${u * .4}" paint-order="stroke">${c[0]}</text>` : ''; }).join('');
+ return `<div class="wx-radw"><svg class="wx-map" viewBox="0 0 ${b[2].toFixed(1)} ${b[3].toFixed(1)}" preserveAspectRatio="xMidYMid slice" font-family="VT323,monospace">${wxMapBase(b)}<g opacity=".85">${layers}</g>${marks}</svg>
+ <div class="wx-radt"></div>${!rad ? '<div class="wx-radn">RADAR UNAVAILABLE</div>' : dry ? '<div class="wx-radn">NO PRECIP IN AREA</div>' : ''}<div class="wx-cred">radar: RainViewer.com · temps: Open-Meteo.com</div></div>`; }
+function wxRadAnim(main) { const gs = [...main.querySelectorAll('.wx-rf')], lbl = main.querySelector('.wx-radt'); if (!lbl) return;
+ const fT = t => new Date(t * 1000).toLocaleTimeString('en-US', {timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit'}).toUpperCase();
+ let k = gs.length - 1; const show = () => { gs.forEach((g, j) => g.setAttribute('opacity', j === k ? 1 : 0)); lbl.textContent = gs[k] ? fT(+gs[k].dataset.t) : ''; }; show();
+ if (RM || gs.length < 2) return; let hold = 0; const iv = setInterval(() => { if (!gs[0].isConnected) return clearInterval(iv); if (k === gs.length - 1 && hold++ < 3) return; hold = 0; k = (k + 1) % gs.length; show(); }, 600); }
 let wx = null;
-function weatherFx(preview) {
+function weatherFx(preview, opt) { opt = opt || {};
  if (fxs || mx) return; const saverOn = saverMode;
  const el = document.createElement('div'); el.id = 'matrix'; el.className = 'fx-weather' + (RM ? ' wx-rm' : ''); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'GRIM/WX local weather for the Lehigh Valley, press any key to exit');
  el.innerHTML = `<div class="wx-scr"><header class="wx-top"><div class="wx-badge"><span>THE GRIM</span><span>WEATHER</span><span>CHANNEL</span></div><h3 class="wx-ttl"><span class="wx-t1"></span><span class="wx-t2"></span></h3><div class="wx-clk"><span class="wx-time"></span><span class="wx-date"></span></div></header><main class="wx-main"></main><div class="wx-np" role="status" aria-live="off"></div><footer class="wx-tick"><div class="wx-tk"></div></footer></div><div class="wx-vhs" aria-hidden="true"></div>`;
@@ -1050,11 +1091,15 @@ function weatherFx(preview) {
  const slides = [
   () => { const i = st.city, d = st.data && st.data[i]; title(WX_CITIES[i][0], 'Current Conditions'); if (!d) return NA; const c = d.current, f = wxFeels(c);
    return `<div class="wx-cc"><div class="wx-ccl"><div class="wx-big">${wxR(c.temperature_2m)}°</div><div class="wx-cond">${wxCond(c.weather_code, c.is_day)}</div>${wxIcon(wxKind(c.weather_code, c.is_day))}</div>
-   <dl class="wx-ccr"><dt>Humidity:</dt><dd>${wxR(c.relative_humidity_2m)}%</dd><dt>Dewpoint:</dt><dd>${wxR(c.dew_point_2m)}°</dd><dt>Wind:</dt><dd>${wxWind(c)}</dd><dt>Pressure:</dt><dd>${wxInHg(c.pressure_msl)}</dd><dt>Visibility:</dt><dd>${wxVis(c.visibility)}</dd>${f ? `<dt>${f[0]}:</dt><dd>${f[1]}</dd>` : `<dt>Feels Like:</dt><dd>${wxR(c.apparent_temperature)}°</dd>`}</dl></div>`; },
+   <dl class="wx-ccr"><dt>Humidity:</dt><dd>${wxR(c.relative_humidity_2m)}%</dd><dt>Dewpoint:</dt><dd>${wxR(c.dew_point_2m)}°</dd><dt>Wind:</dt><dd>${wxWind(c)}</dd><dt>Pressure:</dt><dd>${wxInHg(c.pressure_msl)} ${wxTrend(d)}</dd><dt>Visibility:</dt><dd>${wxVis(c.visibility)}</dd>${f ? `<dt>${f[0]}:</dt><dd>${f[1]}</dd>` : `<dt>Feels Like:</dt><dd>${wxR(c.apparent_temperature)}°</dd>`}</dl></div>`; },
   () => { title('Latest Observations', 'Lehigh Valley'); if (!st.data) return NA;
    return `<table class="wx-obs"><thead><tr><th></th><th>°F</th><th>WEATHER</th><th>WIND</th></tr></thead><tbody>${st.data.map((d, i) => `<tr><td>${WX_CITIES[i][0]}</td><td>${wxR(d.current.temperature_2m)}</td><td>${wxCond(d.current.weather_code, d.current.is_day, 1)}</td><td>${wxWind(d.current)}</td></tr>`).join('')}</tbody></table>`; },
+  () => { title('Regional Temperatures', 'Eastern PA · NJ'); if (!st.reg) return NA; const r = main.getBoundingClientRect(); return wxRegSlide({w: r.width, h: r.height}, st.reg); },
+  () => { title('Precipitation Radar', 'Eastern PA · NJ'); const r = main.getBoundingClientRect(); return wxRadSlide({w: r.width, h: r.height}, st.rad, st.reg); },
   () => { title(WX_CITIES[0][0], 'Extended Forecast'); const d = st.data && st.data[0]; if (!d) return NA; const y = d.daily;
-   return `<div class="wx-ext">${[1, 2, 3].map(k => `<div class="wx-day"><div class="wx-dn">${dayName(y.time[k])}</div>${wxIcon(wxKind(y.weather_code[k]))}<div class="wx-dc">${wxCond(y.weather_code[k], 1, 1)}</div><div class="wx-hl"><span>Lo</span><span>Hi</span><b class="lo">${wxR(y.temperature_2m_min[k])}</b><b>${wxR(y.temperature_2m_max[k])}</b></div></div>`).join('')}</div>`; },
+   return `<div class="wx-ext">${[1, 2, 3].map(k => `<div class="wx-day"><div class="wx-dn">${dayName(y.time[k])}</div>${wxIcon(wxKind(y.weather_code[k]))}<div class="wx-dc">${wxCond(y.weather_code[k], 1, 1)}</div><div class="wx-pp">PRECIP ${y.precipitation_probability_max[k] || 0}%</div><div class="wx-hl"><span>Lo</span><span>Hi</span><b class="lo">${wxR(y.temperature_2m_min[k])}</b><b>${wxR(y.temperature_2m_max[k])}</b></div></div>`).join('')}</div>`; },
+  () => { title('Almanac', WX_CITIES[0][0]); const d = st.data && st.data[0]; if (!d) return NA; const y = d.daily, tm = s => s ? new Date(s + ':00').toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'}).toLowerCase() : '--', uv = v => v == null ? '--' : Math.round(v) + ' ' + (v < 3 ? 'Low' : v < 6 ? 'Moderate' : v < 8 ? 'High' : v < 11 ? 'Very High' : 'Extreme'), tr = {R: 'Rising', F: 'Falling', S: 'Steady'}[wxTrend(d)] || '';
+   return `<table class="wx-alm"><thead><tr><th></th><th>${dayName(y.time[0])}</th><th>${dayName(y.time[1])}</th></tr></thead><tbody><tr><td>Sunrise:</td><td>${tm(y.sunrise[0])}</td><td>${tm(y.sunrise[1])}</td></tr><tr><td>Sunset:</td><td>${tm(y.sunset[0])}</td><td>${tm(y.sunset[1])}</td></tr><tr><td>UV Index:</td><td>${uv(y.uv_index_max[0])}</td><td>${uv(y.uv_index_max[1])}</td></tr><tr><td>Precip:</td><td>${y.precipitation_probability_max[0] || 0}%</td><td>${y.precipitation_probability_max[1] || 0}%</td></tr><tr><td>Gusts:</td><td colspan="2">${Math.round(d.current.wind_gusts_10m || 0)} mph now</td></tr><tr><td>Pressure:</td><td colspan="2">${wxInHg(d.current.pressure_msl)} in. ${tr}</td></tr></tbody></table>`; },
   () => { title('Local Forecast', 'Lehigh Valley'); const d = st.data && st.data[0]; if (!d) return NA; const y = d.daily, p = k => y.precipitation_probability_max[k] || 0, w = k => Math.round(y.wind_speed_10m_max[k] || 0);
    const now = new Date(), hr = +new Intl.DateTimeFormat('en-US', {timeZone: 'America/New_York', hour: 'numeric', hourCycle: 'h23'}).format(now), first = hr >= 17 ? 'TONIGHT' : 'TODAY';
    const s1 = first === 'TODAY' ? `${first}...${wxCond(y.weather_code[0], 1).toUpperCase()}. HIGH ${wxR(y.temperature_2m_max[0])}. ` : `${first}...LOW ${wxR(y.temperature_2m_min[1])}. `;
@@ -1063,15 +1108,18 @@ function weatherFx(preview) {
    return `<div class="wx-txt">${s1}${s2}${s3}</div>`; }];
  const ticker = () => { const tk = $w('.wx-tk'); if (!st.data) { tk.textContent = 'GRIM/WX · DATA UNAVAILABLE · CHECK YOUR CONNECTION · NOW PLAYING ON GRIM/OS'; return; }
   tk.textContent = st.data.map((d, i) => { const c = d.current; return `${WX_CITIES[i][0].toUpperCase()}: HUMIDITY ${wxR(c.relative_humidity_2m)}%  DEWPOINT ${wxR(c.dew_point_2m)}°  PRESSURE ${wxInHg(c.pressure_msl)} in.`; }).join('   ·   ') + '   ·   DATA: OPEN-METEO.COM'; tk.style.animationDuration = Math.max(20, tk.textContent.length * .2) + 's'; };
- const show = () => { main.classList.remove('wx-in'); void main.offsetWidth; main.innerHTML = slides[st.slide](); main.classList.add('wx-in'); };
- st.go = n => { st.slide = n % slides.length; show(); };
+ const show = () => { main.classList.remove('wx-in'); void main.offsetWidth; main.innerHTML = slides[st.slide](); main.classList.add('wx-in'); wxRadAnim(main); };
+ st.go = n => { st.slide = n % slides.length; show(); if (st.iv) { clearInterval(st.iv); st.iv = setInterval(adv, RM ? 15000 : 9000); } };
  const adv = () => { st.slide = (st.slide + 1) % slides.length; if (st.slide === 0) st.city = (st.city + 1) % WX_CITIES.length; show(); };
  const stop = e => { if (!fxs || fxs.wx !== st) return; if (e && fxs.auto) wxAuto.dismissed = true; clearInterval(st.iv); clearInterval(st.clk); el.remove(); removeEventListener('keydown', onKey, true); fxs = null; wx = null; };
- const onKey = e => { e.preventDefault(); e.stopImmediatePropagation(); stop(e); };
- fxs = {raf: 0, stop, name: 'weather', saver: saverOn, wx: st, auto: wxAuto.opening}; wx = st;
+ const onKey = e => { e.preventDefault(); e.stopImmediatePropagation(); if (st.tune) return tuneIn(); stop(e); };
+ fxs = {raf: 0, stop, name: 'weather', saver: saverOn, wx: st, auto: wxAuto.opening, link: !!opt.link}; wx = st;
+ const tuneIn = () => { if (!st.tune) return; st.tune = false; const b = $w('.wx-tune'); if (b) b.remove(); try { if (!isPlaying()) toggle(); } catch (e) {} };
+ if (opt.link) { st.tune = true; $w('.wx-scr').insertAdjacentHTML('beforeend', '<button type="button" class="wx-tune"><span>TAP TO TUNE IN</span><small>THE GRIM WEATHER CHANNEL · MUSIC BY tomGRIM</small></button>');
+  el.addEventListener('pointerdown', e => { if (st.tune) e.stopImmediatePropagation(); }, true); el.addEventListener('click', () => tuneIn()); }
  el.addEventListener('pointerdown', dblExit(stop)); setTimeout(() => addEventListener('keydown', onKey, true), 50);
  tick(); npUpd(); st.clk = setInterval(() => { tick(); npUpd(); }, 500); title('GRIM/WX', 'Lehigh Valley'); main.innerHTML = '<div class="wx-na2">RECEIVING SATELLITE DATA...</div>'; ticker();
- wxFetch().then(d => { if (fxs && fxs.wx === st) { st.data = d || null; ticker(); show(); st.iv = setInterval(adv, RM ? 15000 : 9000); } });
+ Promise.all([wxFetch(), wxRegFetch(), wxRadFetch()]).then(([d, rg, rd]) => { if (fxs && fxs.wx === st) { st.data = d || null; st.reg = rg || null; st.rad = rd || null; ticker(); show(); st.iv = setInterval(adv, RM ? 15000 : 9000); } });
  if (preview) say('GRIM/WX: local on the 8s for the Lehigh Valley · live data from open-meteo.com · any key or click exits');
 }
 window.__wx = () => ({on: !!wx, slide: wx && wx.slide, city: wx && wx.city, data: !!(wx && wx.data), cached: !!wxCache.data});
