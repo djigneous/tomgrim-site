@@ -458,7 +458,7 @@ body.nocolor .sx-bad{text-decoration:none}
 
 @media (max-aspect-ratio:1/1){.wx-npr{grid-column:1/-1;padding:1.6cqw 3cqw 0}.wx-npr .wx-npt{padding:0}.wx-nsr{grid-column:1/-1;padding:.6cqw 3cqw 1.6cqw}.wx-nsr .wx-nps{padding:0}}
 .wx-swirl{flex:0 0 auto;width:15cqh;height:15cqh;display:flex;align-items:center;justify-content:center;margin-left:-1cqw}
-.wx-swirl svg{width:92%;height:92%;overflow:visible;display:block}.wx-swirl path{fill:none;stroke-linecap:round;stroke-linejoin:round}.wx-sw-sh{stroke:rgba(0,0,0,.55);stroke-width:2.9;transform:translate(.25px,.25px)}.wx-sw-fg{stroke:#fff;stroke-width:1.8}
+.wx-swirl svg{width:92%;height:92%;overflow:visible;display:block}.wx-swirl path{fill:none;stroke-linecap:round;stroke-linejoin:round}.wx-sw-sh{stroke:rgba(0,0,0,.45);stroke-width:2.3;transform:translate(.2px,.25px)}.wx-sw-fg{stroke:#fff;stroke-width:1.8}
 @media (prefers-reduced-motion:no-preference){.wx-swirl svg{animation:wxspin 7s linear infinite reverse;will-change:transform}}@keyframes wxspin{to{transform:rotate(360deg)}}
 .wx-rm .wx-swirl svg{animation:none}
 @media (max-aspect-ratio:1/1){.wx-swirl{width:17cqw;height:17cqw;margin-left:0}}
