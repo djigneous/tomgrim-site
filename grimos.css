@@ -454,9 +454,9 @@ body.nocolor .sx-bad{text-decoration:none}
 .tapflash{position:fixed;inset:0;z-index:9050;background:#000;pointer-events:none;animation:tapfl .22s ease-out forwards}@keyframes tapfl{from{opacity:.45}to{opacity:0}}
 /* GRIM/WX: skip button + header portrait */
 .wx-npr{flex:1;min-width:0;display:flex;align-items:center;gap:1.2cqw}.wx-npr .wx-npt{flex:0 1 auto}
-.wx-ctl{flex:0 0 auto;display:flex;gap:.8cqh}.wx-cb{flex:0 0 auto;width:4.6cqh;height:4.2cqh;display:flex;align-items:center;justify-content:center;font:inherit;color:#ffe02a;background:rgba(12,42,158,.55);border:1px solid rgba(255,255,255,.28);padding:0;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}.wx-cb svg{width:2.1cqh;height:2.45cqh;fill:currentColor;display:block}.wx-cb:active{background:#c22a0a}
+.wx-nsr{flex:0 0 auto;display:flex;align-items:center;gap:.6em}.wx-ctl{flex:0 0 auto;display:flex;align-items:center;gap:.25em}.wx-cb{flex:0 0 auto;width:1.15em;height:.85em;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:inherit;color:#ffe02a;background:rgba(12,42,158,.55);border:1px solid rgba(255,255,255,.28);padding:0;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}.wx-cb svg{width:.42em;height:.49em;fill:currentColor;display:block}.wx-cb:active{background:#c22a0a}
 
-.wx-top @media (max-aspect-ratio:1/1){.wx-top .wx-npr{grid-column:1/-1;padding:1.6cqw 3cqw 0;gap:3cqw}.wx-npr .wx-npt{padding:0}.wx-ctl{gap:1.6cqw}.wx-cb{width:9cqw;height:8cqw}.wx-cb svg{width:3.6cqw;height:4.2cqw}}
+@media (max-aspect-ratio:1/1){.wx-npr{grid-column:1/-1;padding:1.6cqw 3cqw 0}.wx-npr .wx-npt{padding:0}.wx-nsr{grid-column:1/-1;padding:.6cqw 3cqw 1.6cqw}.wx-nsr .wx-nps{padding:0}}
 .wx-swirl{flex:0 0 auto;width:15cqh;height:15cqh;display:flex;align-items:center;justify-content:center;margin-left:-1cqw}
 .wx-swirl svg{width:92%;height:92%;fill:#000;filter:drop-shadow(0 0 1px #8f84ff)}
 @media (prefers-reduced-motion:no-preference){.wx-swirl svg{animation:wxspin 7s linear infinite reverse;will-change:transform}}@keyframes wxspin{to{transform:rotate(360deg)}}
