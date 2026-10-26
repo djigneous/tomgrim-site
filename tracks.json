@@ -766,7 +766,7 @@
           "title": "Afterwards",
           "file": "assets/audio/soundtracks/02-afterwards.mp3",
           "duration_sec": 104.5,
-          "bpm": null,
+          "bpm": 74,
           "year": 2025,
           "original": "UNTSCHE-08-27-25 version2.mp3"
         }
