@@ -456,7 +456,9 @@ body.nocolor .sx-bad{text-decoration:none}
 .wx-npr{flex:1;min-width:0;display:flex;align-items:center;gap:1.2cqw}.wx-npr .wx-npt{flex:0 1 auto}
 .wx-ctl{flex:0 0 auto;display:flex;gap:.8cqh}.wx-cb{flex:0 0 auto;width:4.6cqh;height:4.2cqh;display:flex;align-items:center;justify-content:center;font:inherit;color:#ffe02a;background:rgba(12,42,158,.55);border:1px solid rgba(255,255,255,.28);padding:0;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}.wx-cb svg{width:2.1cqh;height:2.45cqh;fill:currentColor;display:block}.wx-cb:active{background:#c22a0a}
 
-.wx-face{flex:0 0 auto;width:15cqh;height:15cqh;background:linear-gradient(135deg,#14268a,#060f4a);border:0;box-shadow:none;box-sizing:border-box;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
-.wx-face i{display:block;width:88%;height:96%;background:#fff3a8;filter:drop-shadow(0 0 .25cqh rgba(255,240,160,.6));-webkit-mask:url(assets/A_mask.png) center bottom/contain no-repeat;mask:url(assets/A_mask.png) center bottom/contain no-repeat}
-.wx-top .wx-face{margin-left:-1cqw}
-@media (max-aspect-ratio:1/1){.wx-face{width:17cqw;height:17cqw}.wx-top .wx-face{margin-left:0}.wx-npr{grid-column:1/-1;padding:1.6cqw 3cqw 0;gap:3cqw}.wx-npr .wx-npt{padding:0}.wx-ctl{gap:1.6cqw}.wx-cb{width:9cqw;height:8cqw}.wx-cb svg{width:3.6cqw;height:4.2cqw}}
+.wx-top @media (max-aspect-ratio:1/1){.wx-top .wx-npr{grid-column:1/-1;padding:1.6cqw 3cqw 0;gap:3cqw}.wx-npr .wx-npt{padding:0}.wx-ctl{gap:1.6cqw}.wx-cb{width:9cqw;height:8cqw}.wx-cb svg{width:3.6cqw;height:4.2cqw}}
+.wx-swirl{flex:0 0 auto;width:15cqh;height:15cqh;display:flex;align-items:center;justify-content:center;margin-left:-1cqw}
+.wx-swirl svg{width:86%;height:86%;fill:#000;filter:drop-shadow(0 0 1px #8f84ff)}
+@media (prefers-reduced-motion:no-preference){.wx-swirl svg{animation:wxspin 9s linear infinite;will-change:transform}}@keyframes wxspin{to{transform:rotate(360deg)}}
+.wx-rm .wx-swirl svg{animation:none}
+@media (max-aspect-ratio:1/1){.wx-swirl{width:17cqw;height:17cqw;margin-left:0}}
