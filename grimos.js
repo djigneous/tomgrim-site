@@ -856,9 +856,9 @@ cmd.addEventListener('keydown', e => { if (e.key === 'ArrowUp') { hp = Math.max(
 
 /* ---------- navigation ---------- */
 const SECTIONS = ['fetch', 'man', 'player', 'links', 'shell', 'photos'];
-function jump(id) { if (id === 'photos') return openPhotos(); const el = document.getElementById(id); if (!el) return; el.scrollIntoView({behavior: RM ? 'auto' : 'smooth', block: 'start'}); document.querySelectorAll('.win').forEach(w => w.classList.toggle('focus', w === el));
+function jump(id, nofocus) { if (id === 'photos') return openPhotos(); const el = document.getElementById(id); if (!el) return; el.scrollIntoView({behavior: RM ? 'auto' : 'smooth', block: 'start'}); document.querySelectorAll('.win').forEach(w => w.classList.toggle('focus', w === el));
  document.querySelectorAll('#topbar nav button').forEach(b => { b.classList.toggle('on', b.dataset.jump === id); b.setAttribute('aria-current', b.dataset.jump === id); });
- if (id === 'shell') cmd.focus({preventScroll: true}); else if (id === 'player') pl.focus({preventScroll: true}); else el.focus({preventScroll: true}); }
+ if (nofocus) return; if (id === 'shell') cmd.focus({preventScroll: true}); else if (id === 'player') pl.focus({preventScroll: true}); else el.focus({preventScroll: true}); }
 document.querySelectorAll('[data-jump]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); jump(b.dataset.jump); }));
 const ICONS = { // 8x8 pixel glyphs
  fetch: ['11111111','10000001','10110101','10000001','10111101','10000001','11111111','00111100'],
@@ -1184,7 +1184,14 @@ if (localStorage.grimFlicker === '1' || (localStorage.grimFlicker == null && !RM
 refreshColors(); updateModes();
 say('GRIM/OS grimsh ' + GRIMOS_VERSION + ' — type "help". press ? for keys.');
 say('<div class="helpout"><div class="hf hn">motd: every track is free to download — type <button type="button" class="getlink" data-get="get "><b>get</b> <span class="sx-var">&lt;track#&gt;</span></button><span class="sep"> • </span><button type="button" class="getlink" data-get="get --list"><b>get</b> <span class="sx-flag">--list</span></button></div>' + helpSec(['fun', 'hack weather matrix glitch fire starfield plasma', [], 'click one to start it · any key or click exits']) + '</div>', true);
-document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('.getlink'); if (!b) return; e.preventDefault(); const c = $('#cmd'); jump('shell'); if (b.dataset.run) { c.value = b.dataset.run; $('#prompt').requestSubmit(); return; } c.value = b.dataset.get; c.focus({preventScroll: true}); c.setSelectionRange(c.value.length, c.value.length); });
+// terminal quick links: never move focus to the input on touch (no on-screen keyboard); desktop keeps focus in the prompt
+const TOUCHUI = () => matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0 && !matchMedia('(pointer: fine)').matches;
+['pointerdown', 'mousedown'].forEach(ev => document.addEventListener(ev, e => { if (e.target.closest && e.target.closest('.getlink')) { e.preventDefault(); e.stopPropagation(); } }, true));
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('.getlink'); if (!b) return; e.preventDefault(); e.stopPropagation(); const c = $('#cmd'), touch = TOUCHUI();
+ if (touch) { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); c.blur(); }
+ jump('shell', touch); if (b.dataset.run) { c.value = b.dataset.run; $('#prompt').requestSubmit(); if (touch) c.blur(); return; }
+ if (touch && !/\s$/.test(b.dataset.get)) { c.value = b.dataset.get; $('#prompt').requestSubmit(); c.blur(); return; } // complete command (get --list): just run it
+ c.value = b.dataset.get; c.focus({preventScroll: true}); c.setSelectionRange(c.value.length, c.value.length); });
 load().then(() => requestAnimationFrame(frame));
 // screensaver now-playing readout (bottom-left, command-line style; never intercepts the click/key that dismisses the saver)
 (() => { let el = null;
