@@ -428,7 +428,7 @@ function matrix() { if (mx || fxs) return; const c = document.createElement('can
   g.fillStyle = 'rgba(0,0,0,.08)'; g.fillRect(0, 0, c.width, c.height); g.font = fs + 'px monospace';
   for (let i = 0; i < cols; i++) { const y = drops[i] * fs; g.fillStyle = colors.hi; g.fillText(chars[Math.random() * chars.length | 0], i * fs, y); g.fillStyle = colors.fg; g.fillText(chars[Math.random() * chars.length | 0], i * fs, y - fs);
    if (y > c.height && Math.random() > .975) drops[i] = 0; drops[i] += 1; } };
- mx = {raf: requestAnimationFrame(tick), stop, saver: saverMode, name: 'matrix'}; c.addEventListener('pointerdown', stop); setTimeout(() => addEventListener('keydown', onKey, true), 50);
+ mx = {raf: requestAnimationFrame(tick), stop, saver: saverMode, name: 'matrix'}; c.addEventListener('pointerdown', dblExit(stop)); setTimeout(() => addEventListener('keydown', onKey, true), 50);
  if (RM) { g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height); g.fillStyle = colors.fg; g.font = '24px monospace'; g.fillText('MATRIX (reduced motion) — any key to exit', 20, 60); cancelAnimationFrame(mx.raf); } }
 
 /* ---------- fx: glitch / fire / hack / starfield ---------- */
@@ -443,7 +443,7 @@ function fxRun(name, msg, init, draw, dur, intro) { if (fxs || mx || (dead && na
  const onKey = e => { e.preventDefault(); e.stopImmediatePropagation(); stop(); };
  let last = 0; const step = mob ? 50 : 33;
  const tick = now => { fxs.raf = requestAnimationFrame(tick); if (now - last < step) return; last = now; const t0 = performance.now(); draw(g, c, st, (now - st.t0) / 1000, level()); const dt = performance.now() - t0; window.__fxms = window.__fxms == null ? dt : window.__fxms * .9 + dt * .1; };
- fxs = {raf: 0, stop, name, saver}; window.__fxms = null; if (intro) { msg = ''; c.classList.add('fx-intro'); c.style.pointerEvents = 'none'; fxs.to = setTimeout(() => { c.style.opacity = '0'; setTimeout(stop, 160); }, intro); } else { c.addEventListener('pointerdown', stop); setTimeout(() => addEventListener('keydown', onKey, true), 50); }
+ fxs = {raf: 0, stop, name, saver}; window.__fxms = null; if (intro) { msg = ''; c.classList.add('fx-intro'); c.style.pointerEvents = 'none'; fxs.to = setTimeout(() => { c.style.opacity = '0'; setTimeout(stop, 160); }, intro); } else { c.addEventListener('pointerdown', dblExit(stop)); setTimeout(() => addEventListener('keydown', onKey, true), 50); }
  if (RM) { draw(g, c, st, dur || 0, {bass: 0, lvl: .3}); g.fillStyle = colors.fg; g.font = 20 * st.dpr + 'px monospace'; g.fillText(name.toUpperCase() + ' (reduced motion) — any key to exit', 20 * st.dpr, 40 * st.dpr); }
  else fxs.raf = requestAnimationFrame(tick); }
 function glitch(o) { const intro = o && o.intro; fxRun('glitch', 'signal restored.', (g, c, st) => { st.lines = Array.from({length: 40}, () => ({y: Math.random(), h: Math.random() * .06, txt: Array.from({length: 120}, () => '01#@%&$/\\|<>'[Math.random() * 12 | 0]).join('')})); },
@@ -579,8 +579,19 @@ function blackout() { audio.pause(); try { audio.removeAttribute('src'); audio.l
 /* ---------- idle screensaver ---------- */
 const SAVERS = {matrix: () => matrix(), fire: () => fire(), starfield: () => starfield(), plasma, tunnel, rain, dvd, life, cube: () => cube(), donut: () => cube('donut'), snow, pipes};
 const saver = {on: localStorage.grimSaver !== 'off', sec: +localStorage.grimSaverSec || 60, fx: localStorage.grimSaverFx || 'random', last: Date.now(), active: false, started: 0};
+// exits: key press, wheel, or a real mouse move; taps/clicks go through dblExit on the overlay (double-tap / double-click)
+let mvAcc = 0, mvLast = null;
+function saverExitEv(ev, e) { if (ev === 'keydown' || ev === 'wheel') return true;
+ if (ev === 'mousemove' && !(e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) && !(Date.now() - lastTouch < 800)) { if (mvLast) mvAcc += Math.abs(e.clientX - mvLast[0]) + Math.abs(e.clientY - mvLast[1]); mvLast = [e.clientX, e.clientY]; if (mvAcc > 60) { mvAcc = 0; mvLast = null; return true; } }
+ return false; }
+let lastTouch = 0; addEventListener('touchstart', () => { lastTouch = Date.now(); }, {capture: true, passive: true});
+function dblExit(stop) { let last = 0; return e => { const now = Date.now(); if (e && e.cancelable) e.preventDefault();
+ if (now - last < 350) { last = 0; saverHint(null); return stop(e); } last = now; saverHint(e && e.pointerType === 'mouse' ? 'double-click to exit' : 'double-tap to exit'); }; }
+function saverHint(txt) { let h = document.getElementById('dblhint'); if (!txt) { if (h) h.remove(); return; }
+ if (!h) { h = document.createElement('div'); h.id = 'dblhint'; h.setAttribute('role', 'status'); document.body.appendChild(h); }
+ h.innerHTML = '<span class="p">$</span> ' + escH(txt); h.classList.add('on'); clearTimeout(saverHint.tm); saverHint.tm = setTimeout(() => { if (h.isConnected) h.remove(); }, 1400); }
 function saverStop() { if (!saver.active) return; saver.active = false; if (fxs && fxs.saver) fxs.stop(); else if (mx && mx.saver) mx.stop(); }
-['mousemove', 'keydown', 'touchstart', 'wheel', 'scroll', 'pointerdown'].forEach(ev => addEventListener(ev, e => { saver.last = Date.now(); if (saver.active && Date.now() - saver.started > 400) { saverStop(); if (ev === 'keydown') { e.preventDefault(); e.stopImmediatePropagation(); } } }, {capture: true, passive: ev !== 'keydown'}));
+['mousemove', 'keydown', 'touchstart', 'wheel', 'scroll', 'pointerdown'].forEach(ev => addEventListener(ev, e => { saver.last = Date.now(); if (saver.active && Date.now() - saver.started > 400 && saverExitEv(ev, e)) { saverStop(); if (ev === 'keydown') { e.preventDefault(); e.stopImmediatePropagation(); } } }, {capture: true, passive: ev !== 'keydown'}));
 setInterval(() => { if (dead || document.hidden || RM) return; if (saver.active && !fxs && !mx) saver.active = false;
  if (!saver.on || saver.active || fxs || mx || !booted || Date.now() - saver.last < saver.sec * 1000) return;
  const ae = document.activeElement, busy = openM || !$('#photos').hidden || !$('#lb').hidden || !$('#help').hidden || (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.value);
@@ -1058,7 +1069,7 @@ function weatherFx(preview) {
  const stop = e => { if (!fxs || fxs.wx !== st) return; if (e && fxs.auto) wxAuto.dismissed = true; clearInterval(st.iv); clearInterval(st.clk); el.remove(); removeEventListener('keydown', onKey, true); fxs = null; wx = null; };
  const onKey = e => { e.preventDefault(); e.stopImmediatePropagation(); stop(e); };
  fxs = {raf: 0, stop, name: 'weather', saver: saverOn, wx: st, auto: wxAuto.opening}; wx = st;
- el.addEventListener('pointerdown', stop); setTimeout(() => addEventListener('keydown', onKey, true), 50);
+ el.addEventListener('pointerdown', dblExit(stop)); setTimeout(() => addEventListener('keydown', onKey, true), 50);
  tick(); npUpd(); st.clk = setInterval(() => { tick(); npUpd(); }, 500); title('GRIM/WX', 'Lehigh Valley'); main.innerHTML = '<div class="wx-na2">RECEIVING SATELLITE DATA...</div>'; ticker();
  wxFetch().then(d => { if (fxs && fxs.wx === st) { st.data = d || null; ticker(); show(); st.iv = setInterval(adv, RM ? 15000 : 9000); } });
  if (preview) say('GRIM/WX: local on the 8s for the Lehigh Valley · live data from open-meteo.com · any key or click exits');

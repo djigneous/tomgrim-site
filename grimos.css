@@ -433,3 +433,7 @@ body.nocolor .sx-bad{text-decoration:none}
 .helpout .runlink b{color:var(--a3)}
 .helpout .runlink:hover b,.helpout .runlink:focus-visible b,.helpout .runlink:active b{color:var(--bg);background:var(--a3)}
 .helpout .getlink:hover,.helpout .getlink:focus-visible{outline:none;color:var(--hi)}
+/* screensaver overlays: double-tap/click to exit; no double-tap zoom */
+#matrix,#matrix *,[class*="wx"]{touch-action:manipulation}
+#dblhint{position:fixed;left:50%;top:calc(18px + env(safe-area-inset-top));transform:translateX(-50%);z-index:9300;pointer-events:none;font:14px/1.3 "IBM Plex Mono",monospace;color:var(--fg);background:rgba(0,0,0,.75);border:1px solid color-mix(in srgb,var(--fg) 50%,transparent);padding:.35em .7em}
+#dblhint .p{color:var(--acc)}

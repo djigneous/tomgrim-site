@@ -55,13 +55,6 @@
           "original": "01M5Q17SPD256RZYXARAZN12QW.mp3"
         },
         {
-          "title": "Low Light",
-          "file": "assets/audio/ember-hours/07-low-light.mp3",
-          "duration_sec": 300.6,
-          "bpm": 129,
-          "original": "01M5Q196P5C32WGTVQWK6TTFSQ.mp3"
-        },
-        {
           "title": "Glass Hours",
           "file": "assets/audio/ember-hours/08-glass-hours.mp3",
           "duration_sec": 167.3,
@@ -205,7 +198,10 @@
           "duration_sec": 300.5,
           "bpm": null,
           "year": 2023,
-          "original": "loveyou3.wav"
+          "original": "loveyou3.wav",
+          "aliases": [
+            "low-light"
+          ]
         },
         {
           "title": "Alive",
