@@ -43,11 +43,14 @@ async function load() {
   (al.tracks || []).forEach((t, ti) => flat.push({...t, al, ai: gi, ti, single})); });
  groups = gi + 1; let sc = 0; flat.forEach(t => { if (t.single) t.ti = sc++; });
  renderList(); updateModes();
- const s = new URLSearchParams(location.search).get('t'), sl = x => String(x || '').toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
- const si = s == null ? -1 : /^\d+$/.test(s) ? (flat[+s - 1] ? +s - 1 : -1) : flat.findIndex(t => sl(t.title) === sl(s) || (t.aliases || []).includes(sl(s)));
- const at = parseInt(new URLSearchParams(location.search).get('at'), 10); if (si >= 0 && at > 0) pendingAt = {i: si, t: at};
- if (si >= 0) select(si);
- else { const d = flat.findIndex(t => /^redline$/i.test(t.title)); if (d >= 0) { cur = d; audio.preload = 'none'; lazySrc = flat[d].file; setRecord(flat[d]); loadWave(flat[d]); select(d); updateNP(); } }
+ const s = new URLSearchParams(location.search).get('t'), sl = x => String(x || '').toLowerCase().replace(/['’‘`]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+ const si = s == null ? -1 : /^\d+$/.test(s) ? (flat[+s - 1] ? +s - 1 : -1) : flat.findIndex(t => sl(t.title) === sl(s) || (t.aliases || []).includes(sl(s))), lo = x => String(x || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '');
+ const si2 = si >= 0 || s == null ? si : flat.findIndex(t => lo(t.title) === lo(s) || (t.aliases || []).some(a => lo(a) === lo(s))); // tolerant: jack-d / jackd / Jack’d
+ const at = parseInt(new URLSearchParams(location.search).get('at'), 10); if (si2 >= 0 && at > 0) pendingAt = {i: si2, t: at};
+ // shared link (?t=<slug|n>&at=<s>): cue that track exactly like the default one — current track, record, waveform, seek on first play
+ const d = si2 >= 0 ? si2 : flat.findIndex(t => /^redline$/i.test(t.title));
+ { if (d >= 0) { cur = d; audio.preload = 'none'; lazySrc = flat[d].file; setRecord(flat[d]); loadWave(flat[d]); select(d); updateNP();
+  if (si2 >= 0) { if (pendingAt) $('#tcur').textContent = fmt(pendingAt.t); setTimeout(() => say(`cued: ${flat[d].title}${pendingAt ? ' @ ' + fmt(pendingAt.t) : ''} — press ▶ PLAY (or space) to start`), 50); } } }
 }
 
 /* ---------- playlist ---------- */
@@ -116,7 +119,7 @@ bgEl.addEventListener('timeupdate', () => { if (bgMode) { const el = $('#tcur');
 // handoff DISABLED (caused stutter/cutouts on Android after fa6a2f2) — single-element playback + 400e131 resume logic only
 const BG_HANDOFF = false;
 window.__bg = () => ({bgMode, bgPaused: bgEl.paused, bgT: bgEl.currentTime, bgSrc: bgEl.currentSrc.split('/').pop(), aPaused: audio.paused, aT: audio.currentTime, ctx: actx && actx.state, cur});
-function shareUrl() { const t = curT(); if (!t || secret) return null; const i = flat.indexOf(t), sec = Math.floor(outEl().currentTime || 0), slug = t.title.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+function shareUrl() { const t = curT(); if (!t || secret) return null; const i = flat.indexOf(t), sec = Math.floor(outEl().currentTime || 0), slug = t.title.toLowerCase().replace(/['’‘`]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
  return {t, sec, url: `${location.origin}/?t=${slug || i + 1}${sec > 3 ? '&at=' + sec : ''}`}; }
 function toast(html) { let el = $('#toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
  el.innerHTML = html; el.classList.add('on'); clearTimeout(toast.tm); toast.tm = setTimeout(() => el.classList.remove('on'), 1800); }
