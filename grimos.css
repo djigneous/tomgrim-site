@@ -428,3 +428,8 @@ body.nocolor .sx-bad{text-decoration:none}
 /* perf on phones: the per-frame ASCII visualizers repaint hundreds of glowing glyphs; drop their text-shadow on touch devices and isolate layout */
 #spec{contain:strict}
 @media (pointer:coarse){#spec,#cover,#cover *{text-shadow:none!important}}
+/* clickable visual names in help/motd: terminal style, theme colors */
+.helpout .runlink,.helpout .getlink{text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;border-bottom:1px dotted color-mix(in srgb,var(--a3) 60%,transparent)}
+.helpout .runlink b{color:var(--a3)}
+.helpout .runlink:hover b,.helpout .runlink:focus-visible b,.helpout .runlink:active b{color:var(--bg);background:var(--a3)}
+.helpout .getlink:hover,.helpout .getlink:focus-visible{outline:none;color:var(--hi)}

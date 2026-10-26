@@ -388,7 +388,8 @@ const HELP = () => [
  ['look', '', [['colors', 'on|off', 'ANSI colors in the terminal']]],
  ['idle', '', [['screensaver', 'on|off|<seconds>|<effect>|random', 'default on, 60s']]]];
 function hlHelp(c, ar) { const w = c.split(' '); return `<span class="sx-cmd">${escH(w[0])}</span>` + w.slice(1).map(x => ' <span class="sx-arg">' + escH(x) + '</span>').join('') + (ar ? ' ' + ar.split(' ').map(t => t.split(/(\|)/).map(x => x === '|' ? '<span class="sx-op">|</span>' : `<span class="${/^-/.test(x) ? 'sx-flag' : /^</.test(x) || /^\[/.test(x) ? 'sx-var' : /^\d/.test(x) ? 'sx-num' : 'sx-arg'}">${escH(x)}</span>`).join('')).join(' ') : ''); }
-function helpSec([name, flow, rows, note]) { const fl = flow.split(' ').filter(Boolean).map(c => '<b>' + escH(c) + '</b>').join('<span class="sep"> • </span>');
+const RUNNABLE = new Set(['matrix', 'glitch', 'fire', 'hack', 'weather', 'starfield', 'plasma', 'tunnel', 'rain', 'dvd', 'life', 'cube', 'torus', 'donut', 'snow', 'pipes']);
+function helpSec([name, flow, rows, note]) { const fl = flow.split(' ').filter(Boolean).map(c => RUNNABLE.has(c) ? `<button type="button" class="getlink runlink" data-run="${escH(c)}" title="start ${escH(c)}"><b>${escH(c)}</b></button>` : '<b>' + escH(c) + '</b>').join('<span class="sep"> • </span>');
  return `<div class="hs">${name}:</div>` + (fl ? `<div class="hf">${fl}</div>` : '') + rows.map(([c, ar, d]) => `<div class="hr"><span class="hc">${hlHelp(c, ar)}</span><span class="hd">${escH(d)}</span></div>`).join('') + (note ? `<div class="hf hn">${escH(note)}</div>` : ''); }
 function helpCmd(a) { a = (a || '').trim().toLowerCase(); const H = HELP();
  if (!a || a === '-a' || a === '--all') return say('<div class="helpout">' + (a ? '' : '<div class="hn">help &lt;section&gt; · help &lt;cmd&gt; · help -a · ? works the same</div>') + H.map(helpSec).join('') + '</div>', true);
@@ -1071,8 +1072,8 @@ setTheme(THEMES.includes(localStorage.grimTheme) ? localStorage.grimTheme : 'cya
 if (localStorage.grimFlicker === '1' || (localStorage.grimFlicker == null && !RM)) document.body.classList.add('flicker');
 refreshColors(); updateModes();
 say('GRIM/OS grimsh ' + GRIMOS_VERSION + ' — type "help". press ? for keys.');
-say('motd: every track is free to download — type <button class="getlink" data-get="get ">get &lt;track#&gt;</button> or <button class="getlink" data-get="get --list">get --list</button> · try <button class="getlink" data-run="fire">fire</button> <button class="getlink" data-run="starfield">starfield</button> <button class="getlink" data-run="plasma">plasma</button> <button class="getlink" data-run="donut">donut</button> <button class="getlink" data-run="pipes">pipes</button>', true);
-document.querySelectorAll('.getlink').forEach(b => b.addEventListener('click', e => { e.preventDefault(); const c = $('#cmd'); jump('shell'); if (b.dataset.run) { c.value = b.dataset.run; $('#prompt').requestSubmit(); return; } c.value = b.dataset.get; c.focus({preventScroll: true}); c.setSelectionRange(c.value.length, c.value.length); }));
+say('<div class="helpout"><div class="hf hn">motd: every track is free to download — type <button type="button" class="getlink" data-get="get "><b>get</b> <span class="sx-var">&lt;track#&gt;</span></button><span class="sep"> • </span><button type="button" class="getlink" data-get="get --list"><b>get</b> <span class="sx-flag">--list</span></button></div>' + helpSec(['fun', 'hack weather matrix glitch fire starfield plasma', [], 'click one to start it · any key or click exits']) + '</div>', true);
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('.getlink'); if (!b) return; e.preventDefault(); const c = $('#cmd'); jump('shell'); if (b.dataset.run) { c.value = b.dataset.run; $('#prompt').requestSubmit(); return; } c.value = b.dataset.get; c.focus({preventScroll: true}); c.setSelectionRange(c.value.length, c.value.length); });
 load().then(() => requestAnimationFrame(frame));
 // screensaver now-playing readout (bottom-left, command-line style; never intercepts the click/key that dismisses the saver)
 (() => { let el = null;
