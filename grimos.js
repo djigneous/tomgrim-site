@@ -115,7 +115,10 @@ document.addEventListener('visibilitychange', () => { if (!audio.paused) wakeCtx
 addEventListener('pageshow', () => { if (!audio.paused) wakeCtx(); }); addEventListener('focus', () => { if (!audio.paused) wakeCtx(); });
 audio.addEventListener('playing', wakeCtx);
 setInterval(() => { if (!audio.paused) wakeCtx(); }, 2000); // watchdog (throttled to ~1/min when hidden, still harmless)
-function msState() { if ('mediaSession' in navigator) { navigator.mediaSession.playbackState = isPlaying() ? 'playing' : (outEl().currentTime ? 'paused' : 'none'); posState(); } }
+// keep the Android notification alive across track changes: swapping src fires pause/emptied with currentTime 0 — reporting 'none'
+// there made Chrome drop the media notification between songs. While switching, keep reporting 'playing'; never 'none' while a track is loaded.
+let switching = 0, switchTO = 0, endIdle = false; // 'pause' fires just before 'ended' on auto-advance
+function msState() { if ('mediaSession' in navigator) { navigator.mediaSession.playbackState = (switching || isPlaying() || (audio.ended && !endIdle)) ? 'playing' : (cur >= 0 ? 'paused' : 'none'); posState(); } }
 ['play', 'pause', 'playing', 'ratechange', 'durationchange'].forEach(ev => audio.addEventListener(ev, () => msState()));
 /* ---------- background handoff ----------
  Root cause of Android background dropouts: <audio> is captured by createMediaElementSource, so its ONLY output is the AudioContext.
@@ -162,7 +165,7 @@ function play(i) {
  ensureCtx();
  if (i !== cur || !playedOnce[i]) { playedOnce[i] = 1; window.tgTrack('play', flat[i].title); }
  if (lazySrc) { if (i === cur) audio.src = lazySrc; lazySrc = null; audio.preload = 'metadata'; }
- if (i !== cur) { cur = i; audio.src = flat[i].file; setRecord(flat[i]); loadWave(flat[i]); }
+ if (i !== cur) { switching = 1; clearTimeout(switchTO); switchTO = setTimeout(() => { switching = 0; msState(); }, 8000); setMediaMeta(flat[i]); cur = i; audio.src = flat[i].file; setRecord(flat[i]); loadWave(flat[i]); }
  if (pendingAt && pendingAt.i === i) { const t0 = pendingAt.t; pendingAt = null; const go = () => { try { audio.currentTime = Math.min(t0, (audio.duration || t0 + 1) - 1); } catch {} }; audio.readyState >= 1 ? go() : audio.addEventListener('loadedmetadata', go, {once: true}); }
  setMediaMeta(flat[i]); trackMood(flat[i]);
  if (bgMode) { const f = new URL(flat[i].file, location.href).href; if (bgEl.src !== f) bgEl.src = f; bgEl.play().catch(() => {}); } else
@@ -173,7 +176,7 @@ function toggle() { if (cur < 0 || !isPlaying()) play(cur < 0 ? sel : cur); else
 // stall recovery: if we're meant to be playing but the playhead hasn't moved for ~9s while starving (network/decoder hiccup), reload at
 // the same position. Never fights a deliberate pause (user, notification, headset, or a phone call → those leave the element paused).
 let userPaused = false, stallT = -1, stallN = 0, stallTries = 0;
-audio.addEventListener('play', () => { userPaused = false; }); audio.addEventListener('playing', () => { stallTries = 0; audio.preload = 'auto'; msState(); });
+audio.addEventListener('play', () => { userPaused = false; endIdle = false; }); audio.addEventListener('playing', () => { switching = 0; stallTries = 0; audio.preload = 'auto'; msState(); });
 setInterval(() => { if (audio.paused || audio.ended || !audio.src) { stallN = 0; return; } if (audio.currentTime !== stallT) { stallT = audio.currentTime; stallN = 0; return; }
  if (++stallN < 3 || audio.readyState >= 3 || stallTries >= 3) return; stallN = 0; stallTries++; const t = audio.currentTime;
  audio.load(); audio.addEventListener('loadedmetadata', () => { try { audio.currentTime = t; } catch {} }, {once: true}); audio.play().catch(() => {}); }, 3000);
@@ -184,11 +187,11 @@ function next(d = 1) {
  else i = ((cur < 0 ? sel : cur) + d + flat.length) % flat.length;
  play(i);
 }
-function onEnded() { trackMood(null); if (secret) { secret = null; return next(1); } const r = effRepeat(); if (r === 'one') { const el = bgMode ? bgEl : audio; el.currentTime = 0; el.play(); } else if (r === 'all' || shuffle || cur < flat.length - 1) next(1); }
+function onEnded() { trackMood(null); if (secret) { secret = null; return next(1); } const r = effRepeat(); if (r === 'one') { const el = bgMode ? bgEl : audio; el.currentTime = 0; el.play(); } else if (r === 'all' || shuffle || cur < flat.length - 1) next(1); else { endIdle = true; msState(); } }
 audio.addEventListener('ended', () => { if (!bgMode) onEnded(); });
 audio.addEventListener('play', updateNP); audio.addEventListener('pause', updateNP);
 audio.addEventListener('loadedmetadata', updateNP);
-audio.addEventListener('error', () => say('error: cannot load ' + (curT()?.file || '')));
+audio.addEventListener('error', () => { switching = 0; msState(); }); audio.addEventListener('error', () => say('error: cannot load ' + (curT()?.file || '')));
 audio.addEventListener('timeupdate', () => { $('#tcur').textContent = fmt(audio.currentTime); });
 const COVERS = ['ember-hours', 'elements', 'night-signals', 'phosphor-cache', 'get-out', 'soundtracks', 'remixes'];
 let lastMeta = '';
