@@ -27,7 +27,7 @@ else { let i = 0; const step = () => { if (booted) return; if (i < bootLines.len
  boot.addEventListener('pointerdown', endBoot); }
 
 /* ---------- clock ---------- */
-setInterval(() => { $('#clock').textContent = new Date().toLocaleTimeString([], {hour12:false}); }, 1000);
+setInterval(() => { if (!document.hidden) $('#clock').textContent = new Date().toLocaleTimeString([], {hour12:false}); }, 1000);
 
 /* ---------- data ---------- */
 async function load() {
@@ -125,22 +125,8 @@ function msState() { if ('mediaSession' in navigator) { navigator.mediaSession.p
  Android Chrome suspends/throttles that context (and timers) in background tabs, so sound stops even though the element still "plays";
  resuming afterwards (400e131) races the OS. Fix: when the page is hidden, hand playback to a second, untapped <audio> (native media
  output, keeps the media notification) at the same position; hand back to the Web Audio path (FX/visualizers) when visible again. */
-const bgEl = new Audio(); bgEl.preload = 'auto'; bgEl.setAttribute('aria-hidden', 'true'); let bgMode = false, handing = false;
-const outEl = () => bgMode ? bgEl : audio, isPlaying = () => !outEl().paused;
-function outPause() { outEl().pause(); }
-function toBg() { if (!BG_HANDOFF || bgMode || handing || audio.paused || !actx || !audio.currentSrc) return; handing = true;
- bgEl.src = audio.currentSrc; bgEl.volume = audio.volume; bgEl.muted = audio.muted; bgEl.loop = false;
- const go = () => { try { bgEl.currentTime = audio.currentTime; } catch {} bgEl.play().then(() => { bgMode = true; handing = false; audio.pause(); msState(); }, () => { handing = false; wakeCtx(); }); };
- bgEl.readyState >= 1 ? go() : bgEl.addEventListener('loadedmetadata', go, {once: true}); }
-function toFg() { if (!bgMode) return; const t = bgEl.currentTime, src = bgEl.currentSrc, was = !bgEl.paused; bgMode = false;
- if (audio.currentSrc !== src) audio.src = src; const go = () => { try { audio.currentTime = t; } catch {} if (was) { wakeCtx(); audio.play().then(() => bgEl.pause(), () => { bgMode = true; }); } else bgEl.pause(); updateNP(); msState(); };
- audio.readyState >= 1 ? go() : audio.addEventListener('loadedmetadata', go, {once: true}); }
-bgEl.addEventListener('ended', () => { if (bgMode) onEnded(); });
-['play', 'pause', 'playing'].forEach(ev => bgEl.addEventListener(ev, () => { if (bgMode) msState(); }));
-bgEl.addEventListener('timeupdate', () => { if (bgMode) { const el = $('#tcur'); if (el) el.textContent = fmt(bgEl.currentTime); } });
-// handoff DISABLED (caused stutter/cutouts on Android after fa6a2f2) — single-element playback + 400e131 resume logic only
-const BG_HANDOFF = false;
-window.__bg = () => ({bgMode, bgPaused: bgEl.paused, bgT: bgEl.currentTime, bgSrc: bgEl.currentSrc.split('/').pop(), aPaused: audio.paused, aT: audio.currentTime, ctx: actx && actx.state, cur});
+const outEl = () => audio, isPlaying = () => !audio.paused; // single native element (the dual-element background handoff was removed)
+function outPause() { audio.pause(); }
 function shareUrl() { const t = curT(); if (!t || secret) return null; const i = flat.indexOf(t), sec = Math.floor(outEl().currentTime || 0), slug = t.title.toLowerCase().replace(/['’‘`]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
  return {t, sec, url: `${location.origin}/?t=${slug || i + 1}${sec > 3 ? '&at=' + sec : ''}`}; }
 function toast(html) { let el = $('#toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
@@ -168,7 +154,6 @@ function play(i) {
  if (i !== cur) { switching = 1; clearTimeout(switchTO); switchTO = setTimeout(() => { switching = 0; msState(); }, 8000); setMediaMeta(flat[i]); cur = i; audio.src = flat[i].file; setRecord(flat[i]); loadWave(flat[i]); }
  if (pendingAt && pendingAt.i === i) { const t0 = pendingAt.t; pendingAt = null; const go = () => { try { audio.currentTime = Math.min(t0, (audio.duration || t0 + 1) - 1); } catch {} }; audio.readyState >= 1 ? go() : audio.addEventListener('loadedmetadata', go, {once: true}); }
  setMediaMeta(flat[i]); trackMood(flat[i]);
- if (bgMode) { const f = new URL(flat[i].file, location.href).href; if (bgEl.src !== f) bgEl.src = f; bgEl.play().catch(() => {}); } else
  audio.play().catch(err => say('play blocked: ' + err.message));
  select(i); updateNP();
 }
@@ -193,8 +178,8 @@ function next(d = 1) {
  else i = ((cur < 0 ? sel : cur) + d + flat.length) % flat.length;
  play(i);
 }
-function onEnded() { trackMood(null); if (secret) { secret = null; return next(1); } const r = effRepeat(); if (r === 'one') { const el = bgMode ? bgEl : audio; el.currentTime = 0; if (intent === 'play') el.play(); } else if (r === 'all' || shuffle || cur < flat.length - 1) next(1); else { endIdle = true; msState(); } }
-audio.addEventListener('ended', () => { if (!bgMode) onEnded(); });
+function onEnded() { trackMood(null); if (secret) { secret = null; return next(1); } const r = effRepeat(); if (r === 'one') { audio.currentTime = 0; if (intent === 'play') audio.play(); } else if (r === 'all' || shuffle || cur < flat.length - 1) next(1); else { endIdle = true; msState(); } }
+audio.addEventListener('ended', onEnded);
 audio.addEventListener('play', updateNP); audio.addEventListener('pause', updateNP);
 audio.addEventListener('loadedmetadata', updateNP);
 audio.addEventListener('error', () => { switching = 0; msState(); }); audio.addEventListener('error', () => say('error: cannot load ' + (curT()?.file || '')));
@@ -443,7 +428,7 @@ function colorsCmd(a) { a = (a || '').trim(); if (a === 'off' || a === 'on') { c
 const cmdHl = document.createElement('span'); cmdHl.className = 'cmdhl'; cmdHl.setAttribute('aria-hidden', 'true');
 { const wrap = document.createElement('span'); wrap.className = 'cmdwrap'; cmd.before(wrap); wrap.append(cmd, cmdHl); }
 let hlLast = null; const hlSync = () => { if (cmd.value !== hlLast) { hlLast = cmd.value; cmdHl.innerHTML = '<span>' + hl(cmd.value) + ' </span>'; } cmdHl.style.transform = `translateX(${-cmd.scrollLeft}px)`; };
-['input', 'keyup', 'scroll', 'focus', 'select'].forEach(ev => cmd.addEventListener(ev, hlSync)); setInterval(hlSync, 120);
+['input', 'keyup', 'scroll', 'focus', 'select'].forEach(ev => cmd.addEventListener(ev, hlSync)); setInterval(() => { if (!document.hidden) hlSync(); }, 120);
 const LINKS = [['spotify','https://open.spotify.com/artist/1tBp2oza76uuM5bC3fx8Vg'],['apple-music','https://music.apple.com/us/artist/tomgrim/1705139904'],['youtube','https://www.youtube.com/@ig3.productions'],['soundcloud','https://soundcloud.com/thomasgrim']];
 const THEMES = ['cyan', 'green', 'amber', 'red', 'gray', 'fire', 'ice', 'silicon', 'nightshift', 'neon'];
 const themeSel = $('#themesel'); themeSel.innerHTML = THEMES.map(t => `<option value="${t}">${t}</option>`).join('');
@@ -839,7 +824,7 @@ Object.assign(CMDS, {
   if (/^[\d.]+$|^[a-z0-9-]+(\.[a-z0-9-]+)+/i.test(u)) return say(`curl: (6) Could not resolve host: ${u.replace(/^https?:\/\//, '').split('/')[0]}\n(GrimOS is offline-first. try "curl -O <track#>" to download a track.)`); getCmd(a); },
  apt: aptCmd, 'apt-get': aptCmd, fx: fxCmd, colors: colorsCmd, colours: colorsCmd,
  share: () => shareTrack(false),
- stop: () => { if (bgMode) { bgEl.pause(); bgMode = false; } audio.pause(); try { audio.currentTime = 0; } catch {} $('#tcur').textContent = fmt(0); updateNP(); setTimeout(() => { if ('mediaSession' in navigator) { navigator.mediaSession.playbackState = 'none'; try { navigator.mediaSession.setPositionState({duration: audio.duration || 0, position: 0, playbackRate: 1}); } catch {} } }, 0); say('■ stopped. (00:00)'); },
+ stop: () => { audio.pause(); try { audio.currentTime = 0; } catch {} $('#tcur').textContent = fmt(0); updateNP(); setTimeout(() => { if ('mediaSession' in navigator) { navigator.mediaSession.playbackState = 'none'; try { navigator.mediaSession.setPositionState({duration: audio.duration || 0, position: 0, playbackRate: 1}); } catch {} } }, 0); say('■ stopped. (00:00)'); },
  popout: () => termFloat(true), dock: () => termFloat(false),
 });
 $('#prompt').addEventListener('submit', e => { e.preventDefault(); if (job) return; const v = cmd.value.trim(); cmd.value = ''; if (!v) return; hist.push(v); hp = hist.length;
@@ -1201,8 +1186,8 @@ load().then(() => requestAnimationFrame(frame));
   const dur = audio.duration || t.duration_sec || 0, cur = audio.currentTime || 0, w = innerWidth < 500 ? 14 : 22, f = dur ? Math.round(cur / dur * w) : 0;
   const al = t.al || {}, meta = [al.title && !t.single ? al.title : (t.single ? 'Single' : ''), al.year ? `(${al.year})` : ''].filter(Boolean).join(' ') + (t.bpm ? ` · ${t.bpm} bpm` : '');
   const r = typeof effRepeat === 'function' ? effRepeat() : repeat;
-  el.innerHTML = `<span class="np-p">tom@grimos:~$</span> nowplaying\n<b>tomGRIM - ${escH(t.title)}</b>\n<span class="np-d">${escH(meta)}</span>\n${audio.paused ? '❚❚' : '▶'} ${fmt(cur)} [${'█'.repeat(f)}${'░'.repeat(w - f)}] ${fmt(dur)}\n<span class="np-d">repeat:${r} · shuffle:${shuffle ? 'on' : 'off'}</span>\n<span class="np-p">tom@grimos:~$</span> <span class="np-c"></span>`; };
- setInterval(render, 250); })();
+  { const h = `<span class="np-p">tom@grimos:~$</span> nowplaying\n<b>tomGRIM - ${escH(t.title)}</b>\n<span class="np-d">${escH(meta)}</span>\n${audio.paused ? '❚❚' : '▶'} ${fmt(cur)} [${'█'.repeat(f)}${'░'.repeat(w - f)}] ${fmt(dur)}\n<span class="np-d">repeat:${r} · shuffle:${shuffle ? 'on' : 'off'}</span>\n<span class="np-p">tom@grimos:~$</span> <span class="np-c"></span>`; if (h !== el.__h) { el.__h = h; el.innerHTML = h; } } };
+ setInterval(() => { if (!document.hidden) render(); }, 250); })();
 })();
 // Android address bar / status bar follows the active theme (was a fixed white #ffffff in light mode)
 (() => { const m = document.querySelector('meta[name=theme-color]'); if (!m) return; const upd = () => { const c = getComputedStyle(document.body).getPropertyValue('--bg').trim(); if (c) m.content = c; }; upd(); new MutationObserver(upd).observe(document.body, {attributes: true, attributeFilter: ['class']}); })();
