@@ -78,6 +78,105 @@
       ]
     },
     {
+      "id": "night-signals",
+      "title": "Night Signals",
+      "type": "album",
+      "year": 2025,
+      "blurb": "Breakbeat, electro and late-night downtempo transmissions from the Lehigh Valley.",
+      "cover": "assets/covers/night-signals.jpg",
+      "tracks": [
+        {
+          "title": "Menace",
+          "file": "assets/audio/night-signals/01-menace.mp3",
+          "duration_sec": 177.3,
+          "bpm": 152,
+          "original": "tomGRIM-menace.mp3"
+        },
+        {
+          "title": "Animal Instinct",
+          "file": "assets/audio/night-signals/02-animal-instinct.mp3",
+          "duration_sec": 248.1,
+          "bpm": 123,
+          "original": "ANIMALS4.mp3"
+        },
+        {
+          "title": "On The Run",
+          "file": "assets/audio/night-signals/03-on-the-run.mp3",
+          "duration_sec": 153.0,
+          "bpm": 129,
+          "original": "IG3-NO TITLE.wav",
+          "aliases": [
+            "unnamed-frequency"
+          ]
+        },
+        {
+          "title": "Ninety-Six Something",
+          "file": "assets/audio/night-signals/04-ninety-six-something.mp3",
+          "duration_sec": 205.6,
+          "bpm": 96,
+          "original": "96sOMETHING.Mp3 (Drive: 96SOMETHING.mp3)"
+        },
+        {
+          "title": "Uplift",
+          "file": "assets/audio/night-signals/05-uplift.mp3",
+          "duration_sec": 243.3,
+          "bpm": 99,
+          "original": "upliftingisharrange.mp3"
+        },
+        {
+          "title": "Eyes On You",
+          "file": "assets/audio/night-signals/06-eyes-on-you.mp3",
+          "duration_sec": 240.0,
+          "bpm": 112,
+          "year": 2026,
+          "original": "ig3-eyes-on-you-006-ARGMT.mp3"
+        },
+        {
+          "title": "Pixelated",
+          "file": "assets/audio/night-signals/07-pixelated.mp3",
+          "duration_sec": 107.5,
+          "bpm": 126,
+          "year": 2025,
+          "original": "2025-1-2-believeit.wav"
+        },
+        {
+          "title": "Disappear",
+          "file": "assets/audio/night-signals/08-disappear.mp3",
+          "duration_sec": 300.5,
+          "bpm": 129,
+          "year": 2023,
+          "original": "loveyou3.wav",
+          "aliases": [
+            "low-light"
+          ]
+        },
+        {
+          "title": "Alive",
+          "file": "assets/audio/night-signals/09-alive.mp3",
+          "duration_sec": 267.2,
+          "bpm": 115,
+          "year": 2024,
+          "original": "NOTHGIN2-RED.O.mp3"
+        },
+        {
+          "title": "Back Then",
+          "file": "assets/audio/night-signals/10-back-then.mp3",
+          "duration_sec": 172.5,
+          "bpm": 136,
+          "year": 2024,
+          "original": "real love-arrange3.wav"
+        },
+        {
+          "title": "Pulling Me Down",
+          "file": "assets/audio/night-signals/11-pulling-me-down.mp3",
+          "duration_sec": 150.3,
+          "bpm": 104,
+          "year": 2026,
+          "original": "mobyroll3-arngmnt1.mp3"
+        }
+      ]
+    },
+    {
       "id": "elements",
       "title": "ELEMENTS",
       "type": "album",
@@ -127,105 +226,6 @@
           "bpm": null,
           "original": "Ign3ous - Old Element Mix.mp3",
           "special": true
-        }
-      ]
-    },
-    {
-      "id": "night-signals",
-      "title": "Night Signals",
-      "type": "album",
-      "year": 2026,
-      "blurb": "Breakbeat, electro and late-night downtempo transmissions from the Lehigh Valley.",
-      "cover": "assets/covers/night-signals.jpg",
-      "tracks": [
-        {
-          "title": "Menace",
-          "file": "assets/audio/night-signals/01-menace.mp3",
-          "duration_sec": 177.3,
-          "bpm": 152,
-          "original": "tomGRIM-menace.mp3"
-        },
-        {
-          "title": "Animal Instinct",
-          "file": "assets/audio/night-signals/02-animal-instinct.mp3",
-          "duration_sec": 248.1,
-          "bpm": 123,
-          "original": "ANIMALS4.mp3"
-        },
-        {
-          "title": "On The Run",
-          "file": "assets/audio/night-signals/03-on-the-run.mp3",
-          "duration_sec": 153.0,
-          "bpm": 129,
-          "original": "IG3-NO TITLE.wav",
-          "aliases": [
-            "unnamed-frequency"
-          ]
-        },
-        {
-          "title": "Ninety-Six Something",
-          "file": "assets/audio/night-signals/04-ninety-six-something.mp3",
-          "duration_sec": 205.6,
-          "bpm": 96,
-          "original": "96sOMETHING.Mp3 (Drive: 96SOMETHING.mp3)"
-        },
-        {
-          "title": "Uplift",
-          "file": "assets/audio/night-signals/05-uplift.mp3",
-          "duration_sec": 243.3,
-          "bpm": 99,
-          "original": "upliftingisharrange.mp3"
-        },
-        {
-          "title": "Eyes On You",
-          "file": "assets/audio/night-signals/06-eyes-on-you.mp3",
-          "duration_sec": 240.0,
-          "bpm": null,
-          "year": 2026,
-          "original": "ig3-eyes-on-you-006-ARGMT.mp3"
-        },
-        {
-          "title": "Pixelated",
-          "file": "assets/audio/night-signals/07-pixelated.mp3",
-          "duration_sec": 107.5,
-          "bpm": null,
-          "year": 2025,
-          "original": "2025-1-2-believeit.wav"
-        },
-        {
-          "title": "Disappear",
-          "file": "assets/audio/night-signals/08-disappear.mp3",
-          "duration_sec": 300.5,
-          "bpm": null,
-          "year": 2023,
-          "original": "loveyou3.wav",
-          "aliases": [
-            "low-light"
-          ]
-        },
-        {
-          "title": "Alive",
-          "file": "assets/audio/night-signals/09-alive.mp3",
-          "duration_sec": 267.2,
-          "bpm": null,
-          "year": 2024,
-          "original": "NOTHGIN2-RED.O.mp3"
-        },
-        {
-          "title": "Back Then",
-          "file": "assets/audio/night-signals/10-back-then.mp3",
-          "duration_sec": 172.5,
-          "bpm": null,
-          "year": 2024,
-          "original": "real love-arrange3.wav"
-        },
-        {
-          "title": "Pulling Me Down",
-          "file": "assets/audio/night-signals/11-pulling-me-down.mp3",
-          "duration_sec": 150.3,
-          "bpm": null,
-          "year": 2026,
-          "original": "mobyroll3-arngmnt1.mp3"
         }
       ]
     },
@@ -741,7 +741,7 @@
           "title": "Get Out",
           "file": "assets/audio/singles/get-out.mp3",
           "duration_sec": 269.0,
-          "bpm": null,
+          "bpm": 99,
           "original": "OUTIFE RECOVER lv12-3FINAL.wav"
         }
       ]
@@ -758,7 +758,7 @@
           "title": "Maguntsche",
           "file": "assets/audio/soundtracks/01-maguntsche.mp3",
           "duration_sec": 193.8,
-          "bpm": null,
+          "bpm": 120,
           "year": 2023,
           "original": "MAGUNT-BACK IN SCHOOL.mp3 (title tag MAG-AUG23)"
         },
