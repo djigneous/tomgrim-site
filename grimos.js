@@ -160,7 +160,7 @@ const playedOnce = {};
 document.getElementById('bshare')?.addEventListener('click', () => shareTrack(true)); let ringAgc = .1, secret = null;
 const curT = () => secret || flat[cur];
 function play(i) {
- secret = null;
+ secret = null; intent = 'play';
  if (i == null || !flat[i]) i = sel >= 0 && flat[sel] ? sel : 0;
  ensureCtx();
  if (i !== cur || !playedOnce[i]) { playedOnce[i] = 1; window.tgTrack('play', flat[i].title); }
@@ -177,9 +177,15 @@ function toggle() { if (cur < 0 || !isPlaying()) play(cur < 0 ? sel : cur); else
 // the same position. Never fights a deliberate pause (user, notification, headset, or a phone call → those leave the element paused).
 let userPaused = false, stallT = -1, stallN = 0, stallTries = 0;
 audio.addEventListener('play', () => { userPaused = false; endIdle = false; }); audio.addEventListener('playing', () => { switching = 0; stallTries = 0; audio.preload = 'auto'; msState(); });
-setInterval(() => { if (audio.paused || audio.ended || !audio.src) { stallN = 0; return; } if (audio.currentTime !== stallT) { stallT = audio.currentTime; stallN = 0; return; }
+// HARDENED (Tom: "audio randomly started"): Android can freeze a focus-lost element WITHOUT setting paused, so a frozen playhead alone
+// is NOT a reason to restart. Recover only in the foreground, after a real 'waiting'/'stalled' (network starvation), with no external pause since.
+let sawStarve = false, intent = 'pause'; // intent: only ever 'play' via an explicit play()/toggle/media-key; any external pause flips it
+audio.addEventListener('pause', () => { if (!switching && !audio.ended) intent = 'pause'; });
+ audio.addEventListener('waiting', () => { sawStarve = true; }); audio.addEventListener('stalled', () => { sawStarve = true; });
+audio.addEventListener('pause', () => { if (!switching) { sawStarve = false; stallN = 0; } }); audio.addEventListener('playing', () => { sawStarve = false; });
+setInterval(() => { if (intent !== 'play' || audio.paused || audio.ended || !audio.src || userPaused || document.hidden || !sawStarve) { stallN = 0; return; } if (audio.currentTime !== stallT) { stallT = audio.currentTime; stallN = 0; return; }
  if (++stallN < 3 || audio.readyState >= 3 || stallTries >= 3) return; stallN = 0; stallTries++; const t = audio.currentTime;
- audio.load(); audio.addEventListener('loadedmetadata', () => { try { audio.currentTime = t; } catch {} }, {once: true}); audio.play().catch(() => {}); }, 3000);
+ audio.load(); audio.addEventListener('loadedmetadata', () => { try { audio.currentTime = t; } catch {} }, {once: true}); if (intent === 'play' && !userPaused && !document.hidden) audio.play().catch(() => {}); }, 3000);
 function next(d = 1) {
  if (!flat.length) return;
  let i;
@@ -187,7 +193,7 @@ function next(d = 1) {
  else i = ((cur < 0 ? sel : cur) + d + flat.length) % flat.length;
  play(i);
 }
-function onEnded() { trackMood(null); if (secret) { secret = null; return next(1); } const r = effRepeat(); if (r === 'one') { const el = bgMode ? bgEl : audio; el.currentTime = 0; el.play(); } else if (r === 'all' || shuffle || cur < flat.length - 1) next(1); else { endIdle = true; msState(); } }
+function onEnded() { trackMood(null); if (secret) { secret = null; return next(1); } const r = effRepeat(); if (r === 'one') { const el = bgMode ? bgEl : audio; el.currentTime = 0; if (intent === 'play') el.play(); } else if (r === 'all' || shuffle || cur < flat.length - 1) next(1); else { endIdle = true; msState(); } }
 audio.addEventListener('ended', () => { if (!bgMode) onEnded(); });
 audio.addEventListener('play', updateNP); audio.addEventListener('pause', updateNP);
 audio.addEventListener('loadedmetadata', updateNP);
