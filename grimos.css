@@ -454,9 +454,9 @@ body.nocolor .sx-bad{text-decoration:none}
 .tapflash{position:fixed;inset:0;z-index:9050;background:#000;pointer-events:none;animation:tapfl .22s ease-out forwards}@keyframes tapfl{from{opacity:.45}to{opacity:0}}
 /* GRIM/WX: skip button + header portrait */
 .wx-npr{flex:1;min-width:0;display:flex;align-items:center;gap:1.2cqw}.wx-npr .wx-npt{flex:0 1 auto}
-.wx-skip{flex:0 0 auto;font:inherit;color:#ffe02a;background:#0c2a9e;border:.3cqh solid #fff;box-shadow:.4cqh .4cqh 0 #000;padding:.6cqh .9cqh;line-height:0;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-.wx-skip svg{width:3.4cqh;height:2.65cqh;fill:currentColor;display:block}.wx-skip:active{background:#c22a0a}
-.wx-face{flex:0 0 auto;width:15cqh;height:15cqh;background:linear-gradient(135deg,#14268a,#060f4a);border:.4cqh solid #fff;box-shadow:.5cqh .5cqh 0 #000;box-sizing:border-box;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
+.wx-skip{flex:0 0 auto;font:inherit;color:#ffe02a;background:rgba(12,42,158,.55);border:1px solid rgba(255,255,255,.28);box-shadow:none;padding:.7cqh 1.1cqh;line-height:0;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.wx-skip svg{width:1.6cqh;height:2.8cqh;fill:currentColor;display:block}.wx-skip:active{background:#c22a0a}
+.wx-face{flex:0 0 auto;width:15cqh;height:15cqh;background:linear-gradient(135deg,#14268a,#060f4a);border:0;box-shadow:none;box-sizing:border-box;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
 .wx-face i{display:block;width:88%;height:96%;background:#fff3a8;filter:drop-shadow(0 0 .25cqh rgba(255,240,160,.6));-webkit-mask:url(assets/A_mask.png) center bottom/contain no-repeat;mask:url(assets/A_mask.png) center bottom/contain no-repeat}
 .wx-top .wx-face{margin-left:-1cqw}
-@media (max-aspect-ratio:1/1){.wx-face{width:17cqw;height:17cqw}.wx-top .wx-face{margin-left:0}.wx-npr{grid-column:1/-1;padding:1.6cqw 3cqw 0;gap:3cqw}.wx-npr .wx-npt{padding:0}.wx-skip{padding:1.2cqw 1.8cqw;border-width:.6cqw}.wx-skip svg{width:6cqw;height:4.7cqw}}
+@media (max-aspect-ratio:1/1){.wx-face{width:17cqw;height:17cqw}.wx-top .wx-face{margin-left:0}.wx-npr{grid-column:1/-1;padding:1.6cqw 3cqw 0;gap:3cqw}.wx-npr .wx-npt{padding:0}.wx-skip{padding:1.4cqw 2.2cqw}.wx-skip svg{width:2.8cqw;height:4.9cqw}}
