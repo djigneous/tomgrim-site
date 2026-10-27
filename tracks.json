@@ -110,11 +110,14 @@
           ]
         },
         {
-          "title": "Ninety-Six Something",
-          "file": "assets/audio/night-signals/04-ninety-six-something.mp3",
+          "title": "Passing High",
+          "file": "assets/audio/night-signals/04-passing-high.mp3",
           "duration_sec": 205.6,
           "bpm": 96,
-          "original": "96sOMETHING.Mp3 (Drive: 96SOMETHING.mp3)"
+          "original": "96sOMETHING.Mp3 (Drive: 96SOMETHING.mp3)",
+          "aliases": [
+            "ninety-six-something"
+          ]
         },
         {
           "title": "Uplift",
