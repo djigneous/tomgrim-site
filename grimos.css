@@ -487,3 +487,7 @@ body.kbopen{padding-bottom:var(--kb,0px)} /* lets the docked prompt scroll above
 .mf{color:var(--a3,var(--acc))}
 .manout .mt{color:#fff;font-weight:bold;margin-top:.6em}.manout .mt:first-child{margin-top:0}
 .manout .mp{margin-left:2ch;white-space:pre-wrap}
+/* status feedback: new value in a brighter theme text color (between --fg and white) */
+body{--val:var(--br)} /* fallback: theme's bright tone */
+@supports (color:color-mix(in srgb,red 50%,#fff)){body{--val:color-mix(in srgb,var(--fg) 50%,#fff)}}
+#out .val{color:var(--val);font-weight:normal}

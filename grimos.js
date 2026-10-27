@@ -220,7 +220,7 @@ function updateModes() {
 function cycleRepeat() {
  const t = flat[cur], order = ['off', 'all', 'one'];
  if (t && isLoopAlbum(t)) { loopOverride[t.ai] = effRepeat() === 'one' ? 'all' : 'one'; say(`loop repeat (${t.al.title}): ${loopOverride[t.ai]}`); }
- else { repeat = order[(order.indexOf(repeat) + 1) % 3]; say('repeat: ' + repeat); }
+ else { repeat = order[(order.indexOf(repeat) + 1) % 3]; say('repeat: ' + V(repeat), true); }
  updateModes();
 }
 function setVol(v) { vol = Math.max(0, Math.min(1, v)); applyOut(); updateModes(); }
@@ -422,6 +422,7 @@ const out = $('#out'), cmd = $('#cmd'); const hist = []; let hp = 0;
 function say(html, raw) { const d = document.createElement('div'); if (raw) d.innerHTML = html; else if (typeof ansi === 'function' && (String(html).includes('\x1b') || ERRRE.test(html))) d.innerHTML = ansi(String(html).includes('\x1b') ? html : String(html).split('\n').map(l => ERRRE.test(l) ? '\x1b[31m' + l + '\x1b[0m' : l).join('\n')); else d.textContent = html; out.appendChild(d); out.scrollTop = out.scrollHeight; }
 /* ---------- ANSI colors + syntax highlighting ---------- */
 const E = '\x1b[', A = (c, s) => E + c + 'm' + s + E + '0m';
+const V = x => `<span class="val">${escH(String(x))}</span>`; // highlighted new value in status feedback
 const escH = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'})[c]);
 function ansi(str) { let o = '', st = {}, open = false; const parts = String(str).split(/\x1b\[([\d;]*)m/);
  const flush = () => { const c = []; if (st.fg != null) c.push('a' + st.fg); if (st.bg != null) c.push('ab' + st.bg); if (st.b) c.push('ab-b'); if (st.d) c.push('ab-d'); if (st.i) c.push('ab-i'); if (st.u) c.push('ab-u'); return c.length ? `<span class="${c.join(' ')}">` : ''; };
@@ -463,7 +464,7 @@ function helpCmd(a) { a = (a || '').trim().toLowerCase(); const H = HELP();
  const hit = H.filter(x => x[1].split(' ').includes(a) || x[2].some(r => r[0].split(' ')[0] === a)); if (hit.length) return say('<div class="helpout">' + hit.map(x => helpSec([x[0], x[1].split(' ').includes(a) ? a : '', x[2].filter(r => r[0].split(' ')[0] === a), ''])).join('') + '</div>', true);
  sayA(`help: no help topics match '${escH(a)}'. try ${A('1', 'help')}`); }
 let colorsOn = sessionStorage.grimColors !== 'off'; document.body.classList.toggle('nocolor', !colorsOn);
-function colorsCmd(a) { a = (a || '').trim(); if (a === 'off' || a === 'on') { colorsOn = a === 'on'; sessionStorage.grimColors = a; document.body.classList.toggle('nocolor', !colorsOn); return sayA('colors: ' + (colorsOn ? A('1;32', 'on') : 'off')); }
+function colorsCmd(a) { a = (a || '').trim(); if (a === 'off' || a === 'on') { colorsOn = a === 'on'; sessionStorage.grimColors = a; document.body.classList.toggle('nocolor', !colorsOn); return say('colors: ' + V(colorsOn ? 'on' : 'off'), true); }
  const T = ' gYw ', bgs = ['', '40m', '41m', '42m', '43m', '44m', '45m', '46m', '47m']; let s = '         ' + bgs.map(b => (b || '').padEnd(6) ).join('').trimEnd() + '\n';
  const rows = [['m', ''], ['1m', '1'], ['30m', '30'], ['1;30m', '1;30'], ['31m', '31'], ['1;31m', '1;31'], ['32m', '32'], ['1;32m', '1;32'], ['33m', '33'], ['1;33m', '1;33'], ['34m', '34'], ['1;34m', '1;34'], ['35m', '35'], ['1;35m', '1;35'], ['36m', '36'], ['1;36m', '1;36'], ['37m', '37'], ['1;37m', '1;37']];
  for (const [lab, code] of rows) { s += lab.padStart(6) + ' ' + A(code || '0', T); for (let b = 0; b < 8; b++) s += ' ' + A((code ? code + ';' : '') + (40 + b), T); s += '\n'; }
@@ -478,7 +479,7 @@ const THEMES = ['cyan', 'green', 'amber', 'red', 'fire', 'ice', 'silicon', 'nigh
 const themeSel = $('#themesel'); themeSel.innerHTML = THEMES.map(t => `<option value="${t}">${t}</option>`).join('');
 const curTheme = () => (document.body.className.match(/theme-(\w+)/) || [])[1] || 'cyan';
 function setTheme(t, quiet) { if (t === 'grey' || t === 'grayscale') t = 'gray'; if (!THEMES.includes(t)) return say('usage: theme ' + THEMES.join('|'));
- document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + t); if (quiet !== 'mood') { localStorage.grimTheme = t; if (mood) mood.prev = t; } themeSel.value = t; refreshColors(); if (!quiet) say('theme → ' + t); }
+ document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + t); if (quiet !== 'mood') { localStorage.grimTheme = t; if (mood) mood.prev = t; } themeSel.value = t; refreshColors(); if (!quiet) say('theme → ' + V(t), true); }
 themeSel.addEventListener('change', () => setTheme(themeSel.value));
 // grimfetch color swatches: one per theme (same order as the dropdown); click/Enter/Space = same as picking it in the dropdown
 const SW = {cyan: '#6ff6ff', green: '#4dff7c', amber: '#ffbb20', red: '#ff4a4a', fire: 'linear-gradient(#ffe14d,#ff2a00)', ice: 'linear-gradient(#fff,#7fc4ff)', silicon: 'linear-gradient(#b3c088,#6fb8b4)', nightshift: 'linear-gradient(#a9b8f0,#b28dfd)', neon: 'linear-gradient(#4cc6ff,#df81fc)', gray: '#bbb'};
@@ -489,7 +490,7 @@ if (swEl) { swEl.removeAttribute('aria-hidden'); swEl.setAttribute('role', 'grou
  const pick = e => { const i = e.target.closest('i[data-theme]'); if (!i) return; if (e.type === 'keydown') { if (e.key !== 'Enter' && e.key !== ' ') return; e.preventDefault(); } setTheme(i.dataset.theme); };
  swEl.addEventListener('click', pick); swEl.addEventListener('keydown', pick); }
 new MutationObserver(markSwatch).observe(document.body, {attributes: true, attributeFilter: ['class']}); markSwatch();
-function setCrt(on, quiet) { document.body.classList.toggle('nocrt', !on); localStorage.grimCrt = on ? '1' : '0'; const b = $('#bcrt'); b.textContent = 'CRT:' + (on ? 'on' : 'off'); b.setAttribute('aria-pressed', on); if (!quiet) say('crt filter: ' + (on ? 'on' : 'off')); }
+function setCrt(on, quiet) { document.body.classList.toggle('nocrt', !on); localStorage.grimCrt = on ? '1' : '0'; const b = $('#bcrt'); b.textContent = 'CRT:' + (on ? 'on' : 'off'); b.setAttribute('aria-pressed', on); if (!quiet) say('crt filter: ' + V(on ? 'on' : 'off'), true); }
 $('#bcrt').onclick = () => setCrt(document.body.classList.contains('nocrt'));
 /* matrix rain */
 let mx = null;
@@ -673,7 +674,7 @@ setInterval(() => { if (dead || document.hidden || RM) return; if (saver.active 
  if (busy) return; const names = Object.keys(SAVERS), pick = wxMood ? 'weather' : mood && SAVERS.fire ? 'fire' : SAVERS[saver.fx] ? saver.fx : names[Math.random() * names.length | 0];
  saverMode = true; try { (pick === 'weather' ? weatherFx : SAVERS[pick])(); } finally { saverMode = false; } if (fxs || mx) { saver.active = true; saver.started = Date.now(); } }, 1000);
 function screensaverCmd(a) { a = (a || '').trim().toLowerCase();
- if (!a) return say(`screensaver: ${saver.on ? 'on' : 'off'} · after ${saver.sec}s idle · effect: ${saver.fx}\nusage: screensaver on|off|<seconds>|<effect>|random   effects: ${Object.keys(SAVERS).join(' ')}`);
+ if (!a) return say(`screensaver: ${V(saver.on ? 'on' : 'off')} · after ${V(saver.sec + 's')} idle · effect: ${V(saver.fx)}\n${escH('usage: screensaver on|off|<seconds>|<effect>|random   effects: ' + Object.keys(SAVERS).join(' '))}`, true);
  if (a === 'on' || a === 'off') saver.on = a === 'on'; else if (/^\d+$/.test(a)) { saver.sec = Math.max(5, Math.min(3600, +a)); saver.on = true; } else if (a === 'random' || SAVERS[a]) saver.fx = a; else if (a === 'now' || a === 'test') { saver.last = 0; return say('screensaver: starting…'); } else return say('screensaver: unknown option ' + a);
  localStorage.grimSaver = saver.on ? 'on' : 'off'; localStorage.grimSaverSec = saver.sec; localStorage.grimSaverFx = saver.fx; saver.last = Date.now(); screensaverCmd(''); }
 function cowsay(t) { t = (t || 'moo. drop the bass.').slice(0, 200); const w = Math.min(36, Math.max(...t.split(' ').map(x => x.length), 4)); const lines = []; let l = '';
@@ -687,12 +688,12 @@ const CMDS = {
  themes: () => say('themes: ' + THEMES.map(t => t === curTheme() ? '[' + t + ']' : t).join(' ')),
  crt: a => { a = (a || '').trim(); if (a === 'on' || a === 'off') setCrt(a === 'on'); else if (!a) setCrt(document.body.classList.contains('nocrt')); else say('usage: crt on|off'); },
  photos: () => { say(`~/photos: ${PHOTOS.length} frames · click one or use ←/→ in the viewer`); jump('photos'); }, gallery: () => CMDS.photos(),
- random: () => { const pool = ['hack', 'weather', 'matrix', 'glitch', 'fire', 'starfield', 'plasma'], k = pool[Math.random() * pool.length | 0]; sayA(`random: ${A('2', 'rolling the dice…')} → ${A('1;33', k)}`); return CMDS[k](); }, matrix: () => matrix(), glitch: () => glitch(), fire: () => fire(), hack: () => hack(), starfield: () => starfield(), stars: () => starfield(), plasma: () => plasma(), tunnel: () => tunnel(), rain: () => rain(), dvd: () => dvd(), life: () => life(), cube: a => cube(a), donut: () => cube('donut'), torus: () => cube('donut'), snow: () => snow(), pipes: () => pipes(), screensaver: a => screensaverCmd(a), saver: a => screensaverCmd(a), cowsay: a => cowsay(a),
+ random: () => { const pool = ['hack', 'weather', 'matrix', 'glitch', 'fire', 'starfield', 'plasma'], k = pool[Math.random() * pool.length | 0]; say(`random: <span class="ab-d">rolling the dice…</span> → ${V(k)}`, true); return CMDS[k](); }, matrix: () => matrix(), glitch: () => glitch(), fire: () => fire(), hack: () => hack(), starfield: () => starfield(), stars: () => starfield(), plasma: () => plasma(), tunnel: () => tunnel(), rain: () => rain(), dvd: () => dvd(), life: () => life(), cube: a => cube(a), donut: () => cube('donut'), torus: () => cube('donut'), snow: () => snow(), pipes: () => pipes(), screensaver: a => screensaverCmd(a), saver: a => screensaverCmd(a), cowsay: a => cowsay(a),
  ls: () => flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}${t.special ? ' ★' : ''}  [${t.single ? 'single' : t.al.title}]`)),
  albums: () => data.albums.forEach((a, i) => say(`[${String.fromCharCode(65 + (flat.find(t => t.al === a)?.ai ?? i))}] ${a.title}${a.year ? ' (' + a.year + ')' : ''} — ${a.type || 'album'}, ${a.tracks.length} tracks${a.blurb ? ' · ' + a.blurb : ''}`)),
  play: a => { if (!a) return toggle(); const n = parseInt(a, 10); if (n >= 1 && n <= flat.length) { play(n - 1); say('playing ' + flat[n - 1].title); } else { const i = flat.findIndex(t => t.title.toLowerCase().includes(a.toLowerCase())); i >= 0 ? (play(i), say('playing ' + flat[i].title)) : say('no such track: ' + a); } },
- pause: () => outPause(), next: () => next(1), prev: () => next(-1), repeat: cycleRepeat, shuffle: () => { shuffle = !shuffle; updateModes(); say('shuffle: ' + shuffle); },
- vol: a => { setVol((+a || 0) / 100); say('volume ' + Math.round(vol * 100) + '%'); },
+ pause: () => outPause(), next: () => next(1), prev: () => next(-1), repeat: cycleRepeat, shuffle: () => { shuffle = !shuffle; updateModes(); say('shuffle: ' + V(shuffle ? 'on' : 'off'), true); },
+ vol: a => { setVol((+a || 0) / 100); say('volume ' + V(Math.round(vol * 100) + '%'), true); },
  bio: () => { say(manBio(), true); jump('man'); },
  man: a => CMDS.bio(), whoami: () => say('tomGRIM — formerly dj ign3ous. Lehigh Valley, PA.'), fetch: () => jump('fetch'), weather: () => weatherFx(true), wx: () => weatherFx(true), grimfetch: () => jump('fetch'),
  links: () => LINKS.forEach(([n, u]) => say(`${n.padEnd(12)} <a href="${u}" target="_blank" rel="noopener">${u}</a>`, true)),
@@ -764,7 +765,7 @@ knobsBuild();
 { const np = $('.np'); const fit = () => { const w = np.clientWidth; np.classList.toggle('narrow', w < 600); }; new ResizeObserver(fit).observe(np); fit(); }
 function fxCmd(a) { a = (a || '').trim().toLowerCase(); const show = () => say('fx: ' + Object.keys(FXK).map(k => `${k} ${Math.round(fxv[k])} (${fxFmt(k, fxv[k])})`).join(' · ') + '\nusage: fx reset · fx <filter|res|verb|crush> <value>   (filter -100..100, others 0..100)');
  if (!a) return show(); if (a === 'reset') { Object.keys(FXK).forEach(k => fxSet(k, FXK[k].def)); return say('fx: all knobs reset (bypass).'); }
- const m = a.match(/^(filter|res|verb|reverb|crush)\s+(-?\d+(\.\d+)?)$/); if (!m) return show(); const k = m[1] === 'reverb' ? 'verb' : m[1]; fxSet(k, +m[2]); say(`fx: ${k} → ${Math.round(fxv[k])} (${fxFmt(k, fxv[k])})`); }
+ const m = a.match(/^(filter|res|verb|reverb|crush)\s+(-?\d+(\.\d+)?)$/); if (!m) return show(); const k = m[1] === 'reverb' ? 'verb' : m[1]; fxSet(k, +m[2]); say(`fx: ${escH(k)} → ${V(Math.round(fxv[k]) + ' (' + fxFmt(k, fxv[k]) + ')')}`, true); }
 window.__fx = () => ({...fxv, routed: fxg ? 1 : 0, worklet: !!(fxg && fxg.crush)});
 
 /* ---------- pop-out terminal ---------- */
