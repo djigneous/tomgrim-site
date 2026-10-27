@@ -237,7 +237,8 @@ function fitTitle() { const m = npT.firstChild; if (!m || !m.classList) return; 
 new ResizeObserver(() => { const w = npT.clientWidth; if (w !== fitTitle.w) { fitTitle.w = w; fitTitle(); } }).observe(npT);
 let autoViz = false; // timed/idle auto visuals: OFF by default (Graveyard / Walking Green special cases still run)
 function updateEye() { const b = $('#beye'); if (!b) return; b.textContent = '👁\uFE0E ' + (autoViz ? 'on' : 'off'); b.setAttribute('aria-pressed', autoViz); }
-$('#beye').onclick = () => { autoViz = !autoViz; saver.last = Date.now(); updateEye(); }; updateEye();
+function setAuto(on) { autoViz = !!on; if (typeof saver !== 'undefined') { saver.on = autoViz; saver.last = Date.now(); } updateEye(); } // eye ⇄ screensaver on/off: one shared state
+$('#beye').onclick = () => setAuto(!autoViz); updateEye();
 $('#brep').onclick = cycleRepeat; $('#bshuf').onclick = () => { shuffle = !shuffle; updateModes(); };
 $('#volup').onclick = () => setVol(vol + .05); $('#voldn').onclick = () => setVol(vol - .05);
 
@@ -653,7 +654,7 @@ function blackout() { audio.pause(); try { audio.removeAttribute('src'); audio.l
 
 /* ---------- idle screensaver ---------- */
 const SAVERS = {matrix: () => matrix(), fire: () => fire(), starfield: () => starfield(), plasma, tunnel, rain, dvd, life, cube: () => cube(), donut: () => cube('donut'), snow, pipes};
-const saver = {on: localStorage.grimSaver !== 'off', sec: +localStorage.grimSaverSec || 60, fx: localStorage.grimSaverFx || 'random', last: Date.now(), active: false, started: 0};
+const saver = {on: false, /* shared with the 👁 toggle; off on every load */ sec: +localStorage.grimSaverSec || 60, fx: localStorage.grimSaverFx || 'random', last: Date.now(), active: false, started: 0};
 // exits: key press, wheel, or a real mouse move; taps/clicks go through dblExit on the overlay (double-tap / double-click)
 let mvAcc = 0, mvLast = null;
 function saverExitEv(ev, e) { if (ev === 'keydown' || ev === 'wheel') return true;
@@ -669,15 +670,15 @@ function saverHint(txt) { let h = document.getElementById('dblhint'); if (!txt) 
 function saverStop() { if (!saver.active) return; saver.active = false; if (fxs && fxs.saver) fxs.stop(); else if (mx && mx.saver) mx.stop(); }
 ['mousemove', 'keydown', 'touchstart', 'wheel', 'scroll', 'pointerdown'].forEach(ev => addEventListener(ev, e => { saver.last = Date.now(); if (saver.active && Date.now() - saver.started > 400 && saverExitEv(ev, e)) { saverStop(); if (ev === 'keydown') { e.preventDefault(); e.stopImmediatePropagation(); } } }, {capture: true, passive: ev !== 'keydown'}));
 setInterval(() => { if (dead || document.hidden || RM) return; if (saver.active && !fxs && !mx) saver.active = false;
- if (!saver.on || (!autoViz && !wxMood && !mood) || saver.active || fxs || mx || !booted || Date.now() - saver.last < saver.sec * 1000) return;
+ if (dead || (!saver.on && !wxMood && !mood) || saver.active || fxs || mx || !booted || Date.now() - saver.last < saver.sec * 1000) return;
  const ae = document.activeElement, busy = openM || !$('#photos').hidden || !$('#lb').hidden || !$('#help').hidden || (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.value);
  if (busy) return; const names = Object.keys(SAVERS), pick = wxMood ? 'weather' : mood && SAVERS.fire ? 'fire' : SAVERS[saver.fx] ? saver.fx : names[Math.random() * names.length | 0];
  saverMode = true; try { (pick === 'weather' ? weatherFx : SAVERS[pick])(); } finally { saverMode = false; } if (fxs || mx) { saver.active = true; saver.started = Date.now(); } }, 1000);
 function screensaverCmd(a) { a = (a || '').trim().toLowerCase();
  if (!a) { const L = x => `<span class="lw">${x}</span>`, RL = (run, t) => `<button type="button" class="getlink runlink xref" data-run="${escH(run)}" title="${escH(run)}"><b>${escH(t)}</b></button>`, sep = '<span class="ab-d">|</span>';
   return say(`<div class="ssout">${L('screensaver:')} ${V(saver.on ? 'on' : 'off')} · after ${V(saver.sec + 's')} idle · effect: ${V(saver.fx)}\n${L('usage:')} screensaver ${[RL('screensaver on', 'on'), RL('screensaver off', 'off'), '<span class="mf">&lt;seconds&gt;</span>', '<span class="mf">&lt;effect&gt;</span>', RL('screensaver random', 'random')].join(sep)}\n${L('effects:')} ${Object.keys(SAVERS).map(k => RL('screensaver ' + k, k)).join(' ')}</div>`, true); }
- if (a === 'on' || a === 'off') saver.on = a === 'on'; else if (/^\d+$/.test(a)) { saver.sec = Math.max(5, Math.min(3600, +a)); saver.on = true; } else if (a === 'random' || SAVERS[a]) { saver.fx = a; if (SAVERS[a]) setTimeout(() => { if (!fxs && !mx) SAVERS[a](); }, 0); } // pick + preview now (any key/click exits) else if (a === 'now' || a === 'test') { saver.last = 0; return say('screensaver: starting…'); } else return say('screensaver: unknown option ' + a);
- localStorage.grimSaver = saver.on ? 'on' : 'off'; localStorage.grimSaverSec = saver.sec; localStorage.grimSaverFx = saver.fx; saver.last = Date.now(); screensaverCmd(''); }
+ if (a === 'on' || a === 'off') setAuto(a === 'on'); else if (/^\d+$/.test(a)) { saver.sec = Math.max(5, Math.min(3600, +a)); setAuto(true); } else if (a === 'random' || SAVERS[a]) { saver.fx = a; if (SAVERS[a]) setTimeout(() => { if (!fxs && !mx) SAVERS[a](); }, 0); } /* pick + preview now (any key/click exits) */ else if (a === 'now' || a === 'test') { say('screensaver: starting…'); setTimeout(() => { if (fxs || mx) return; const names = Object.keys(SAVERS), pick = SAVERS[saver.fx] ? saver.fx : names[Math.random() * names.length | 0]; saverMode = true; try { SAVERS[pick](); } finally { saverMode = false; } if (fxs || mx) { saver.active = true; saver.started = Date.now(); } }, 300); return; } else return say('screensaver: unknown option ' + a);
+ localStorage.grimSaverSec = saver.sec; localStorage.grimSaverFx = saver.fx; saver.last = Date.now(); screensaverCmd(''); }
 function cowsay(t) { t = (t || 'moo. drop the bass.').slice(0, 200); const w = Math.min(36, Math.max(...t.split(' ').map(x => x.length), 4)); const lines = []; let l = '';
  t.split(/\s+/).forEach(word => { if ((l + ' ' + word).trim().length > w) { lines.push(l.trim()); l = word; } else l += ' ' + word; }); if (l.trim()) lines.push(l.trim());
  const W = Math.max(...lines.map(x => x.length)); let b = ' ' + '_'.repeat(W + 2) + '\n';
@@ -1236,7 +1237,7 @@ setTheme(THEMES.includes(localStorage.grimTheme) ? localStorage.grimTheme : 'cya
 if (localStorage.grimFlicker === '1' || (localStorage.grimFlicker == null && !RM)) document.body.classList.add('flicker');
 refreshColors(); updateModes();
 say('<div class="banner"><span class="bw">GRIM/OS grimsh ' + GRIMOS_VERSION + '</span> — type "<button type="button" class="getlink runlink xref" data-run="help" title="run help"><b>help</b></button>". press ? for keys.</div>', true);
-say('<div class="helpout"><div class="hf hn">motd: every track is free to download — type <button type="button" class="getlink" data-get="get "><b>get</b> <span class="sx-var">&lt;track#&gt;</span></button><span class="sep"> • </span><button type="button" class="getlink" data-get="get --list"><b>get</b> <span class="sx-flag">--list</span></button></div>' + helpSec(['fun', 'random hack weather matrix glitch fire starfield plasma', [], 'click one to start it · random picks a visualizer · any key or click exits']) + '</div>', true);
+say('<div class="helpout"><div class="hf hn">motd: every track is free to download —<br>type <button type="button" class="getlink" data-get="get "><b>get</b> <span class="sx-var">&lt;track#&gt;</span></button><span class="sep"> • </span><button type="button" class="getlink" data-get="get --list"><b>get</b> <span class="sx-flag">--list</span></button></div>' + helpSec(['fun', 'random hack weather matrix glitch fire starfield plasma', [], 'click one to start it · random picks a visualizer · any key or click exits']) + '</div>', true);
 // terminal quick links: never move focus to the input on touch (no on-screen keyboard); desktop keeps focus in the prompt
 const TOUCHUI = () => matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0 && !matchMedia('(pointer: fine)').matches;
 ['pointerdown', 'mousedown'].forEach(ev => document.addEventListener(ev, e => { if (e.target.closest && e.target.closest('.getlink')) { e.preventDefault(); e.stopPropagation(); } }, true));
