@@ -49,7 +49,9 @@ async function load() {
  const si2 = si >= 0 || s == null ? si : flat.findIndex(t => lo(t.title) === lo(s) || (t.aliases || []).some(a => lo(a) === lo(s))); // tolerant: jack-d / jackd / Jack’d
  const at = parseInt(new URLSearchParams(location.search).get('at'), 10); if (si2 >= 0 && at > 0) pendingAt = {i: si2, t: at};
  // shared link (?t=<slug|n>&at=<s>): cue that track exactly like the default one — current track, record, waveform, seek on first play
- const d = si2 >= 0 ? si2 : WXLINK ? Math.random() * flat.length | 0 : flat.findIndex(t => /^redline$/i.test(t.title));
+ // weather link (/?wx=1): start on Walking Green (chan.32 Remix), then shuffle (pool already skips the loop pack while the current track isn't a loop)
+ const wxStart = WXLINK ? flat.findIndex(t => /^walking green \(chan\.32 remix\)$/i.test(t.title)) : -1; if (WXLINK && si2 < 0) { shuffle = true; updateModes(); }
+ const d = si2 >= 0 ? si2 : WXLINK ? (wxStart >= 0 ? wxStart : Math.random() * flat.length | 0) : flat.findIndex(t => /^redline$/i.test(t.title));
  { if (d >= 0) { cur = d; audio.preload = 'none'; lazySrc = flat[d].file; setRecord(flat[d]); loadWave(flat[d]); select(d); updateNP();
   if (WXLINK) setTimeout(() => { if (!fxs && !mx) weatherFx(false, {link: true}); }, 200);
   if (si2 >= 0) { if (pendingAt) $('#tcur').textContent = fmt(pendingAt.t); setTimeout(() => say(`cued: ${flat[d].title}${pendingAt ? ' @ ' + fmt(pendingAt.t) : ''} — press ▶ PLAY (or space) to start`), 50); } } }
