@@ -491,3 +491,4 @@ body.kbopen{padding-bottom:var(--kb,0px)} /* lets the docked prompt scroll above
 body{--val:var(--br)} /* fallback: theme's bright tone */
 @supports (color:color-mix(in srgb,red 50%,#fff)){body{--val:color-mix(in srgb,var(--fg) 50%,#fff)}}
 #out .val{color:var(--val);font-weight:normal}
+#out .lw{color:#fff;font-weight:bold}.ssout{white-space:pre-wrap}.ssout .xref{border-bottom-style:dotted}
