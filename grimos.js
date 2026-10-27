@@ -212,7 +212,7 @@ function updateNP() {
 }
 function updateModes() {
  const t = flat[cur], r = effRepeat();
- $('#brep').textContent = 'rep:' + r + (t && isLoopAlbum(t) ? '·lp' : '');
+ $('#brep').textContent = 'rep:' + r + (t && isLoopAlbum(t) ? '·lp' : '');  $('#brep').setAttribute('aria-pressed', r !== 'off');
  $('#bshuf').textContent = 'shuf:' + (shuffle ? 'on' : 'off'); $('#bshuf').setAttribute('aria-pressed', shuffle);
  $('#modes').textContent = `[${r === 'one' ? '↻1' : r === 'all' ? '↻∞' : '→'}${shuffle ? ' ⤨' : ''}]`;
  const vb = $('#volbar'), row = vb.parentElement; let used = 0; for (const ch of row.children) if (ch !== vb) used += ch.getBoundingClientRect().width; used += row.firstChild.nodeType === 3 ? 3.5 * (cw || 9) : 0; const ccw = (cw || 9) - 1, N = Math.max(4, Math.min(20, Math.floor((row.clientWidth - used - 24) / ccw))) || 20; const n = Math.round(vol * N); vb.textContent = '█'.repeat(n) + '░'.repeat(N - n); $('#volpct').textContent = String(Math.round(vol * 100)).padStart(3) + '%';
