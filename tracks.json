@@ -220,19 +220,33 @@
           "original": "ign3ous_-_febnew.mp3"
         },
         {
-          "title": "Old Element Mix (Original DJ Mix)",
-          "file": "assets/audio/elements/06-old-element-mix-original-dj-mix.mp3",
-          "duration_sec": 2919.9,
-          "bpm": null,
-          "original": "Ign3ous - Old Element Mix.mp3",
-          "special": true
-        },
-        {
           "title": "Radio Flows",
-          "file": "assets/audio/elements/07-radio-flows.mp3",
+          "file": "assets/audio/elements/06-radio-flows.mp3",
           "duration_sec": 204.1,
-          "bpm": null,
+          "bpm": 129,
           "original": "Copy of 102912render.mp3"
+        }
+      ]
+    },
+    {
+      "id": "mixes-sets",
+      "title": "MIXES & SETS",
+      "type": "mix",
+      "year": 2009,
+      "blurb": "Continuous mixes and DJ sets by tomGRIM, starting with the original ELEMENTS continuous play mix.",
+      "cover": "assets/covers/mixes-sets.jpg",
+      "tracks": [
+        {
+          "title": "ELEMENTS - Continuous Play Mix",
+          "file": "assets/audio/mixes-sets/01-elements-continuous-play-mix.mp3",
+          "duration_sec": 2919.9,
+          "bpm": 129,
+          "original": "Ign3ous - Old Element Mix.mp3",
+          "special": true,
+          "aliases": [
+            "old-element-mix-original-dj-mix",
+            "old-element-mix"
+          ]
         }
       ]
     },
