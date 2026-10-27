@@ -482,3 +482,8 @@ body.kbopen{padding-bottom:var(--kb,0px)} /* lets the docked prompt scroll above
 .xref{text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;border-bottom:1px dotted color-mix(in srgb,var(--a3,var(--acc)) 60%,transparent)}
 .xref b{color:var(--a3,var(--acc))}
 .xref:focus-visible b,.xref:active b{color:var(--bg);background:var(--a3,var(--acc))}@media (hover:hover){.xref:hover b{color:var(--bg);background:var(--a3,var(--acc))}}
+/* man pages: white section titles, link-colored [opts]/--flags */
+.manbody h3,.manbody .mh{color:#fff;font-weight:bold}
+.mf{color:var(--a3,var(--acc))}
+.manout .mt{color:#fff;font-weight:bold;margin-top:.6em}.manout .mt:first-child{margin-top:0}
+.manout .mp{margin-left:2ch;white-space:pre-wrap}

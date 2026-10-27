@@ -403,6 +403,20 @@ function drawHScope(live) { fitCanvas(hs, RING_D); const W = hs.width, H = hs.he
   for (let i = 0; i <= N; i++) { const x = i / N * W; i ? hg.lineTo(x, ys[i]) : hg.moveTo(x, ys[i]); } hg.stroke(); }
  hg.restore(); hg.globalAlpha = 1; }
 
+/* man page rendering: section titles white, [opts] <args> --flags in the link color, cross-refs clickable */
+const MANSEC = {links: 7, contact: 8};
+function manFlags(t) { return escH(t).replace(/(\[[^\]]*\]|&lt;[^&]*?&gt;|(?:^|(?<=\s))--?[a-z][\w-]*)/gi, '<span class="mf">$1</span>'); }
+function manRef(n) { n = n.trim().replace(/\(\d\)$/, ''); const run = MAN[n] ? 'man ' + n : n; return `<button type="button" class="getlink runlink xref" data-run="${escH(run)}"><b>${escH(n)}${MAN[n] ? '(' + (MANSEC[n] || 1) + ')' : ''}</b></button>`; }
+function manPage(a) { let body = MAN[a], see = ''; const m = body.match(/\s*see also:\s*([^.]+)\.?\s*$/i); if (m) { body = body.slice(0, m.index); see = m[1]; }
+ const nm = body.match(/^(\S+) — ([^:.]+?)(?=[:.]|$)/); const H = `${a.toUpperCase()}(${MANSEC[a] || 1})`;
+ const desc = nm ? body.slice(nm[0].length).replace(/^[:.]\s*/, '').trim() : body;
+ return `<div class="manout"><div class="mt">${H}</div><div class="mt">NAME</div><div class="mp">${manFlags(nm ? nm[1] + ' — ' + nm[2] : a)}</div>` + (desc ? `<div class="mt">DESCRIPTION</div><div class="mp">${manFlags(desc)}</div>` : '') + (see ? `<div class="mt">SEE ALSO</div><div class="mp">${see.split(',').map(manRef).join(', ')}</div>` : '') + '</div>'; }
+function manBio() { const mb = document.querySelector('.manbody'); let h = '';
+ for (const el of mb.children) { if (el.classList.contains('mh')) h += `<div class="mt">${escH(el.textContent)}</div>`; else if (el.tagName === 'H3') h += `<div class="mt">${escH(el.textContent)}</div>`; else if (el.classList.contains('seealso')) h += `<div class="mp">${el.innerHTML}</div>`; else h += `<div class="mp">${el.innerHTML}</div>`; }
+ return '<div class="manout">' + h + '</div>'; }
+// on-page man panel: color [opts] / --flags in text nodes
+setTimeout(() => { const mb = document.querySelector('.manbody'); if (!mb) return; const w = document.createTreeWalker(mb, NodeFilter.SHOW_TEXT), ns = []; while (w.nextNode()) if (/\[[^\]]*\]/.test(w.currentNode.nodeValue) && !w.currentNode.parentElement.closest('.xref')) ns.push(w.currentNode);
+ ns.forEach(n => { const sp = document.createElement('span'); sp.innerHTML = manFlags(n.nodeValue); n.replaceWith(...sp.childNodes); }); }, 0);
 /* ---------- shell ---------- */
 const out = $('#out'), cmd = $('#cmd'); const hist = []; let hp = 0;
 function say(html, raw) { const d = document.createElement('div'); if (raw) d.innerHTML = html; else if (typeof ansi === 'function' && (String(html).includes('\x1b') || ERRRE.test(html))) d.innerHTML = ansi(String(html).includes('\x1b') ? html : String(html).split('\n').map(l => ERRRE.test(l) ? '\x1b[31m' + l + '\x1b[0m' : l).join('\n')); else d.textContent = html; out.appendChild(d); out.scrollTop = out.scrollHeight; }
@@ -679,7 +693,7 @@ const CMDS = {
  play: a => { if (!a) return toggle(); const n = parseInt(a, 10); if (n >= 1 && n <= flat.length) { play(n - 1); say('playing ' + flat[n - 1].title); } else { const i = flat.findIndex(t => t.title.toLowerCase().includes(a.toLowerCase())); i >= 0 ? (play(i), say('playing ' + flat[i].title)) : say('no such track: ' + a); } },
  pause: () => outPause(), next: () => next(1), prev: () => next(-1), repeat: cycleRepeat, shuffle: () => { shuffle = !shuffle; updateModes(); say('shuffle: ' + shuffle); },
  vol: a => { setVol((+a || 0) / 100); say('volume ' + Math.round(vol * 100) + '%'); },
- bio: () => { const mb = document.querySelector('.manbody'), sa = mb.querySelector('.seealso'); say(mb.innerText.replace(sa ? sa.innerText : '\u0000', '').trimEnd()); if (sa) say('<div class="helpout"><div class="hf">' + sa.innerHTML + '</div></div>', true); jump('man'); },
+ bio: () => { say(manBio(), true); jump('man'); },
  man: a => CMDS.bio(), whoami: () => say('tomGRIM — formerly dj ign3ous. Lehigh Valley, PA.'), fetch: () => jump('fetch'), weather: () => weatherFx(true), wx: () => weatherFx(true), grimfetch: () => jump('fetch'),
  links: () => LINKS.forEach(([n, u]) => say(`${n.padEnd(12)} <a href="${u}" target="_blank" rel="noopener">${u}</a>`, true)),
  contact: () => { say('opening mail client…'); openModal('mail'); }, mail: () => CMDS.contact(), irc: () => { say('opening irc #tomgrim on irc.unrealircd.org…'); openModal('irc'); }, chat: () => CMDS.irc(),
@@ -868,7 +882,7 @@ Object.assign(CMDS, {
   const info = ['<b class="a14">tom</b>@<b class="a14">grimos</b>', '-----------', '<b>OS</b>: GrimOS ' + GRIMOS_VERSION + ' (Downtempo) x86_64', '<b>Host</b>: thomasgrim.com', '<b>Kernel</b>: ' + GRIMOS_VERSION + '-warm', `<b>Uptime</b>: ${up} mins`, `<b>Packages</b>: ${flat.length} (tracks)`, '<b>Shell</b>: grimsh ' + GRIMOS_VERSION + '', `<b>Theme</b>: ${curTheme()} [CRT]`, '<b>Terminal</b>: GRIMAMP tty', `<b>Now playing</b>: ${t ? esc2(t.title) : '—'}`, '<b>Location</b>: Lehigh Valley, PA'];
   const rows = Math.max(NEO.length, info.length); let s = '<span class="neo">'; info.forEach((x, i) => { info[i] = x.replace(/<b>([^<]+)<\/b>/, '<b class="a3">$1</b>'); }); for (let i = 0; i < rows; i++) s += '<span style="color:var(--br)">' + esc2(NEO[i] || ' '.repeat(18)) + '</span>  ' + (info[i] || '') + '\n';
   s += ' '.repeat(20) + [0, 1, 2, 3, 4, 5, 6, 7].map(c => `<span class="a${c}">███</span>`).join('') + '\n' + ' '.repeat(20) + [8, 9, 10, 11, 12, 13, 14, 15].map(c => `<span class="a${c}">███</span>`).join('') + '</span>'; say(s, true); },
- man: a => { a = (a || '').trim(); if (!a || /^tom(grim)?$/i.test(a)) return CMDS.bio(); sayA(MAN[a] ? `${A('1', a.toUpperCase() + '(' + (({links: 7, contact: 8})[a] || 1) + ')')}\n\n  ${MAN[a].replace(/(^|\s)(--?\w[\w-]*)/g, '$1' + E + '35m$2' + E + '0m').replace(/(<[^>]+>|\[[^\]]+\])/g, E + '3;33m$1' + E + '0m').replace(/^(\S+)/, E + '1;36m$1' + E + '0m')}` : CMDS[a] ? `${a.toUpperCase()}(1)\n\n  ${a} — see "help" for usage.` : `No manual entry for ${a}`); },
+ man: a => { a = (a || '').trim(); if (!a || /^tom(grim)?$/i.test(a)) return CMDS.bio(); if (MAN[a]) return say(manPage(a), true); say(CMDS[a] ? `<div class="manout"><div class="mt">${escH(a.toUpperCase())}(1)</div><div class="mp">${escH(a)} — see "<button type="button" class="getlink runlink xref" data-run="help"><b>help</b></button>" for usage.</div></div>` : `No manual entry for ${escH(a)}`, CMDS[a]); },
  which: a => (a || '').split(/\s+/).filter(Boolean).forEach(c => say(CMDS[c] ? '/usr/bin/' + c : `which: no ${c} in (/usr/local/bin:/usr/bin:/bin)`)),
  ssh: a => { const h = (a || '').split('@').pop() || ''; if (!h) return say('usage: ssh [user@]hostname'); say(`ssh: connect to host ${h} port 22: Connection refused\n(the only open port here is the dancefloor.)`); },
  curl: a => { a = (a || '').trim(); if (/(^|\s)(-O|--remote-name)(\s|$)/.test(a)) return getCmd(a.replace(/(^|\s)(-O|--remote-name|-L|-s)(?=\s|$)/g, ' ').trim()); if (!a) return say("curl: try 'curl --help' for more information");
