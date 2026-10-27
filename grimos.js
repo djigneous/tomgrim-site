@@ -1219,7 +1219,7 @@ document.querySelectorAll('.brand').forEach(b => { b.textContent = 'GRIM/OS ' + 
 setTheme(THEMES.includes(localStorage.grimTheme) ? localStorage.grimTheme : 'cyan', true); setCrt(localStorage.grimCrt !== '0', true);
 if (localStorage.grimFlicker === '1' || (localStorage.grimFlicker == null && !RM)) document.body.classList.add('flicker');
 refreshColors(); updateModes();
-say('<div class="banner">GRIM/OS grimsh ' + GRIMOS_VERSION + ' — type "<button type="button" class="getlink runlink xref" data-run="help" title="run help"><b>help</b></button>". press ? for keys.</div>', true);
+say('<div class="banner"><span class="bw">GRIM/OS grimsh ' + GRIMOS_VERSION + '</span> — type "<button type="button" class="getlink runlink xref" data-run="help" title="run help"><b>help</b></button>". press ? for keys.</div>', true);
 say('<div class="helpout"><div class="hf hn">motd: every track is free to download — type <button type="button" class="getlink" data-get="get "><b>get</b> <span class="sx-var">&lt;track#&gt;</span></button><span class="sep"> • </span><button type="button" class="getlink" data-get="get --list"><b>get</b> <span class="sx-flag">--list</span></button></div>' + helpSec(['fun', 'random hack weather matrix glitch fire starfield plasma', [], 'click one to start it · random picks a visualizer · any key or click exits']) + '</div>', true);
 // terminal quick links: never move focus to the input on touch (no on-screen keyboard); desktop keeps focus in the prompt
 const TOUCHUI = () => matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0 && !matchMedia('(pointer: fine)').matches;

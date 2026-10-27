@@ -478,8 +478,7 @@ body.nocolor .sx-bad{text-decoration:none}
 @media (prefers-reduced-motion:reduce){#nptitle.scroll .mq{animation:none}#nptitle.scroll{text-overflow:ellipsis}}
 body.kbopen{padding-bottom:var(--kb,0px)} /* lets the docked prompt scroll above the on-screen keyboard */
 /* banner (white in every theme) + clickable cross-refs (help, man refs) styled like the fun runlinks */
-#out .banner{color:#fff}
+#out .banner .bw{color:#fff}
 .xref{text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;border-bottom:1px dotted color-mix(in srgb,var(--a3,var(--acc)) 60%,transparent)}
-.xref b{color:var(--a3,var(--acc));font-weight:inherit}.banner .xref b{color:#fff}.banner .xref{border-bottom-color:rgba(255,255,255,.7)}
+.xref b{color:var(--a3,var(--acc))}
 .xref:focus-visible b,.xref:active b{color:var(--bg);background:var(--a3,var(--acc))}@media (hover:hover){.xref:hover b{color:var(--bg);background:var(--a3,var(--acc))}}
-.xref.helpchip{border-bottom:0}.xref.helpchip kbd{text-decoration:underline dotted;text-underline-offset:2px}
