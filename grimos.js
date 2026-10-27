@@ -226,6 +226,9 @@ function cycleRepeat() {
 function setVol(v) { vol = Math.max(0, Math.min(1, v)); applyOut(); updateModes(); }
 function seek(d) { if (audio.duration) audio.currentTime = Math.max(0, Math.min(audio.duration - .1, audio.currentTime + d)); }
 $('#bplay').onclick = toggle; $('#bnext').onclick = () => next(1); $('#bprev').onclick = () => next(-1);
+let autoViz = false; // timed/idle auto visuals: OFF by default (Graveyard / Walking Green special cases still run)
+function updateEye() { const b = $('#beye'); if (!b) return; b.textContent = '👁\uFE0E ' + (autoViz ? 'on' : 'off'); b.setAttribute('aria-pressed', autoViz); }
+$('#beye').onclick = () => { autoViz = !autoViz; saver.last = Date.now(); updateEye(); }; updateEye();
 $('#brep').onclick = cycleRepeat; $('#bshuf').onclick = () => { shuffle = !shuffle; updateModes(); };
 $('#volup').onclick = () => setVol(vol + .05); $('#voldn').onclick = () => setVol(vol - .05);
 
@@ -615,7 +618,7 @@ function saverHint(txt) { let h = document.getElementById('dblhint'); if (!txt) 
 function saverStop() { if (!saver.active) return; saver.active = false; if (fxs && fxs.saver) fxs.stop(); else if (mx && mx.saver) mx.stop(); }
 ['mousemove', 'keydown', 'touchstart', 'wheel', 'scroll', 'pointerdown'].forEach(ev => addEventListener(ev, e => { saver.last = Date.now(); if (saver.active && Date.now() - saver.started > 400 && saverExitEv(ev, e)) { saverStop(); if (ev === 'keydown') { e.preventDefault(); e.stopImmediatePropagation(); } } }, {capture: true, passive: ev !== 'keydown'}));
 setInterval(() => { if (dead || document.hidden || RM) return; if (saver.active && !fxs && !mx) saver.active = false;
- if (!saver.on || saver.active || fxs || mx || !booted || Date.now() - saver.last < saver.sec * 1000) return;
+ if (!saver.on || (!autoViz && !wxMood && !mood) || saver.active || fxs || mx || !booted || Date.now() - saver.last < saver.sec * 1000) return;
  const ae = document.activeElement, busy = openM || !$('#photos').hidden || !$('#lb').hidden || !$('#help').hidden || (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.value);
  if (busy) return; const names = Object.keys(SAVERS), pick = wxMood ? 'weather' : mood && SAVERS.fire ? 'fire' : SAVERS[saver.fx] ? saver.fx : names[Math.random() * names.length | 0];
  saverMode = true; try { (pick === 'weather' ? weatherFx : SAVERS[pick])(); } finally { saverMode = false; } if (fxs || mx) { saver.active = true; saver.started = Date.now(); } }, 1000);

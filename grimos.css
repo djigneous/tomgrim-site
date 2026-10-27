@@ -463,3 +463,7 @@ body.nocolor .sx-bad{text-decoration:none}
 @media (prefers-reduced-motion:no-preference){.wx-swirl svg{animation:wxspin 7s linear infinite reverse;will-change:transform}}@keyframes wxspin{to{transform:rotate(360deg)}}
 .wx-rm .wx-swirl svg{animation:none}
 @media (max-aspect-ratio:1/1){.wx-swirl{width:17cqw;height:17cqw;margin-left:0}}
+
+/* auto-visuals toggle (eye), styled like the transport buttons (shuf:on/off) */
+.nphead{display:flex;align-items:flex-start;gap:.5em;min-width:0}.nptxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:.3em}
+#beye{flex:none;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;height:1.6em;line-height:1;white-space:nowrap;padding:0 .45em;min-width:7ch;font-variant-numeric:tabular-nums;font-variant-emoji:text;margin-top:.15em}
