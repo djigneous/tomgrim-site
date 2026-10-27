@@ -60,7 +60,7 @@ kbd{font:inherit;color:var(--bg);background:var(--br);padding:0 .25em;margin-rig
 .info b{color:var(--acc)}
 .info .dim{color:var(--br)}
 .swatch i{display:inline-block;width:1.2em;height:.8em;margin-right:2px}
-.swatch i:nth-child(1){background:#6ff6ff}.swatch i:nth-child(2){background:#4dff7c}.swatch i:nth-child(3){background:#ffbb20}.swatch i:nth-child(4){background:#ff4a4a}.swatch i:nth-child(5){background:linear-gradient(#ffe14d,#ff2a00)}.swatch i:nth-child(6){background:linear-gradient(#fff,#7fc4ff)}.swatch i:nth-child(7){background:#bbb}
+.swatch i{cursor:pointer;outline-offset:1px;vertical-align:middle}.swatch i.on{outline:1px solid var(--br)}.swatch i:focus-visible{outline:2px dashed var(--acc)}@media (hover:hover){.swatch i:hover{outline:1px dotted var(--fg)}.swatch i.on:hover{outline:1px solid var(--br)}}
 .manbody{overflow:auto;max-height:15em}
 #man{display:flex;flex-direction:column;min-height:0}
 .manbody h3{margin:.5em 0 .1em;font-size:1em;color:var(--br)}

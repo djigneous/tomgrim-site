@@ -460,12 +460,21 @@ const cmdHl = document.createElement('span'); cmdHl.className = 'cmdhl'; cmdHl.s
 let hlLast = null; const hlSync = () => { if (cmd.value !== hlLast) { hlLast = cmd.value; cmdHl.innerHTML = '<span>' + hl(cmd.value) + ' </span>'; } cmdHl.style.transform = `translateX(${-cmd.scrollLeft}px)`; };
 ['input', 'keyup', 'scroll', 'focus', 'select'].forEach(ev => cmd.addEventListener(ev, hlSync)); setInterval(() => { if (!document.hidden) hlSync(); }, 120);
 const LINKS = [['spotify','https://open.spotify.com/artist/1tBp2oza76uuM5bC3fx8Vg'],['apple-music','https://music.apple.com/us/artist/tomgrim/1705139904'],['youtube','https://www.youtube.com/@ig3.productions'],['soundcloud','https://soundcloud.com/thomasgrim']];
-const THEMES = ['cyan', 'green', 'amber', 'red', 'gray', 'fire', 'ice', 'silicon', 'nightshift', 'neon'];
+const THEMES = ['cyan', 'green', 'amber', 'red', 'fire', 'ice', 'silicon', 'nightshift', 'neon', 'gray']; // gray last (dropdown, swatches, 't' cycle)
 const themeSel = $('#themesel'); themeSel.innerHTML = THEMES.map(t => `<option value="${t}">${t}</option>`).join('');
 const curTheme = () => (document.body.className.match(/theme-(\w+)/) || [])[1] || 'cyan';
 function setTheme(t, quiet) { if (t === 'grey' || t === 'grayscale') t = 'gray'; if (!THEMES.includes(t)) return say('usage: theme ' + THEMES.join('|'));
  document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + t); if (quiet !== 'mood') { localStorage.grimTheme = t; if (mood) mood.prev = t; } themeSel.value = t; refreshColors(); if (!quiet) say('theme → ' + t); }
 themeSel.addEventListener('change', () => setTheme(themeSel.value));
+// grimfetch color swatches: one per theme (same order as the dropdown); click/Enter/Space = same as picking it in the dropdown
+const SW = {cyan: '#6ff6ff', green: '#4dff7c', amber: '#ffbb20', red: '#ff4a4a', fire: 'linear-gradient(#ffe14d,#ff2a00)', ice: 'linear-gradient(#fff,#7fc4ff)', silicon: 'linear-gradient(#b3c088,#6fb8b4)', nightshift: 'linear-gradient(#a9b8f0,#b28dfd)', neon: 'linear-gradient(#4cc6ff,#df81fc)', gray: '#bbb'};
+const swEl = document.querySelector('.swatch');
+function markSwatch() { if (!swEl) return; const c = curTheme(); swEl.querySelectorAll('i').forEach(i => { const on = i.dataset.theme === c; i.classList.toggle('on', on); i.setAttribute('aria-pressed', on); }); }
+if (swEl) { swEl.removeAttribute('aria-hidden'); swEl.setAttribute('role', 'group'); swEl.setAttribute('aria-label', 'Color themes');
+ swEl.innerHTML = THEMES.map(t => `<i role="button" tabindex="0" data-theme="${t}" title="theme: ${t}" aria-label="${t} theme" style="background:${SW[t] || 'var(--fg)'}"></i>`).join('');
+ const pick = e => { const i = e.target.closest('i[data-theme]'); if (!i) return; if (e.type === 'keydown') { if (e.key !== 'Enter' && e.key !== ' ') return; e.preventDefault(); } setTheme(i.dataset.theme); };
+ swEl.addEventListener('click', pick); swEl.addEventListener('keydown', pick); }
+new MutationObserver(markSwatch).observe(document.body, {attributes: true, attributeFilter: ['class']}); markSwatch();
 function setCrt(on, quiet) { document.body.classList.toggle('nocrt', !on); localStorage.grimCrt = on ? '1' : '0'; const b = $('#bcrt'); b.textContent = 'CRT:' + (on ? 'on' : 'off'); b.setAttribute('aria-pressed', on); if (!quiet) say('crt filter: ' + (on ? 'on' : 'off')); }
 $('#bcrt').onclick = () => setCrt(document.body.classList.contains('nocrt'));
 /* matrix rain */
