@@ -210,7 +210,7 @@ body.standalone .solo{display:flex;justify-content:center;padding:3em 1em}
 
 .gettip{margin:.4em 0 0;font-size:.82em;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .getlink{all:unset;cursor:pointer;color:var(--fg);text-decoration:underline dotted;text-underline-offset:2px}
-.getlink:hover,.getlink:focus-visible{color:var(--hi);outline:1px dotted var(--hi)}
+.getlink:focus-visible{color:var(--hi);outline:1px dotted var(--hi)}@media (hover:hover){.getlink:hover{color:var(--hi);outline:1px dotted var(--hi)}}
 
 /* irc client */
 #ircbox,.irc{flex:1;min-height:0;display:flex;flex-direction:column;gap:.4em}
@@ -432,8 +432,8 @@ body.nocolor .sx-bad{text-decoration:none}
 /* clickable visual names in help/motd: terminal style, theme colors */
 .helpout .runlink,.helpout .getlink{text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;border-bottom:1px dotted color-mix(in srgb,var(--a3) 60%,transparent)}
 .helpout .runlink b{color:var(--a3)}
-.helpout .runlink:hover b,.helpout .runlink:focus-visible b,.helpout .runlink:active b{color:var(--bg);background:var(--a3)}
-.helpout .getlink:hover,.helpout .getlink:focus-visible{outline:none;color:var(--hi)}
+.helpout .runlink:focus-visible b,.helpout .runlink:active b{color:var(--bg);background:var(--a3)}@media (hover:hover){.helpout .runlink:hover b{color:var(--bg);background:var(--a3)}}
+.helpout .getlink:focus-visible{outline:none;color:var(--hi)}@media (hover:hover){.helpout .getlink:hover{outline:none;color:var(--hi)}}
 /* screensaver overlays: double-tap/click to exit; no double-tap zoom */
 #matrix,#matrix *,[class*="wx"]{touch-action:manipulation}
 #dblhint{position:fixed;left:50%;top:calc(18px + env(safe-area-inset-top));transform:translateX(-50%);z-index:9300;pointer-events:none;font:14px/1.3 "IBM Plex Mono",monospace;color:var(--fg);background:rgba(0,0,0,.75);border:1px solid color-mix(in srgb,var(--fg) 50%,transparent);padding:.35em .7em}
@@ -477,3 +477,9 @@ body.nocolor .sx-bad{text-decoration:none}
 @keyframes npmq{0%,18%{transform:translateX(0)}100%{transform:translateX(calc(-1 * var(--mqd,0px)))}}
 @media (prefers-reduced-motion:reduce){#nptitle.scroll .mq{animation:none}#nptitle.scroll{text-overflow:ellipsis}}
 body.kbopen{padding-bottom:var(--kb,0px)} /* lets the docked prompt scroll above the on-screen keyboard */
+/* banner (white in every theme) + clickable cross-refs (help, man refs) styled like the fun runlinks */
+#out .banner{color:#fff}
+.xref{text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;border-bottom:1px dotted color-mix(in srgb,var(--a3,var(--acc)) 60%,transparent)}
+.xref b{color:var(--a3,var(--acc));font-weight:inherit}.banner .xref b{color:#fff}.banner .xref{border-bottom-color:rgba(255,255,255,.7)}
+.xref:focus-visible b,.xref:active b{color:var(--bg);background:var(--a3,var(--acc))}@media (hover:hover){.xref:hover b{color:var(--bg);background:var(--a3,var(--acc))}}
+.xref.helpchip{border-bottom:0}.xref.helpchip kbd{text-decoration:underline dotted;text-underline-offset:2px}
