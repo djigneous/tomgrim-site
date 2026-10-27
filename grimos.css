@@ -256,7 +256,7 @@ body.standalone .solo .iwin{height:calc(100vh - 6em);width:min(1100px,100%);disp
 #shell.floating .wt span{background:none}
 #shell.floating .termpop{color:var(--barfg);border-color:var(--barfg);background:transparent}
 #shell.floating #out{flex:1;min-height:0;max-height:none}
-#shell.floating.sheet{left:0!important;right:0;bottom:0;top:auto!important;width:auto!important;height:55vh!important;resize:none;border-radius:8px 8px 0 0}
+#shell.floating.sheet{left:0!important;right:0;bottom:var(--kb,0px);top:auto!important;width:auto!important;height:min(55vh,calc(var(--vvh,100vh) - 8px))!important;resize:none;border-radius:8px 8px 0 0}
 #shell.floating.sheet .wt{cursor:default}
 /* playlist fills the row next to the player at every desktop width */
 @media (min-width:700px){#tracks{align-self:stretch}#tracks>#playlist{flex:1 1 0;max-height:none;min-height:240px}}
@@ -476,3 +476,4 @@ body.nocolor .sx-bad{text-decoration:none}
 #nptitle.scroll .mq{animation:npmq var(--mqt,10s) linear infinite}
 @keyframes npmq{0%,18%{transform:translateX(0)}100%{transform:translateX(calc(-1 * var(--mqd,0px)))}}
 @media (prefers-reduced-motion:reduce){#nptitle.scroll .mq{animation:none}#nptitle.scroll{text-overflow:ellipsis}}
+body.kbopen{padding-bottom:var(--kb,0px)} /* lets the docked prompt scroll above the on-screen keyboard */

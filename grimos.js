@@ -754,6 +754,19 @@ function termFloat(on) { on = !!on; if (on === shellEl.classList.contains('float
   b.textContent = '⤓'; b.title = 'dock terminal'; b.setAttribute('aria-label', 'Dock terminal back into the page'); }
  else { shellEl.classList.remove('floating', 'sheet'); shellEl.removeAttribute('style'); shellHome.after(shellEl); b.textContent = '⧉'; b.title = 'pop out terminal'; b.setAttribute('aria-label', 'Pop out terminal into a floating window'); }
  sessionStorage.grimTermFloat = on ? '1' : ''; out.scrollTop = out.scrollHeight; if (!dead) cmd.focus({preventScroll: true}); }
+/* mobile keyboard: keep the prompt above the on-screen keyboard (Android Chrome + iOS Safari).
+   --kb = height hidden by the keyboard (layout viewport bottom - visual viewport bottom), --vvh = visible height. */
+const vv = window.visualViewport;
+function kbSync() { if (!vv) return; const kb = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)), r = document.documentElement.style;
+ r.setProperty('--kb', kb + 'px'); document.body.classList.toggle('kbopen', kb > 60 && document.activeElement === cmd); r.setProperty('--vvh', Math.round(vv.height) + 'px'); if (document.activeElement === cmd) promptReveal(); }
+function promptReveal() { out.scrollTop = out.scrollHeight;
+ if (shellEl.classList.contains('sheet')) return; // the sheet is pinned above the keyboard via --kb
+ const P = $('#prompt'), vt = vv ? vv.offsetTop : 0, vb = vv ? vt + vv.height : innerHeight; let pr = P.getBoundingClientRect(); if (pr.bottom <= vb - 4 && pr.top >= vt) return;
+ P.scrollIntoView({block: 'end'}); pr = P.getBoundingClientRect(); const dy = pr.bottom - (vb - 6); if (dy <= 0) return;
+ for (let el = P.parentElement; el; el = el.parentElement) { if (el.scrollHeight > el.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(el).overflowY) && el !== out) { el.scrollTop += dy; break; } }
+ pr = P.getBoundingClientRect(); const dy2 = pr.bottom - (vb - 6); if (dy2 > 0) (document.scrollingElement || document.documentElement).scrollTop += dy2; }
+if (vv) { vv.addEventListener('resize', kbSync); vv.addEventListener('scroll', kbSync); kbSync(); }
+cmd.addEventListener('focus', () => { if (!termMob()) return; promptReveal(); requestAnimationFrame(promptReveal); [120, 300, 600].forEach(t => setTimeout(() => { kbSync(); promptReveal(); }, t)); });
 const termSave = () => { if (!shellEl.classList.contains('floating') || shellEl.classList.contains('sheet')) return; const r = shellEl.getBoundingClientRect(); sessionStorage.grimTermPos = JSON.stringify({x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height)}); };
 $('#termpop').addEventListener('click', e => { e.stopPropagation(); termFloat(!shellEl.classList.contains('floating')); });
 $('#t-shell').addEventListener('pointerdown', e => { if (!shellEl.classList.contains('floating') || shellEl.classList.contains('sheet') || e.target.closest('button')) return; e.preventDefault();
