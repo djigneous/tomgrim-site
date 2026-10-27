@@ -202,7 +202,7 @@ if ('mediaSession' in navigator) { const ms = navigator.mediaSession, h = (a, f)
  audio.addEventListener('durationchange', posState); audio.addEventListener('pause', () => msState()); }
 function updateNP() {
  const t = curT();
- $('#nptitle').textContent = t ? (!isPlaying() ? '❚❚ ' : '▶ ') + t.title + (t.special ? ' ★' : '') : '▶ select a track';
+ setTitle(t ? (!isPlaying() ? '❚❚ ' : '▶ ') + t.title + (t.special ? ' ★' : '') : '▶ select a track');
  $('#npalbum').textContent = t ? `${data.artist || 'tomGRIM'} — ${t.al.title}${t.al.year ? ' (' + t.al.year + ')' : ''}${t.bpm ? ' · ' + Math.round(t.bpm) + ' bpm' : ''}` : '—';
  $('#tdur').textContent = fmt(audio.duration || t?.duration_sec);
  const b = $('#bplay'); b.textContent = !isPlaying() ? '▶ PLAY' : '❚❚ PAUSE'; b.setAttribute('aria-label', !isPlaying() ? 'Play' : 'Pause');
@@ -226,6 +226,15 @@ function cycleRepeat() {
 function setVol(v) { vol = Math.max(0, Math.min(1, v)); applyOut(); updateModes(); }
 function seek(d) { if (audio.duration) audio.currentTime = Math.max(0, Math.min(audio.duration - .1, audio.currentTime + d)); }
 $('#bplay').onclick = toggle; $('#bnext').onclick = () => next(1); $('#bprev').onclick = () => next(-1);
+/* now-playing title: marquee when it overflows (recomputed on text change + resize; static when it fits / reduced motion) */
+var npT = document.getElementById('nptitle'), npTxt = null;
+function setTitle(txt) { if (txt === npTxt) return; npTxt = txt; npT.innerHTML = '<span class="mq"></span>'; npT.firstChild.textContent = txt; fitTitle(); }
+function fitTitle() { const m = npT.firstChild; if (!m || !m.classList) return; const txt = npTxt || '';
+ npT.classList.remove('scroll'); m.textContent = txt; const over = m.scrollWidth - npT.clientWidth;
+ if (over <= 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+ const gap = '\u00a0\u00a0\u00a0·\u00a0\u00a0\u00a0'; m.textContent = txt + gap; const dist = m.scrollWidth; m.textContent = txt + gap + txt;
+ npT.style.setProperty('--mqd', dist + 'px'); npT.style.setProperty('--mqt', (dist / 40 / .82).toFixed(1) + 's'); npT.classList.add('scroll'); }
+new ResizeObserver(() => { const w = npT.clientWidth; if (w !== fitTitle.w) { fitTitle.w = w; fitTitle(); } }).observe(npT);
 let autoViz = false; // timed/idle auto visuals: OFF by default (Graveyard / Walking Green special cases still run)
 function updateEye() { const b = $('#beye'); if (!b) return; b.textContent = '👁\uFE0E ' + (autoViz ? 'on' : 'off'); b.setAttribute('aria-pressed', autoViz); }
 $('#beye').onclick = () => { autoViz = !autoViz; saver.last = Date.now(); updateEye(); }; updateEye();

@@ -465,8 +465,14 @@ body.nocolor .sx-bad{text-decoration:none}
 @media (max-aspect-ratio:1/1){.wx-swirl{width:17cqw;height:17cqw;margin-left:0}}
 
 /* auto-visuals toggle (eye), styled like the transport buttons (shuf:on/off) */
-.nphead{display:flex;align-items:flex-start;gap:.5em;min-width:0}.nptxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:.3em}
-#beye{flex:none;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;height:1.6em;line-height:1;white-space:nowrap;padding:0 .45em;min-width:7ch;font-variant-numeric:tabular-nums;font-variant-emoji:text;margin-top:.15em}
+.nphead{display:flex;align-items:center;gap:.5em;min-width:0}.nphead #npalbum{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#beye{flex:none;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;height:1.6em;line-height:1;white-space:nowrap;padding:0 .45em;min-width:7ch;font-variant-numeric:tabular-nums;font-variant-emoji:text;margin-left:auto}
 /* horizontal oscilloscope through the record's center: behind the disc (masked there), accent color */
 .np{position:relative}.np>.ringwrap,.np>.npinfo{position:relative;z-index:1}
 #hscope{position:absolute;left:0;top:0;width:100%;height:64px;pointer-events:none;z-index:0;will-change:transform;transform:translateZ(0)}
+/* now-playing title marquee (only when it overflows) */
+#nptitle .mq{display:inline-block;white-space:nowrap;will-change:transform}
+#nptitle.scroll{text-overflow:clip}
+#nptitle.scroll .mq{animation:npmq var(--mqt,10s) linear infinite}
+@keyframes npmq{0%,18%{transform:translateX(0)}100%{transform:translateX(calc(-1 * var(--mqd,0px)))}}
+@media (prefers-reduced-motion:reduce){#nptitle.scroll .mq{animation:none}#nptitle.scroll{text-overflow:ellipsis}}
