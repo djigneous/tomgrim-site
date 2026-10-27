@@ -467,3 +467,6 @@ body.nocolor .sx-bad{text-decoration:none}
 /* auto-visuals toggle (eye), styled like the transport buttons (shuf:on/off) */
 .nphead{display:flex;align-items:flex-start;gap:.5em;min-width:0}.nptxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:.3em}
 #beye{flex:none;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;height:1.6em;line-height:1;white-space:nowrap;padding:0 .45em;min-width:7ch;font-variant-numeric:tabular-nums;font-variant-emoji:text;margin-top:.15em}
+/* horizontal oscilloscope through the record's center: behind the disc (masked there), accent color */
+.np{position:relative}.np>.ringwrap,.np>.npinfo{position:relative;z-index:1}
+#hscope{position:absolute;left:0;top:0;width:100%;height:64px;pointer-events:none;z-index:0;will-change:transform;transform:translateZ(0)}

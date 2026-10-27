@@ -241,7 +241,7 @@ function setRecord(t) { const h = hash(t.al.id || t.al.title); rec.pal = PALS[h 
 const recGeom = {cw: 6.6, lh: 11, R: 104, ox: 150, oy: 130};
 function measureRec() { const cs = getComputedStyle(coverEl), pl = parseFloat(cs.paddingLeft) || 0, pt = parseFloat(cs.paddingTop) || 0;
  const w = coverEl.clientWidth - 2 * pl, h = coverEl.clientHeight - 2 * pt; if (w > 0 && h > 0) { recGeom.cw = w / 37; recGeom.lh = h / 19; recGeom.R = Math.min(w, h) / 2 * .86;  const wr = document.getElementById('ring').getBoundingClientRect(), cr = coverEl.getBoundingClientRect(); recGeom.ox = cr.left + cr.width / 2 - wr.left; recGeom.oy = cr.top + cr.height / 2 - wr.top; } }
-{ const ro = new ResizeObserver(() => { measureRec(); drawRecord(); }); ro.observe(coverEl); ro.observe(document.getElementById('ring')); }
+{ const ro = new ResizeObserver(() => { measureRec(); drawRecord(); if (typeof measureHS === "function") measureHS(); }); ro.observe(coverEl); ro.observe(document.getElementById('ring')); }
 function drawRecord() {
  const W = 37, H = 19, cx = (W - 1) / 2, cy = (H - 1) / 2, [, chars, arms, tight] = rec.pal, a = rec.ang; let out = '';
  // true circle: convert cells to CSS px using the measured character box (chars are ~0.6:1, rows 1:1)
@@ -372,9 +372,27 @@ const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(6, Math.f
   const N = 240; for (const [col, lw, al] of [[colors.ring || colors.fg, 8, .18], [colors.ring || colors.fg, 2.6, 1], [colors.hi, 1.1, 1]]) { rg.strokeStyle = col; rg.lineWidth = lw * d; rg.globalAlpha = al; rg.beginPath();
    for (let i = 0; i <= N; i++) { const t = i % N, a = t / N * Math.PI * 2 - Math.PI / 2; let v; if (live) { const k = Math.floor(t / N * (tbuf.length - 1)), raw = (tbuf[k] - 128) / 128; let lp = 0; for (let q = -12; q <= 12; q += 3) lp += (tbuf[(k + q + tbuf.length) % tbuf.length] - 128) / 128; v = Math.tanh((raw + lp / 9 * .9) * gain); } else v = Math.sin(t / 6 + idle * 3) * .06; const o = Math.max(-.35, Math.min(1, v)) * amp, x = cx + Math.cos(a) * (rx + o), y = cy + Math.sin(a) * (ry + o); i ? rg.lineTo(x, y) : rg.moveTo(x, y); }
    rg.closePath(); rg.stroke(); } rg.globalAlpha = 1; }
+ drawHScope(an && playing);
  drawWave(); spinRecord(performance.now());
  requestAnimationFrame(frame);
 }
+
+/* ---------- horizontal scope through the record center (two halves: masked at the disc, drawn behind it) ---------- */
+const hs = $('#hscope'), hg = hs.getContext('2d'), npEl = hs.parentElement, hsG = {cx: 0, cy: 0, R: 0}; let hsAgc = .1;
+function measureHS() { const nr = npEl.getBoundingClientRect(), rr = ring.getBoundingClientRect(); if (!nr.width) return;
+ hsG.cx = rr.left - nr.left + recGeom.ox; hsG.cy = rr.top - nr.top + recGeom.oy; hsG.R = recGeom.R + 3; hs.style.top = (hsG.cy - hs.clientHeight / 2) + 'px'; }
+new ResizeObserver(() => { measureRec(); measureHS(); }).observe(npEl);
+function drawHScope(live) { fitCanvas(hs, RING_D); const W = hs.width, H = hs.height; if (!W || !H) return; const d = W / (hs.clientWidth || 1);
+ if (!hsG.R) measureHS(); hg.clearRect(0, 0, W, H);
+ const cx = hsG.cx * d, cy = H / 2, R = hsG.R * d, amp = H / 2 - 4 * d;
+ hg.save(); hg.beginPath(); hg.rect(0, 0, W, H); hg.arc(cx, cy, R, 0, Math.PI * 2); hg.clip('evenodd'); // hide the line over the disc
+ let gain = 1; const tb = live && tbuf; if (tb) { let sq = 0; for (let i = 0; i < tb.length; i += 8) { const x = (tb[i] - 128) / 128; sq += x * x; } hsAgc = Math.max(Math.sqrt(sq / (tb.length / 8)), hsAgc * .992, .02); gain = Math.min(8, Math.max(1.2, .45 / hsAgc)); }
+ const N = Math.min(160, W / (3 * d) | 0), col = colors.acc || colors.fg;
+ const ys = new Float32Array(N + 1); for (let i = 0; i <= N; i++) { const x = i / N, edge = Math.min(1, x * 8, (1 - x) * 8);
+  let v; if (tb) { const k = Math.floor(x * (tb.length - 1)); v = Math.tanh(((tb[k] - 128) / 128) * gain); } else v = Math.sin(x * 18 + idle * 3) * .05; ys[i] = cy - v * amp * edge; }
+ for (const [lw, al] of [[7, .14], [2.2, .9], [1, .8]]) { hg.strokeStyle = lw === 1 ? colors.hi : col; hg.lineWidth = lw * d; hg.globalAlpha = al; hg.beginPath();
+  for (let i = 0; i <= N; i++) { const x = i / N * W; i ? hg.lineTo(x, ys[i]) : hg.moveTo(x, ys[i]); } hg.stroke(); }
+ hg.restore(); hg.globalAlpha = 1; }
 
 /* ---------- shell ---------- */
 const out = $('#out'), cmd = $('#cmd'); const hist = []; let hp = 0;
