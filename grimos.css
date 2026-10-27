@@ -28,9 +28,9 @@ body.nocrt #crt{text-shadow:none;background:none}
 body.nocrt #crt::before,body.nocrt #crt::after{display:none}
 body.nocrt .win{box-shadow:none}
 @keyframes flick{0%,100%{opacity:1}47%{opacity:.97}48%{opacity:.9}49%{opacity:1}80%{opacity:.985}}
-a{color:var(--br)}a:hover{background:var(--fg);color:var(--bg);text-shadow:none}
+a{color:var(--br)}@media (hover:hover){a:hover{background:var(--fg);color:var(--bg);text-shadow:none}}
 button{font:inherit;color:var(--br);background:transparent;border:1px solid var(--fg);padding:.05em .45em;cursor:pointer;text-shadow:inherit;touch-action:manipulation}
-button:hover{background:var(--fg);color:var(--bg);text-shadow:none}
+@media (hover:hover){button:hover{background:var(--fg);color:var(--bg);text-shadow:none}}
 button[aria-pressed=true]{background:var(--fg);color:var(--bg);text-shadow:none}
 :focus-visible{outline:2px dashed var(--acc)!important;outline-offset:2px}
 .dim{color:var(--dim)}.br{color:var(--br)}
@@ -39,14 +39,14 @@ kbd{font:inherit;color:var(--bg);background:var(--br);padding:0 .25em;margin-rig
 #topbar .brand{font-weight:bold;letter-spacing:.1em}
 #topbar nav{display:flex;gap:.25em;flex-wrap:wrap;flex:1}
 #topbar nav button{color:var(--barfg);border:1px solid transparent;text-shadow:none;display:inline-flex;align-items:center;gap:.35em;min-height:32px;height:32px;line-height:1} /* fixed height: no CLS when the webfont swaps in */
-#topbar nav button:hover{border-color:var(--barfg);background:transparent;color:var(--barfg)}
+@media (hover:hover){#topbar nav button:hover{border-color:var(--barfg);background:transparent;color:var(--barfg)}}
 #topbar nav button.on,#topbar nav button[aria-current=true]{background:var(--barfg);color:var(--bar);border-color:var(--barfg)}
 .ico{width:16px;height:16px;flex:none;image-rendering:pixelated;shape-rendering:crispEdges}
 .ico rect{fill:currentColor}
 #tools{display:flex;gap:.3em;align-items:center}
 #tools button,#tools select{color:var(--barfg);border:1px solid var(--barfg);background:transparent;font:inherit;text-shadow:none;padding:0 .4em;min-height:28px}
 #tools select{cursor:pointer}#tools select option{background:#000;color:#fff}
-#tools button:hover{background:var(--barfg);color:var(--bar)}
+@media (hover:hover){#tools button:hover{background:var(--barfg);color:var(--bar)}}
 #clock{margin-left:.3em}
 #desk{flex:1;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.95fr) minmax(0,1fr);grid-template-areas:"fetch fetch man" "player tracks tracks" "links links links" "shell shell shell";grid-template-rows:auto;gap:14px;padding:16px 14px 10px;width:100%;max-width:2000px;margin:0 auto}
 #tracks{grid-area:tracks;display:flex;flex-direction:column;min-height:0}#tracks .plhead{margin-top:0}#fetch{grid-area:fetch}#man{grid-area:man}#player{grid-area:player}#links{grid-area:links}#shell{grid-area:shell}
@@ -465,7 +465,7 @@ body.nocolor .sx-bad{text-decoration:none}
 @media (max-aspect-ratio:1/1){.wx-swirl{width:17cqw;height:17cqw;margin-left:0}}
 
 /* auto-visuals toggle (eye), styled like the transport buttons (shuf:on/off) */
-.nphead{display:flex;align-items:center;gap:.5em;min-width:0}.nphead #npalbum{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.npinfo .row.trow{display:flex;align-items:center;gap:.5em;min-width:0}.trow .tt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #beye{flex:none;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;height:1.6em;line-height:1;white-space:nowrap;padding:0 .45em;min-width:7ch;font-variant-numeric:tabular-nums;font-variant-emoji:text;margin-left:auto}
 /* horizontal oscilloscope through the record's center: behind the disc (masked there), accent color */
 .np{position:relative}.np>.ringwrap,.np>.npinfo{position:relative;z-index:1}
