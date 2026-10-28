@@ -2,6 +2,7 @@
 'use strict';
 const GRIMOS_VERSION = '6.10'; // last-updated stamp: (year-2020).(month), auto-set by scripts/stamp-version.sh
 const $ = s => document.querySelector(s);
+var grimLiked = new Set((() => { try { return JSON.parse(localStorage.grimLikes || '[]'); } catch (e) { return []; } })());
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const FALLBACK = {artist:'tomGRIM',albums:[{id:'ember-hours',title:'Ember Hours',type:'album',year:null,blurb:'',cover:'assets/covers/ember-hours.jpg',tracks:[
  {title:'Graveyard Over the Fire',file:'assets/track1.mp3'},{title:'Kickflip My Heart',file:'assets/track2.mp3'}]}]};
@@ -68,7 +69,7 @@ function renderList(q = '') {
     html += `<li class="div" role="presentation" id="al-${t.ai}">══[${key}]═ SINGLES <small>${n} trk</small> ════════════════════════════</li>`; }
    else html += `<li class="div" role="presentation" id="al-${t.ai}">══[${key}]═ ${esc(al.title.toUpperCase())} <small>${al.year ? al.year + ' · ' : ''}${al.type === 'loops' ? 'loop pack' : al.type || 'album'} · ${al.tracks.length} trk</small> ════════════════════════════</li>`; }
   view.push(i);
-  html += `<li class="tr" role="option" id="tr-${i}" data-i="${i}" aria-selected="false"><span class="n">${String(t.ti + 1).padStart(2, '0')}</span><span class="t">${esc(t.title)}${t.special ? ' <span class="star" title="special feature">★ special</span>' : ''}${t.single && t.al.year ? ' <span class="dim">(' + t.al.year + ')</span>' : ''}</span><span class="dim">${t.bpm ? Math.round(t.bpm) + 'bpm ' : ''}${t.duration_sec ? fmt(t.duration_sec) : ''}</span></li>`;
+  html += `<li class="tr" role="option" id="tr-${i}" data-i="${i}" aria-selected="false"><span class="n">${String(t.ti + 1).padStart(2, '0')}</span><span class="t">${esc(t.title)}${t.special ? ' <span class="star" title="special feature">★ special</span>' : ''}${t.single && t.al.year ? ' <span class="dim">(' + t.al.year + ')</span>' : ''}</span><span class="dim">${heartHTML(t)}${t.bpm ? Math.round(t.bpm) + 'bpm ' : ''}${t.duration_sec ? fmt(t.duration_sec) : ''}</span></li>`;
  });
  pl.innerHTML = html || '<li class="dim">no matches</li>';
  mark();
@@ -437,7 +438,7 @@ let npAnn = null;
 audio.addEventListener('ended', () => { npAnn = null; }); // repeat-one replays announce again
 audio.addEventListener('playing', () => { const t = curT(); if (!t) return; const key = t.file + '#' + cur; if (key === npAnn) return; npAnn = key;
  const al = t.al || {}, n = (al.tracks || []).length, pos = n ? ` · [${V((t.ti + 1) + '/' + n)}]` : '';
- say(`<span class="npline">▶ now playing: ${V(t.title)}${al.title ? ' · ' + V(t.single ? 'Single' : al.title) : ''}${t.bpm ? ' · ' + V(Math.round(t.bpm)) + ' bpm' : ''}${pos}</span>`, true);
+ say(`<span class="npline">▶ now playing: ${V(t.title)}${al.title ? ' · ' + V(t.single ? 'Single' : al.title) : ''}${t.bpm ? ' · ' + V(Math.round(t.bpm)) + ' bpm' : ''}${pos}${grimLiked.has(t.file) ? ' <span class="likeh">♥</span>' : ''}</span>`, true);
  while (out.childElementCount > 500) out.firstElementChild.remove(); }); // keep scrollback sane
 /* ---------- shell ---------- */
 const out = $('#out'), cmd = $('#cmd'); const hist = []; let hp = 0;
@@ -469,14 +470,14 @@ function colorHelp(s) { return s.split('\n').map(l => { const m = l.match(/^(\w+
 const HELP = () => [
  ['shell', 'help ls albums pause stop next prev bio links mail irc clear themes repeat shuffle whoami fetch', [['help', '[section|cmd|-a]', 'this help (? works the same)'], ['share', '', 'copy a link to this track at this moment'], ['play', '<n|name>', 'play a track by number or name'], ['theme', '<' + THEMES.join('|') + '>', 'switch color theme'], ['crt', 'on|off', 'CRT filter'], ['vol', '<0-100>', 'set volume'], ['man', '<cmd>', 'manual page for a command']]],
  ['get', '', [['get', '<n|name>', 'download a track'], ['get album', '<name>', 'download a whole album'], ['get', '--list', 'list everything downloadable']], 'aliases: wget, curl -O'],
- ['net', 'mail irc install', [], 'mail = contact form · irc = #tomgrim on irc.unrealircd.org'],
+ ['net', 'mail irc feedback like install', [], 'mail = contact form · irc = #tomgrim on irc.unrealircd.org'],
  ['fun', 'random weather matrix glitch fire hack starfield plasma tunnel rain dvd life cube torus donut snow pipes', [['cowsay', '<text>', 'a cow says it']], 'any key or click exits an effect'],
  ['system', 'pwd dir history cls hostname date uptime ifconfig top htop ps neofetch exit', [['cd', '<dir>', 'change directory'], ['ls', '-la [path]', 'list files'], ['cat', '<file>', 'print a file'], ['echo', '<text>', 'print text'], ['uname', '-a', 'system info'], ['ping', '<host>', 'ping a host'], ['ip', 'a', 'network interfaces'], ['df', '-h', 'disk usage'], ['free', '-h', 'memory usage'], ['which', '<cmd>', 'locate a command'], ['ssh', '<host>', 'connect (sort of)'], ['curl', '<url>', 'fetch a url'], ['apt', 'install <pkg>', 'install a package'], ['sudo', '<cmd>', 'try your luck']]],
  ['fx', '', [['fx', '', 'show knob values'], ['fx', 'reset', 'all knobs back to default'], ['fx', '<filter|res|verb|crush> <value>', 'set a knob (or drag it)']]],
  ['look', '', [['colors', 'on|off', 'ANSI colors in the terminal']]],
  ['idle', '', [['screensaver', 'on|off|<seconds>|<effect>|random', 'default on, 60s']]]];
 function hlHelp(c, ar) { const w = c.split(' '); return `<span class="sx-cmd">${escH(w[0])}</span>` + w.slice(1).map(x => ' <span class="sx-arg">' + escH(x) + '</span>').join('') + (ar ? ' ' + ar.split(' ').map(t => t.split(/(\|)/).map(x => x === '|' ? '<span class="sx-op">|</span>' : `<span class="${/^-/.test(x) ? 'sx-flag' : /^</.test(x) || /^\[/.test(x) ? 'sx-var' : /^\d/.test(x) ? 'sx-num' : 'sx-arg'}">${escH(x)}</span>`).join('')).join(' ') : ''); }
-const RUNNABLE = new Set(['random', 'install', 'matrix', 'glitch', 'fire', 'hack', 'weather', 'starfield', 'plasma', 'tunnel', 'rain', 'dvd', 'life', 'cube', 'torus', 'donut', 'snow', 'pipes']);
+const RUNNABLE = new Set(['random', 'install', 'feedback', 'like', 'matrix', 'glitch', 'fire', 'hack', 'weather', 'starfield', 'plasma', 'tunnel', 'rain', 'dvd', 'life', 'cube', 'torus', 'donut', 'snow', 'pipes']);
 function helpSec([name, flow, rows, note]) { const fl = flow.split(' ').filter(Boolean).map(c => RUNNABLE.has(c) ? `<button type="button" class="getlink runlink" data-run="${escH(c)}" title="start ${escH(c)}"><b>${escH(c)}</b></button>` : '<b>' + escH(c) + '</b>').join('<span class="sep"> • </span>');
  return `<div class="hs">${name}:</div>` + (fl ? `<div class="hf">${fl}</div>` : '') + rows.map(([c, ar, d]) => `<div class="hr"><span class="hc">${hlHelp(c, ar)}</span><span class="hd">${escH(d)}</span></div>`).join('') + (note ? `<div class="hf hn">${escH(note)}</div>` : ''); }
 function helpCmd(a) { a = (a || '').trim().toLowerCase(); const H = HELP();
@@ -711,7 +712,7 @@ const CMDS = {
  themes: () => say('themes: ' + THEMES.map(t => t === curTheme() ? '[' + t + ']' : t).join(' ')),
  crt: a => { a = (a || '').trim(); if (a === 'on' || a === 'off') setCrt(a === 'on'); else if (!a) setCrt(document.body.classList.contains('nocrt')); else say('usage: crt on|off'); },
  photos: () => { say(`~/photos: ${PHOTOS.length} frames · click one or use ←/→ in the viewer`); jump('photos'); }, gallery: () => CMDS.photos(),
- install: () => installCmd(), random: () => { const pool = ['hack', 'weather', 'matrix', 'glitch', 'fire', 'starfield', 'plasma'], k = pool[Math.random() * pool.length | 0]; say(`random: <span class="ab-d">rolling the dice…</span> → ${V(k)}`, true); return CMDS[k](); }, matrix: () => matrix(), glitch: () => glitch(), fire: () => fire(), hack: () => hack(), starfield: () => starfield(), stars: () => starfield(), plasma: () => plasma(), tunnel: () => tunnel(), rain: () => rain(), dvd: () => dvd(), life: () => life(), cube: a => cube(a), donut: () => cube('donut'), torus: () => cube('donut'), snow: () => snow(), pipes: () => pipes(), screensaver: a => screensaverCmd(a), saver: a => screensaverCmd(a), cowsay: a => cowsay(a),
+ install: () => installCmd(), like: a => likeCmd(a), bbs: () => openBBS(true), feedback: () => openBBS(true), random: () => { const pool = ['hack', 'weather', 'matrix', 'glitch', 'fire', 'starfield', 'plasma'], k = pool[Math.random() * pool.length | 0]; say(`random: <span class="ab-d">rolling the dice…</span> → ${V(k)}`, true); return CMDS[k](); }, matrix: () => matrix(), glitch: () => glitch(), fire: () => fire(), hack: () => hack(), starfield: () => starfield(), stars: () => starfield(), plasma: () => plasma(), tunnel: () => tunnel(), rain: () => rain(), dvd: () => dvd(), life: () => life(), cube: a => cube(a), donut: () => cube('donut'), torus: () => cube('donut'), snow: () => snow(), pipes: () => pipes(), screensaver: a => screensaverCmd(a), saver: a => screensaverCmd(a), cowsay: a => cowsay(a),
  ls: () => flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}${t.special ? ' ★' : ''}  [${t.single ? 'single' : t.al.title}]`)),
  albums: () => data.albums.forEach((a, i) => say(`[${String.fromCharCode(65 + (flat.find(t => t.al === a)?.ai ?? i))}] ${a.title}${a.year ? ' (' + a.year + ')' : ''} — ${a.type || 'album'}, ${a.tracks.length} tracks${a.blurb ? ' · ' + a.blurb : ''}`)),
  play: a => { if (!a) return toggle(); const n = parseInt(a, 10); if (n >= 1 && n <= flat.length) { play(n - 1); say('playing ' + flat[n - 1].title); } else { const i = flat.findIndex(t => t.title.toLowerCase().includes(a.toLowerCase())); i >= 0 ? (play(i), say('playing ' + flat[i].title)) : say('no such track: ' + a); } },
@@ -1278,6 +1279,60 @@ load().then(() => requestAnimationFrame(frame));
   const r = typeof effRepeat === 'function' ? effRepeat() : repeat;
   { const h = `<span class="np-p">tom@grimos:~$</span> nowplaying\n<b>tomGRIM - ${escH(t.title)}</b>\n<span class="np-d">${escH(meta)}</span>\n${audio.paused ? '❚❚' : '▶'} ${fmt(cur)} [${'█'.repeat(f)}${'░'.repeat(w - f)}] ${fmt(dur)}\n<span class="np-d">repeat:${r} · shuffle:${shuffle ? 'on' : 'off'}</span>\n<span class="np-p">tom@grimos:~$</span> <span class="np-c"></span>`; if (h !== el.__h) { el.__h = h; el.innerHTML = h; } } };
  setInterval(() => { if (!document.hidden) render(); }, 250); })();
+/* ---------- likes + BBS feedback (Supabase RPCs only; publishable key is public by design) ---------- */
+const SB = {url: 'https://hlbllxgiexjqkqfmoxow.supabase.co/rest/v1/rpc/', key: 'sb_publishable_ZAXjx3TioEoF2E0UfFWndg_PaI7NsDl'};
+async function rpc(fn, body) { const r = await fetch(SB.url + fn, {method: 'POST', headers: {apikey: SB.key, 'Content-Type': 'application/json'}, body: JSON.stringify(body || {})});
+ const j = await r.json().catch(() => null); if (!r.ok) { const e = new Error((j && j.message) || 'http ' + r.status); e.code = j && j.code; throw e; } return j; }
+const grimCid = localStorage.grimCid || (localStorage.grimCid = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now()).replace(/[^A-Za-z0-9]/g, '').slice(0, 32));
+var likeCounts = {}, likesOk = false;
+function heartHTML(t) { const on = grimLiked.has(t.file), c = likeCounts[t.file] || 0;
+ return `<button type="button" class="like${on ? ' on' : ''}" data-file="${escH(t.file)}" aria-pressed="${on}" aria-label="${on ? 'unlike' : 'like'} ${escH(t.title)}" title="${on ? 'unlike' : 'like'}">${on ? '♥' : '♡'}<span class="lc">${likesOk && c ? c : ''}</span></button>`; }
+function paintHearts(file) { document.querySelectorAll(file ? `.like[data-file="${CSS.escape(file)}"]` : '.like').forEach(b => { const f = b.dataset.file, on = grimLiked.has(f), c = likeCounts[f] || 0;
+ b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); b.firstChild.nodeValue = on ? '♥' : '♡'; b.title = on ? 'unlike' : 'like'; b.querySelector('.lc').textContent = likesOk && c ? c : ''; }); }
+const saveLikes = () => { localStorage.grimLikes = JSON.stringify([...grimLiked]); };
+async function toggleLike(file) { const was = grimLiked.has(file); was ? grimLiked.delete(file) : grimLiked.add(file); likeCounts[file] = Math.max(0, (likeCounts[file] || 0) + (was ? -1 : 1)); saveLikes(); paintHearts(file);
+ try { const r = await rpc('toggle_like', {p_file: file, p_client_id: grimCid}); r.liked ? grimLiked.add(file) : grimLiked.delete(file); likeCounts[file] = r.count; likesOk = true; saveLikes(); paintHearts(file); return r; }
+ catch (e) { was ? grimLiked.add(file) : grimLiked.delete(file); likeCounts[file] = Math.max(0, (likeCounts[file] || 0) + (was ? 1 : -1)); saveLikes(); paintHearts(file);
+  say(/rate/.test(e.message) ? 'like: ' + V('slow down') + ' — too many likes this hour.' : 'like: ' + V('offline') + ' — could not reach the like server.', true); return null; } }
+pl.addEventListener('click', e => { const b = e.target.closest('.like'); if (!b) return; e.stopPropagation(); e.preventDefault(); toggleLike(b.dataset.file); }, true);
+pl.addEventListener('keydown', e => { if (e.target.closest && e.target.closest('.like') && (e.key === 'Enter' || e.key === ' ')) e.stopPropagation(); }, true);
+rpc('like_counts').then(rows => { rows.forEach(r => { likeCounts[r.file] = +r.count; }); likesOk = true; paintHearts(); }).catch(() => { likesOk = false; paintHearts(); });
+async function likeCmd(a) { a = (a || '').trim(); let t = curT();
+ if (a) { const i = /^\d+$/.test(a) ? +a - 1 : flat.findIndex(x => x.title.toLowerCase().includes(a.toLowerCase())); t = flat[i]; }
+ if (!t || !t.file) return say('like: usage ' + V('like [n|name]') + ' — no track playing.', true);
+ const r = await toggleLike(t.file); if (r) say(`like: ${V(t.title)} ${r.liked ? '<span class="likeh">♥</span> liked' : '♡ unliked'} · ${V(r.count)} total`, true); }
+
+/* BBS */
+const L33T_A = ['n30n', 'gh0st', 'cr4sh', 'phr34k', 'z3r0', 'h4x', 'd4rk', 'gr1m', 'byt3', 'v01d', 'n1ght', 'r00t', 'gl1tch', 'sh4d0w', 'cyb3r', 'ac1d', 'fr4g', 'w4rp', 'p1x3l', 'b1t'];
+const L33T_B = ['run3r', 'w0lf', 'k1d', 'r4v3n', 'm0nk', 'p1r4t3', 'sp00k', 'dr01d', 'st4t1c', 'ph4nt0m', 'h0und', 'c0d3r', 'w1z', 'n1nj4', 'ph0n3r', 'r4t'];
+const genHandle = () => L33T_A[Math.random() * L33T_A.length | 0] + '_' + L33T_B[Math.random() * L33T_B.length | 0] + String(Math.random() * 100 | 0).padStart(2, '0');
+let bbsMe = /^[a-z0-9]{2,10}_[a-z0-9]{2,10}[0-9]{2}$/.test(localStorage.grimHandle || '') ? localStorage.grimHandle : (localStorage.grimHandle = genHandle());
+const bbs = {list: $('#bbslist'), ids: new Set(), minId: null, maxId: 0, timer: 0, ok: true};
+function bbsLine(m) { const d = document.createElement('div'); d.className = 'bm'; d.dataset.id = m.id; const when = new Date(m.created_at);
+ d.innerHTML = `<span class="bt">${String(when.getMonth() + 1).padStart(2, '0')}/${String(when.getDate()).padStart(2, '0')} ${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}</span> <span class="bh">${escH(m.handle)}</span> <span class="ba">&gt;&gt;</span> <span class="bb"></span>`; d.querySelector('.bb').textContent = m.body; return d; }
+function bbsAdd(rows, older) { rows = rows.filter(m => !bbs.ids.has(m.id)).sort((a, b) => a.id - b.id); if (!rows.length) return 0; const atBottom = bbs.list.scrollHeight - bbs.list.scrollTop - bbs.list.clientHeight < 30, h0 = bbs.list.scrollHeight;
+ const frag = document.createDocumentFragment(); rows.forEach(m => { bbs.ids.add(m.id); frag.appendChild(bbsLine(m)); bbs.minId = bbs.minId == null ? m.id : Math.min(bbs.minId, m.id); bbs.maxId = Math.max(bbs.maxId, m.id); });
+ const emp = bbs.list.querySelector('.bempty'); if (emp) emp.remove();
+ if (older) { bbs.list.prepend(frag); bbs.list.scrollTop += bbs.list.scrollHeight - h0; } else { bbs.list.appendChild(frag); if (atBottom || !older) bbs.list.scrollTop = bbs.list.scrollHeight; } return rows.length; }
+const bbsStatus = (h) => { $('#bbsst').innerHTML = h || ''; };
+async function bbsLoad(older) { try { const rows = await rpc('get_messages', {p_before_id: older ? bbs.minId : null, p_limit: 50}); bbs.ok = true;
+  const n = bbsAdd(rows, older); if (older && !n) { $('#bbsolder').hidden = true; } if (!bbs.ids.size) bbs.list.innerHTML = '<div class="bempty dim">no transmissions yet. be the first.</div>'; if (!older && rows.length < 50 && !bbs.minIdSet) { $('#bbsolder').hidden = true; } bbs.minIdSet = true; bbsStatus(''); }
+ catch (e) { bbs.ok = false; bbsStatus('<span class="dim">carrier lost — BBS offline, retrying…</span>'); } }
+function bbsPoll(on) { clearInterval(bbs.timer); if (on) bbs.timer = setInterval(() => { if (!document.hidden && !$('#pane-bbs').hidden) bbsLoad(false); }, 60000); }
+function showTab(which) { const isB = which === 'bbs'; $('#tab-links').setAttribute('aria-selected', !isB); $('#tab-bbs').setAttribute('aria-selected', isB); $('#tab-links').tabIndex = isB ? -1 : 0; $('#tab-bbs').tabIndex = isB ? 0 : -1;
+ $('#pane-links').hidden = isB; $('#pane-bbs').hidden = !isB; if (isB) { bbsLoad(false); bbsPoll(true); } else bbsPoll(false); }
+function openBBS(fromCmd) { showTab('bbs'); jump('links'); if (fromCmd) say('feedback: ' + V('BBS open') + ' — you are ' + V(bbsMe) + '. type in the box under ~/links.', true); }
+$('#bbsme').textContent = bbsMe;
+$('#tab-links').addEventListener('click', () => showTab('links')); $('#tab-bbs').addEventListener('click', () => showTab('bbs'));
+$('#links .tabs').addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const b = $('#tab-links').getAttribute('aria-selected') === 'true' ? 'bbs' : 'links'; showTab(b); $(b === 'bbs' ? '#tab-bbs' : '#tab-links').focus(); } });
+$('#bbsreroll').addEventListener('click', () => { bbsMe = localStorage.grimHandle = genHandle(); $('#bbsme').textContent = bbsMe; });
+$('#bbsolder').addEventListener('click', () => bbsLoad(true));
+const bbsIn = $('#bbsin'); bbsIn.addEventListener('input', () => { $('#bbscnt').textContent = 280 - bbsIn.value.length; });
+$('#bbsform').addEventListener('submit', async e => { e.preventDefault(); const body = bbsIn.value.trim(); if (!body) return; const btn = $('#bbsform button'); btn.disabled = true;
+ try { const r = await rpc('post_message', {p_handle: bbsMe, p_body: body}); bbsIn.value = ''; $('#bbscnt').textContent = 280;
+  if (r.hidden) bbsStatus('<span class="dim">message held for review.</span>'); else { bbsAdd([{id: r.id, handle: r.handle, body: r.body, created_at: new Date().toISOString()}]); bbsStatus(r.body !== body ? '<span class="dim">posted (links removed).</span>' : ''); } }
+ catch (err) { bbsStatus('<span class="dim">' + (/rate/.test(err.message) ? 'slow down — 1 message a minute, 10 a day.' : /spam/.test(err.message) ? 'rejected: looks like spam.' : /empty/.test(err.message) ? 'say a bit more.' : 'carrier lost — could not post.') + '</span>'); }
+ finally { btn.disabled = false; } });
 })();
 // Android address bar / status bar follows the active theme (was a fixed white #ffffff in light mode)
-(() => { const m = document.querySelector('meta[name=theme-color]'); if (!m) return; const upd = () => { const c = getComputedStyle(document.body).getPropertyValue('--bg').trim(); if (c) m.content = c; }; upd(); new MutationObserver(upd).observe(document.body, {attributes: true, attributeFilter: ['class']}); })();
+(() => { const m = document.querySelector('meta[name=theme-color]'); if (!m) return; const upd = () => { const c = getComputedStyle(document.body).getPropertyValue('--bg').trim(); if (c) m.content = c; }; upd(); new MutationObserver(upd).observe(document.body, {attributes: true, attributeFilter: ['class']});  })();
