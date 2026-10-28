@@ -524,3 +524,5 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 .mtab[aria-pressed=true]{color:#fff;border-bottom:0;cursor:default}
 .mtab:focus-visible{outline:1px dotted var(--hi)}@media (hover:hover){.mtab[aria-pressed=false]:hover{color:var(--bg);background:var(--a3,var(--acc))}}
 #man .mtab[aria-pressed=true]{background:none!important;color:#fff!important}
+/* quips + meltdown */
+.quip{color:var(--dim);font-style:italic}

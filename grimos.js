@@ -2,6 +2,19 @@
 'use strict';
 const GRIMOS_VERSION = '6.10'; // last-updated stamp: (year-2020).(month), auto-set by scripts/stamp-version.sh
 const $ = s => document.querySelector(s);
+var QUIPS = {
+ like: ['the needle approves.', 'logged to /var/log/vinyl.log.', '+1 to the late-night canon.', 'saved to the heart sector.', 'a warm signal in the dark.', 'stored in non-volatile memory.', 'the machine noted your taste.'],
+ unlike: ['heart sector deallocated.', 'returned to the static.', 'noted. the track will cope.', 'signal fades to dim.', 'the machine forgets nothing. but ok.'],
+ post: ['transmission sent. the carrier holds.', 'your words are on the wire now.', 'burned to the board.', 'uplink ok. somebody out there reads.', '2400 baud of pure feeling.'],
+ newmsg: ['someone else is up late too.', 'the board flickers. you are not alone.', 'a new voice in the static.', 'incoming on the carrier.'],
+ remote: ['a stranger agrees.', 'somewhere, a heart lit up.', 'the signal reached someone.', 'another night owl on the line.'],
+ np: ['needle down.', 'warm tubes, cold night.', 'spinning up the low end.', 'the machine hums along.', 'dim the lights for this one.', 'after midnight, as intended.', 'bass lines over dead air.'],
+ shufon: ['entropy engaged.', 'let the machine pick.', 'dice rolled in /dev/random.', 'chaos, but make it warm.'],
+ shufoff: ['order restored.', 'back to the tracklist.', 'linear time resumes.'],
+ rep: ['round and round it goes.', 'groove locked.', 'play it again, machine.', 'the loop is the point.'],
+ theme: ['fresh phosphor.', 'new glow, same ghosts.', 'repainting the CRT.', 'the tubes warm to a new hue.', 'palette swapped. vibes kept.'],
+ reboot: ['nothing was harmed. the vinyl remembers.', '/ restored from tape.', 'you survived. so did the music.', 'told you not to. welcome back.']};
+function quip(k, p) { const a = QUIPS[k]; if (!a || (p != null && Math.random() > p)) return ''; return ' <span class="quip">— ' + a[Math.random() * a.length | 0].replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'})[c]) + '</span>'; }
 var grimLiked = new Set((() => { try { return JSON.parse(localStorage.grimLikes || '[]'); } catch (e) { return []; } })());
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const FALLBACK = {artist:'tomGRIM',albums:[{id:'ember-hours',title:'Ember Hours',type:'album',year:null,blurb:'',cover:'assets/covers/ember-hours.jpg',tracks:[
@@ -223,7 +236,7 @@ function updateModes() {
 function cycleRepeat() {
  const t = flat[cur], order = ['off', 'all', 'one'];
  if (t && isLoopAlbum(t)) { loopOverride[t.ai] = effRepeat() === 'one' ? 'all' : 'one'; say(`loop repeat (${t.al.title}): ${loopOverride[t.ai]}`); }
- else { repeat = order[(order.indexOf(repeat) + 1) % 3]; say('repeat: ' + V(repeat), true); }
+ else { repeat = order[(order.indexOf(repeat) + 1) % 3]; say('repeat: ' + V(repeat) + (repeat !== 'off' ? quip('rep') : ''), true); }
  updateModes();
 }
 function setVol(v) { vol = Math.max(0, Math.min(1, v)); applyOut(); updateModes(); }
@@ -438,7 +451,7 @@ let npAnn = null;
 audio.addEventListener('ended', () => { npAnn = null; }); // repeat-one replays announce again
 audio.addEventListener('playing', () => { const t = curT(); if (!t) return; const key = t.file + '#' + cur; if (key === npAnn) return; npAnn = key;
  const al = t.al || {}, n = (al.tracks || []).length, pos = n ? ` · [${V((t.ti + 1) + '/' + n)}]` : '';
- say(`<span class="npline">▶ now playing: ${V(t.title)}${al.title ? ' · ' + V(t.single ? 'Single' : al.title) : ''}${t.bpm ? ' · ' + V(Math.round(t.bpm)) + ' bpm' : ''}${pos}${grimLiked.has(t.file) ? ' <span class="likeh">♥</span>' : ''}</span>`, true);
+ say(`<span class="npline">▶ now playing: ${V(t.title)}${al.title ? ' · ' + V(t.single ? 'Single' : al.title) : ''}${t.bpm ? ' · ' + V(Math.round(t.bpm)) + ' bpm' : ''}${pos}${grimLiked.has(t.file) ? ' <span class="likeh">♥</span>' : ''}${quip('np', .35)}</span>`, true);
  while (out.childElementCount > 500) out.firstElementChild.remove(); }); // keep scrollback sane
 /* ---------- shell ---------- */
 const out = $('#out'), cmd = $('#cmd'); const hist = []; let hp = 0;
@@ -502,7 +515,7 @@ const THEMES = ['cyan', 'green', 'amber', 'red', 'fire', 'ice', 'silicon', 'nigh
 const themeSel = $('#themesel'); themeSel.innerHTML = THEMES.map(t => `<option value="${t}">${t}</option>`).join('');
 const curTheme = () => (document.body.className.match(/theme-(\w+)/) || [])[1] || 'cyan';
 function setTheme(t, quiet) { if (t === 'grey' || t === 'grayscale') t = 'gray'; if (!THEMES.includes(t)) return say('usage: theme ' + THEMES.join('|'));
- document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + t); if (quiet !== 'mood') { localStorage.grimTheme = t; if (mood) mood.prev = t; } themeSel.value = t; refreshColors(); if (!quiet) say('theme → ' + V(t), true); }
+ document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + t); if (quiet !== 'mood') { localStorage.grimTheme = t; if (mood) mood.prev = t; } themeSel.value = t; refreshColors(); if (!quiet) say('theme → ' + V(t) + quip('theme'), true); }
 themeSel.addEventListener('change', () => setTheme(themeSel.value));
 // grimfetch color swatches: one per theme (same order as the dropdown); click/Enter/Space = same as picking it in the dropdown
 const SW = {cyan: '#6ff6ff', green: '#4dff7c', amber: '#ffbb20', red: '#ff4a4a', fire: 'linear-gradient(#ffe14d,#ff2a00)', ice: 'linear-gradient(#fff,#7fc4ff)', silicon: 'linear-gradient(#b3c088,#6fb8b4)', nightshift: 'linear-gradient(#a9b8f0,#b28dfd)', neon: 'linear-gradient(#4cc6ff,#df81fc)', gray: '#bbb'};
@@ -716,7 +729,7 @@ const CMDS = {
  ls: () => flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}${t.special ? ' ★' : ''}  [${t.single ? 'single' : t.al.title}]`)),
  albums: () => data.albums.forEach((a, i) => say(`[${String.fromCharCode(65 + (flat.find(t => t.al === a)?.ai ?? i))}] ${a.title}${a.year ? ' (' + a.year + ')' : ''} — ${a.type || 'album'}, ${a.tracks.length} tracks${a.blurb ? ' · ' + a.blurb : ''}`)),
  play: a => { if (!a) return toggle(); const n = parseInt(a, 10); if (n >= 1 && n <= flat.length) { play(n - 1); say('playing ' + flat[n - 1].title); } else { const i = flat.findIndex(t => t.title.toLowerCase().includes(a.toLowerCase())); i >= 0 ? (play(i), say('playing ' + flat[i].title)) : say('no such track: ' + a); } },
- pause: () => outPause(), next: () => next(1), prev: () => next(-1), repeat: cycleRepeat, shuffle: () => { shuffle = !shuffle; updateModes(); say('shuffle: ' + V(shuffle ? 'on' : 'off'), true); },
+ pause: () => outPause(), next: () => next(1), prev: () => next(-1), repeat: cycleRepeat, shuffle: () => { shuffle = !shuffle; updateModes(); say('shuffle: ' + V(shuffle ? 'on' : 'off') + quip(shuffle ? 'shufon' : 'shufoff'), true); },
  vol: a => { setVol((+a || 0) / 100); say('volume ' + V(Math.round(vol * 100) + '%'), true); },
  bio: () => { say(manBio(), true); jump('man'); },
  man: a => CMDS.bio(), whoami: () => say('tomGRIM — formerly dj ign3ous. Lehigh Valley, PA.'), fetch: () => jump('fetch'), weather: () => weatherFx(true), wx: () => weatherFx(true), grimfetch: () => jump('fetch'),
@@ -725,7 +738,7 @@ const CMDS = {
  zach: () => zach(), get: a => getCmd(a), wget: a => getCmd(a), curl: a => getCmd((a || '').replace(/(^|\s)(-O|--remote-name|-L|-s)(?=\s|$)/g, ' ').trim()),
  clear: () => { out.innerHTML = ''; }, theme: a => setTheme((a || '').trim()),
  sudo: a => { const m = (a || '').match(/^(\S+)\s*(.*)$/); if (m && /^(apt|apt-get)$/.test(m[1])) return CMDS[m[1]](m[2], true); say('[sudo] password for tom: ********\ntom is not in the sudoers file. This incident will be reported.'); },
- exit: () => say('logout\nthere is no exit. only the next track. (refresh to reboot)'), logout: () => CMDS.exit(),
+ logout: () => say('logout\nthere is no exit. only the next track.'),
 };
 /* ---------- DJ FX: filter / res / verb / crush ---------- */
 const FXK = {filter: {min: -100, max: 100, def: 0, label: 'FILTER', bi: true}, res: {min: 0, max: 100, def: 0, label: 'RES'}, verb: {min: 0, max: 100, def: 0, label: 'VERB'}, crush: {min: 0, max: 100, def: 0, label: 'CRUSH'}};
@@ -837,7 +850,7 @@ function fsTree() { const D = (o) => ({d: 1, c: o}), F = (txt, size) => ({f: 1, 
   home: D({tom: D({music: D(music), albums: D(albums), photos: D(Object.fromEntries((PHOTOS || []).map((p, i) => ['frame-' + String(i + 1).padStart(2, '0') + '.jpg', F(null, 240000 + i * 7919)]))),
    'readme.txt': F('tomGRIM :: GRIM/OS\n\ndark, warm machine music after midnight.\n\n  ls            list tracks        play <n>   play a track\n  get <n>       download a track   help       all commands\n  cd ~/albums   browse albums      neofetch   system info\n\nbookings / inquiries: type "mail".'),
    '.bashrc': F('export PS1="tom@grimos:\\w$ "\nalias ll="ls -la"\nalias please="sudo"\n# play loud.'), '.bash_history': F(null, 4096)})}),
-  etc: D({motd: F('Welcome to GrimOS ' + GRIMOS_VERSION + ' (Downtempo)\n\n * Every track is free to download: get <track#>\n * Effects: fire, starfield, plasma, donut, pipes\n * Support: irc #tomgrim\n'), 'os-release': F(OSREL), hostname: F('grimos'), passwd: F(null, 1871), shadow: F(null, 1024), hosts: F('127.0.0.1\tlocalhost\n127.0.1.1\tgrimos\n185.199.108.153\tthomasgrim.com'), fstab: F(null, 612)}),
+  etc: D({motd: F('Welcome to GrimOS ' + GRIMOS_VERSION + ' (Downtempo)\n\n * Every track is free to download: get <track#>\n * Effects: fire, starfield, plasma, donut, pipes\n * Support: irc #tomgrim\n * Whatever you do, don\'t rm -rf /\n'), 'os-release': F(OSREL), hostname: F('grimos'), passwd: F(null, 1871), shadow: F(null, 1024), hosts: F('127.0.0.1\tlocalhost\n127.0.1.1\tgrimos\n185.199.108.153\tthomasgrim.com'), fstab: F(null, 612)}),
   var: D({log: D({syslog: F(null, 88231), 'scope.log': F(null, 12044), 'vinyl.log': F(null, 3301), 'auth.log': F(null, 5120)})}),
   bin: D({bash: F(null, 1183448), sh: F(null, 125560), ls: F(null, 138208), grimsh: F(null, 66600)}), usr: D({bin: D({grimamp: F(null, 420666), python3: F(null, 5904904)}), lib: D({'libgrimamp.so.2': F(null, 81920)})}),
   sys: D({vinyl: D({'spin.ko': F(null, 16384), needle: F(null, 4096)})}), proc: D({cpuinfo: F(null, 0), uptime: F(null, 0)}), tmp: D({}), dev: D({bass: F(null, 0), kick0: F(null, 0), null: F(null, 0)}), boot: D({'vmlinuz-grim': F(null, 11534336)})}); }
@@ -919,7 +932,7 @@ Object.assign(CMDS, {
  popout: () => termFloat(true), dock: () => termFloat(false),
 });
 $('#prompt').addEventListener('submit', e => { e.preventDefault(); if (job) return; const v = cmd.value.trim(); cmd.value = ''; if (!v) return; hist.push(v); hp = hist.length;
- if (/^(sudo\s+)?rm\s+-(rf|fr)\s+(--no-preserve-root\s+)?\/\*?$/i.test(v)) { sayCmd(v); return rmrf(); }
+ { const m = v.match(/^(?:sudo\s+)?rm\s+((?:-[\w-]+\s+)+)\/\*?(?:\s+--no-preserve-root)?$/i), fl = m ? m[1].replace(/--no-preserve-root/g, '') : ''; if ((m && /r/i.test(fl) && /f/i.test(fl)) || /^(sudo\s+)?(delete|remove|exit|quit)\b/i.test(v)) { sayCmd(v); return rmrf(); } }
  sayCmd(v); const [c, ...rest] = v.split(/\s+/); const f = CMDS[c.toLowerCase()]; f ? f(rest.join(' ')) : sayA(`bash: ${A('1;31', c)}: ${A('31', 'command not found')}`); });
 addEventListener('keydown', e => { if (!job) return; if ((e.ctrlKey && /^c$/i.test(e.key)) || (job.kind === 'top' && /^q$/i.test(e.key))) { e.preventDefault(); e.stopImmediatePropagation(); job.stop(); } }, true);
 cmd.addEventListener('keydown', e => { if (e.key === 'ArrowUp') { hp = Math.max(0, hp - 1); cmd.value = hist[hp] || ''; e.preventDefault(); } else if (e.key === 'ArrowDown') { hp = Math.min(hist.length, hp + 1); cmd.value = hist[hp] || ''; e.preventDefault(); }
@@ -1291,32 +1304,41 @@ function paintHearts(file) { document.querySelectorAll(file ? `.like[data-file="
  b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); b.firstChild.nodeValue = on ? '♥' : '♡'; b.title = on ? 'unlike' : 'like'; b.querySelector('.lc').textContent = likesOk && c ? c : ''; }); }
 const saveLikes = () => { localStorage.grimLikes = JSON.stringify([...grimLiked]); };
 async function toggleLike(file) { const was = grimLiked.has(file); was ? grimLiked.delete(file) : grimLiked.add(file); likeCounts[file] = Math.max(0, (likeCounts[file] || 0) + (was ? -1 : 1)); saveLikes(); paintHearts(file);
- try { const r = await rpc('toggle_like', {p_file: file, p_client_id: grimCid}); r.liked ? grimLiked.add(file) : grimLiked.delete(file); likeCounts[file] = r.count; likesOk = true; saveLikes(); paintHearts(file); return r; }
+ try { const r = await rpc('toggle_like', {p_file: file, p_client_id: grimCid}); r.liked ? grimLiked.add(file) : grimLiked.delete(file); likeCounts[file] = r.count; likesOk = true; saveLikes(); paintHearts(file);
+  const tt = flat.find(x => x.file === file); say(`${r.liked ? '<span class="likeh">♥</span> liked' : '♡ unliked'}: ${V(tt ? tt.title : file)} · ${V(r.count)} ${r.count === 1 ? 'heart' : 'hearts'}${quip(r.liked ? 'like' : 'unlike')}`, true); return r; }
  catch (e) { was ? grimLiked.add(file) : grimLiked.delete(file); likeCounts[file] = Math.max(0, (likeCounts[file] || 0) + (was ? 1 : -1)); saveLikes(); paintHearts(file);
   say(/rate/.test(e.message) ? 'like: ' + V('slow down') + ' — too many likes this hour.' : 'like: ' + V('offline') + ' — could not reach the like server.', true); return null; } }
 pl.addEventListener('click', e => { const b = e.target.closest('.like'); if (!b) return; e.stopPropagation(); e.preventDefault(); toggleLike(b.dataset.file); }, true);
 pl.addEventListener('keydown', e => { if (e.target.closest && e.target.closest('.like') && (e.key === 'Enter' || e.key === ' ')) e.stopPropagation(); }, true);
-rpc('like_counts').then(rows => { rows.forEach(r => { likeCounts[r.file] = +r.count; }); likesOk = true; paintHearts(); }).catch(() => { likesOk = false; paintHearts(); });
+let likeBase = false, likeEchoAt = 0;
+function refreshLikes() { return rpc('like_counts').then(rows => { const up = [];
+  rows.forEach(r => { const c = +r.count; if (likeBase && c > (likeCounts[r.file] || 0)) up.push(r.file); likeCounts[r.file] = c; }); likesOk = true; paintHearts();
+  if (likeBase && up.length && Date.now() - likeEchoAt > 300000) { likeEchoAt = Date.now(); const tt = flat.find(x => x.file === up[0]);
+   if (tt) say(`someone <span class="likeh">♥</span>'d ${V(tt.title)}${up.length > 1 ? ' (+' + V(up.length - 1) + ' more)' : ''}${quip('remote')}`, true); }
+  likeBase = true; }).catch(() => { if (!likeBase) { likesOk = false; paintHearts(); } }); }
+refreshLikes(); setInterval(() => { if (!document.hidden && !dead) refreshLikes(); }, 60000);
 async function likeCmd(a) { a = (a || '').trim(); let t = curT();
  if (a) { const i = /^\d+$/.test(a) ? +a - 1 : flat.findIndex(x => x.title.toLowerCase().includes(a.toLowerCase())); t = flat[i]; }
  if (!t || !t.file) return say('like: usage ' + V('like [n|name]') + ' — no track playing.', true);
- const r = await toggleLike(t.file); if (r) say(`like: ${V(t.title)} ${r.liked ? '<span class="likeh">♥</span> liked' : '♡ unliked'} · ${V(r.count)} total`, true); }
+ await toggleLike(t.file); }
 
 /* BBS */
 const L33T_A = ['n30n', 'gh0st', 'cr4sh', 'phr34k', 'z3r0', 'h4x', 'd4rk', 'gr1m', 'byt3', 'v01d', 'n1ght', 'r00t', 'gl1tch', 'sh4d0w', 'cyb3r', 'ac1d', 'fr4g', 'w4rp', 'p1x3l', 'b1t'];
 const L33T_B = ['run3r', 'w0lf', 'k1d', 'r4v3n', 'm0nk', 'p1r4t3', 'sp00k', 'dr01d', 'st4t1c', 'ph4nt0m', 'h0und', 'c0d3r', 'w1z', 'n1nj4', 'ph0n3r', 'r4t'];
 const genHandle = () => L33T_A[Math.random() * L33T_A.length | 0] + '_' + L33T_B[Math.random() * L33T_B.length | 0] + String(Math.random() * 100 | 0).padStart(2, '0');
 let bbsMe = /^[a-z0-9]{2,10}_[a-z0-9]{2,10}[0-9]{2}$/.test(localStorage.grimHandle || '') ? localStorage.grimHandle : (localStorage.grimHandle = genHandle());
-const bbs = {list: $('#bbslist'), ids: new Set(), minId: null, maxId: 0, timer: 0, ok: true};
+const bbs = {mine: new Set(), loaded: false, list: $('#bbslist'), ids: new Set(), minId: null, maxId: 0, timer: 0, ok: true};
 function bbsLine(m) { const d = document.createElement('div'); d.className = 'bm'; d.dataset.id = m.id; const when = new Date(m.created_at);
  d.innerHTML = `<span class="bt">${String(when.getMonth() + 1).padStart(2, '0')}/${String(when.getDate()).padStart(2, '0')} ${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}</span> <span class="bh">${escH(m.handle)}</span> <span class="ba">&gt;&gt;</span> <span class="bb"></span>`; d.querySelector('.bb').textContent = m.body; return d; }
-function bbsAdd(rows, older) { rows = rows.filter(m => !bbs.ids.has(m.id)).sort((a, b) => a.id - b.id); if (!rows.length) return 0; const atBottom = bbs.list.scrollHeight - bbs.list.scrollTop - bbs.list.clientHeight < 30, h0 = bbs.list.scrollHeight;
+function bbsAdd(rows, older) { rows = rows.filter(m => !bbs.ids.has(m.id)).sort((a, b) => a.id - b.id); if (!rows.length) return []; const atBottom = bbs.list.scrollHeight - bbs.list.scrollTop - bbs.list.clientHeight < 30, h0 = bbs.list.scrollHeight;
  const frag = document.createDocumentFragment(); rows.forEach(m => { bbs.ids.add(m.id); frag.appendChild(bbsLine(m)); bbs.minId = bbs.minId == null ? m.id : Math.min(bbs.minId, m.id); bbs.maxId = Math.max(bbs.maxId, m.id); });
  const emp = bbs.list.querySelector('.bempty'); if (emp) emp.remove();
- if (older) { bbs.list.prepend(frag); bbs.list.scrollTop += bbs.list.scrollHeight - h0; } else { bbs.list.appendChild(frag); if (atBottom || !older) bbs.list.scrollTop = bbs.list.scrollHeight; } return rows.length; }
+ if (older) { bbs.list.prepend(frag); bbs.list.scrollTop += bbs.list.scrollHeight - h0; } else { bbs.list.appendChild(frag); if (atBottom || !older) bbs.list.scrollTop = bbs.list.scrollHeight; } return rows; }
 const bbsStatus = (h) => { $('#bbsst').innerHTML = h || ''; };
 async function bbsLoad(older) { try { const rows = await rpc('get_messages', {p_before_id: older ? bbs.minId : null, p_limit: 50}); bbs.ok = true;
-  const n = bbsAdd(rows, older); if (older && !n) { $('#bbsolder').hidden = true; } if (!bbs.ids.size) bbs.list.innerHTML = '<div class="bempty dim">no transmissions yet. be the first.</div>'; if (!older && rows.length < 50 && !bbs.minIdSet) { $('#bbsolder').hidden = true; } bbs.minIdSet = true; bbsStatus(''); }
+  const added = bbsAdd(rows, older), n = added.length; if (older && !n) { $('#bbsolder').hidden = true; } if (!bbs.ids.size) bbs.list.innerHTML = '<div class="bempty dim">no transmissions yet. be the first.</div>'; if (!older && rows.length < 50 && !bbs.minIdSet) { $('#bbsolder').hidden = true; } if (!older && bbs.loaded && n) { const others = added.filter(m => !bbs.mine.has(m.id)); if (others.length) { const hs = [...new Set(others.map(m => m.handle))];
+   say(`bbs: ${V(others.length)} new transmission${others.length > 1 ? 's' : ''} from ${hs.slice(0, 3).map(h => V(h)).join(', ')}${hs.length > 3 ? '…' : ''}${quip('newmsg')}`, true); } }
+  if (!older) bbs.loaded = true; bbs.minIdSet = true; bbsStatus(''); }
  catch (e) { bbs.ok = false; bbsStatus('<span class="dim">carrier lost — BBS offline, retrying…</span>'); } }
 function bbsPoll(on) { clearInterval(bbs.timer); if (on) bbs.timer = setInterval(() => { if (!document.hidden) bbsLoad(false); }, 60000); }
 function openBBS(fromCmd) { jump('links'); if (fromCmd) say('feedback: ' + V('BBS open') + ' — you are ' + V(bbsMe) + '. type in the box in panel [4].', true); }
@@ -1331,7 +1353,7 @@ $('#bbsolder').addEventListener('click', () => bbsLoad(true));
 const bbsIn = $('#bbsin'); bbsIn.addEventListener('input', () => { $('#bbscnt').textContent = 280 - bbsIn.value.length; });
 $('#bbsform').addEventListener('submit', async e => { e.preventDefault(); const body = bbsIn.value.trim(); if (!body) return; const btn = $('#bbsform button'); btn.disabled = true;
  try { const r = await rpc('post_message', {p_handle: bbsMe, p_body: body}); bbsIn.value = ''; $('#bbscnt').textContent = 280;
-  if (r.hidden) bbsStatus('<span class="dim">message held for review.</span>'); else { bbsAdd([{id: r.id, handle: r.handle, body: r.body, created_at: new Date().toISOString()}]); bbsStatus(r.body !== body ? '<span class="dim">posted (links removed).</span>' : ''); } }
+  if (r.hidden) bbsStatus('<span class="dim">message held for review.</span>'); else { bbs.mine.add(r.id); say(`bbs: posted as ${V(r.handle)}${quip('post')}`, true); bbsAdd([{id: r.id, handle: r.handle, body: r.body, created_at: new Date().toISOString()}]); bbsStatus(r.body !== body ? '<span class="dim">posted (links removed).</span>' : ''); } }
  catch (err) { bbsStatus('<span class="dim">' + (/rate/.test(err.message) ? 'slow down — 1 message a minute, 10 a day.' : /spam/.test(err.message) ? 'rejected: looks like spam.' : /empty/.test(err.message) ? 'say a bit more.' : 'carrier lost — could not post.') + '</span>'); }
  finally { btn.disabled = false; } });
 })();
