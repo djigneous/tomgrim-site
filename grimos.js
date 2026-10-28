@@ -664,7 +664,8 @@ function pipes() { const BOX = {'0,0': '─', '1,1': '│', '2,2': '─', '3,3':
    p.d = nd; p.x += DX[nd]; p.y += DY[nd]; if (p.x < 0 || p.y < 0 || p.x >= W || p.y >= H) { p.x = Math.random() * W | 0; p.y = Math.random() * H | 0; p.d = Math.random() * 4 | 0; p.c = cols[Math.random() * cols.length | 0]; } } }); }
 /* ---------- rm -rf / ---------- */
 let dead = false;
-function rmrf() { if (dead) return; dead = true; window.tgTrack('easter-rmrf', 'rm -rf /'); saver.on = false; saverStop(); if (fxs) fxs.stop(); if (mx) mx.stop();
+let rmSt = null;
+function rmrf() { if (dead) return; dead = true; window.tgTrack('easter-rmrf', 'rm -rf /'); rmSt = {cls: document.body.className, saverOn: saver.on, playing: !audio.paused, vol: audio.volume, cur}; saver.on = false; audio.addEventListener('pause', () => { if (rmSt) rmSt.t = audio.currentTime; }, {once: true}); saverStop(); if (fxs) fxs.stop(); if (mx) mx.stop();
  cueClear(); smoke(false); cmd.disabled = true; cmd.blur(); jump('shell');
  const P = ['/bin/bash', '/bin/sh', '/bin/ls', '/etc/passwd', '/etc/shadow', '/etc/hosts', '/etc/fstab', '/boot/vmlinuz-grim', '/usr/lib/libc.so.6', '/usr/lib/libgrimamp.so.2', '/usr/lib/x86_64-linux-gnu/libasound.so.2', '/usr/share/fonts/vt323.ttf', '/usr/bin/grimsh', '/usr/bin/python3', '/lib/modules/6.6.6-grim/kernel/sound/bass.ko', '/sys/vinyl/spin.ko', '/sys/vinyl/needle', '/sys/class/crt/phosphor', '/var/log/scope', '/var/log/syslog', '/var/cache/waveform.db', '/dev/bass', '/dev/kick0', '/opt/grimos/themes/cyan.css', '/home/tomgrim/.bash_history', '/home/tomgrim/irc/#tomgrim.log'];
  flat.slice(0, 40).forEach(t => P.push('/home/tomgrim/music/' + t.file.split('/').pop())); for (let i = P.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [P[i], P[j]] = [P[j], P[i]]; }
@@ -673,19 +674,35 @@ function rmrf() { if (dead) return; dead = true; window.tgTrack('easter-rmrf', '
   const burst = 1 + Math.floor(f * f * 14); for (let i = 0; i < burst; i++) { const p = P[k++ % P.length]; say("removed '" + (k > P.length ? p.replace(/(\.\w+)?$/, '.' + (k % 97) + '$1') : p) + "'"); }
   while (n < items.length * f) { const li = items[n++]; if (li) li.style.visibility = 'hidden'; }
   audio.volume = Math.max(0, v0 * (1 - f)); if (f > .55 && !audio.paused) audio.pause();
-  if (Math.random() < .15 + f * .5) { const th = THEMES[Math.random() * THEMES.length | 0]; document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + th); refreshColors(); }
-  document.body.style.filter = Math.random() < f * .4 ? 'invert(1) hue-rotate(' + (Math.random() * 360 | 0) + 'deg)' : '';
-  if (f < 1) setTimeout(step, Math.max(12, 90 - f * 80)); else { document.body.style.filter = ''; say('rm: cannot remove /proc/1: Device or resource busy'); setTimeout(() => { glitch({intro: 1300}); setTimeout(blackout, 1300); }, 150); } };
+  if (!RM && Math.random() < .15 + f * .5) { const th = THEMES[Math.random() * THEMES.length | 0]; document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + th); refreshColors(); }
+  document.body.style.filter = !RM && Math.random() < f * .4 ? 'invert(1) hue-rotate(' + (Math.random() * 360 | 0) + 'deg)' : '';
+  if (f < 1) setTimeout(step, Math.max(12, 90 - f * 80)); else { document.body.style.filter = ''; say('rm: cannot remove /proc/1: Device or resource busy'); setTimeout(() => { if (RM) return blackout(); glitch({intro: 1300}); setTimeout(blackout, 1300); }, 150); } };
  step(); }
-function blackout() { audio.pause(); try { audio.removeAttribute('src'); audio.load(); } catch {}
- if ('mediaSession' in navigator) { const ms = navigator.mediaSession; ms.metadata = null; ms.playbackState = 'none'; ['play', 'pause', 'previoustrack', 'nexttrack', 'seekto', 'seekbackward', 'seekforward', 'stop'].forEach(a => { try { ms.setActionHandler(a, null); } catch {} }); }
+const HACKERS = ['HACK THE PLANET!', 'Mess with the best, die like the rest.', "It's in that place where I put that thing that time.", "Never send a boy to do a woman's job.", "There is no right and wrong. There's only fun and boring.", "They're trashing our rights!", "Type 'cookie', you idiot.", "God wouldn't be up this late."];
+function blackout() { const st = rmSt || {}; if (st.t == null) st.t = audio.currentTime; audio.pause();
  if (fxs) fxs.stop(); smoke(false); cueBlack(0);
- const d = document.createElement('div'); d.id = 'dead'; d.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#000;cursor:none;font:16px/1.3 "IBM Plex Mono",monospace;color:#555;padding:24px;box-sizing:border-box';
+ const d = document.createElement('div'); d.id = 'dead'; d.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#000;cursor:none;font:16px/1.3 "IBM Plex Mono",monospace;color:#555;padding:24px;box-sizing:border-box;overflow:hidden;white-space:pre-wrap';
  document.body.appendChild(d); document.documentElement.style.overflow = 'hidden';
  const block = e => { if (e.type === 'keydown' && (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && /^r$/i.test(e.key)))) return; e.preventDefault(); e.stopImmediatePropagation(); };
- ['keydown', 'keyup', 'keypress', 'pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'dblclick', 'contextmenu', 'touchstart', 'touchend', 'wheel', 'mousemove', 'focusin'].forEach(ev => addEventListener(ev, block, {capture: true, passive: false}));
+ const EVS = ['keydown', 'keyup', 'keypress', 'pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'dblclick', 'contextmenu', 'touchstart', 'touchend', 'wheel', 'mousemove', 'focusin'];
+ EVS.forEach(ev => addEventListener(ev, block, {capture: true, passive: false}));
  if (document.activeElement) document.activeElement.blur();
- setTimeout(() => { d.innerHTML = 'Kernel panic - not syncing: Attempted to kill init!<span class="kcur">_</span>'; const c = d.querySelector('.kcur'); setInterval(() => { c.style.visibility = c.style.visibility === 'hidden' ? '' : 'hidden'; }, 530); }, 3000); }
+ const q = HACKERS.slice().sort(() => Math.random() - .5).slice(0, 3 + (Math.random() * 2 | 0)); let qi = 0; const Q = () => q[qi++];
+ const PANIC_AT = RM ? 600 : 3000;
+ setTimeout(() => { d.innerHTML = 'Kernel panic - not syncing: Attempted to kill init!\n<span class="kq">"' + escH(Q()) + '"</span><span class="kcur">_</span>'; const c = d.querySelector('.kcur'); const blink = setInterval(() => { c.style.visibility = c.style.visibility === 'hidden' ? '' : 'hidden'; }, 530);
+  setTimeout(() => { clearInterval(blink); c.remove(); boot(); }, 5000); }, PANIC_AT);
+ const boot = () => { const log = document.createElement('div'); log.style.cssText = 'margin-top:2.6em;color:#9a9a9a'; d.appendChild(log);
+  const L = ['GRIM-BIOS v6.10 (c) 1995 Gibson Systems', 'CPU: GRIM-808 @ 33 MHz ...... OK', 'Memory test: 640K ................ OK', '"' + Q() + '"', 'Detecting drives: /dev/kick0 /dev/bass ..... OK', 'Loading vmlinuz-grim ......... done', '[  OK  ] restored / from vinyl backup', (q[2] ? '"' + Q() + '"' : '"undefined"'), '[  OK  ] started grimamp.service', '[  OK  ] mounted /home/tomgrim/music', (q[3] ? '"' + Q() + '"' : '"undefined"'), '[  OK  ] reached target late-night.target', 'GRIM/OS ' + GRIMOS_VERSION + ' ready.'].filter(x => x !== '"undefined"');
+  const per = RM ? 260 : 380; let i = 0;
+  const next = () => { if (i < L.length) { const ln = document.createElement('div'); const s = L[i++]; ln.textContent = s; if (s[0] === '"') ln.style.color = '#d8d8d8'; log.appendChild(ln); setTimeout(next, per); } else setTimeout(restore, 500); };
+  next(); };
+ const restore = () => { EVS.forEach(ev => removeEventListener(ev, block, {capture: true})); d.remove(); document.documentElement.style.overflow = '';
+  document.body.style.filter = ''; if (st.cls) document.body.className = st.cls; refreshColors(); pl.querySelectorAll('li').forEach(li => { li.style.visibility = ''; });
+  audio.volume = st.vol != null ? st.vol : audio.volume; saver.on = !!st.saverOn; cmd.disabled = false; dead = false; rmSt = null;
+  say('GRIM/OS ' + GRIMOS_VERSION + ': reboot ' + V('ok') + quip('reboot'), true);
+  if (st.playing) { try { if (isFinite(st.t) && st.t > 0) audio.currentTime = st.t; } catch (e) {}
+   audio.play().catch(() => { const id = 'resume' + Date.now(); say(`audio paused by the browser — <button type="button" class="xl" id="${id}"><b>▶ resume</b></button>`, true); const bt = document.getElementById(id); if (bt) bt.addEventListener('click', () => { audio.play().catch(() => {}); bt.closest('div').remove(); }); }); }
+  if (!matchMedia('(hover:none)').matches) cmd.focus({preventScroll: true}); }; }
 
 /* ---------- idle screensaver ---------- */
 const SAVERS = {matrix: () => matrix(), fire: () => fire(), starfield: () => starfield(), plasma, tunnel, rain, dvd, life, cube: () => cube(), donut: () => cube('donut'), snow, pipes};
