@@ -720,7 +720,7 @@ const CMDS = {
  vol: a => { setVol((+a || 0) / 100); say('volume ' + V(Math.round(vol * 100) + '%'), true); },
  bio: () => { say(manBio(), true); jump('man'); },
  man: a => CMDS.bio(), whoami: () => say('tomGRIM — formerly dj ign3ous. Lehigh Valley, PA.'), fetch: () => jump('fetch'), weather: () => weatherFx(true), wx: () => weatherFx(true), grimfetch: () => jump('fetch'),
- links: () => LINKS.concat([['mail', 'contact.html'], ['irc', 'irc.html']]).forEach(([n, u]) => say(`${n.padEnd(12)} <a href="${u}" target="_blank" rel="noopener">${u}</a>`, true)),
+ links: () => (showManPage('links', true), LINKS.concat([['mail', 'contact.html'], ['irc', 'irc.html']]).forEach(([n, u]) => say(`${n.padEnd(12)} <a href="${u}" target="_blank" rel="noopener">${u}</a>`, true))),
  contact: () => { say('opening mail client…'); openModal('mail'); }, mail: () => CMDS.contact(), irc: () => { say('opening irc #tomgrim on irc.unrealircd.org…'); openModal('irc'); }, chat: () => CMDS.irc(),
  zach: () => zach(), get: a => getCmd(a), wget: a => getCmd(a), curl: a => getCmd((a || '').replace(/(^|\s)(-O|--remote-name|-L|-s)(?=\s|$)/g, ' ').trim()),
  clear: () => { out.innerHTML = ''; }, theme: a => setTheme((a || '').trim()),
@@ -907,7 +907,7 @@ Object.assign(CMDS, {
   const info = ['<b class="a14">tom</b>@<b class="a14">grimos</b>', '-----------', '<b>OS</b>: GrimOS ' + GRIMOS_VERSION + ' (Downtempo) x86_64', '<b>Host</b>: thomasgrim.com', '<b>Kernel</b>: ' + GRIMOS_VERSION + '-warm', `<b>Uptime</b>: ${up} mins`, `<b>Packages</b>: ${flat.length} (tracks)`, '<b>Shell</b>: grimsh ' + GRIMOS_VERSION + '', `<b>Theme</b>: ${curTheme()} [CRT]`, '<b>Terminal</b>: GRIMAMP tty', `<b>Now playing</b>: ${t ? esc2(t.title) : '—'}`, '<b>Location</b>: Lehigh Valley, PA'];
   const rows = Math.max(NEO.length, info.length); let s = '<span class="neo">'; info.forEach((x, i) => { info[i] = x.replace(/<b>([^<]+)<\/b>/, '<b class="a3">$1</b>'); }); for (let i = 0; i < rows; i++) s += '<span style="color:var(--br)">' + esc2(NEO[i] || ' '.repeat(18)) + '</span>  ' + (info[i] || '') + '\n';
   s += ' '.repeat(20) + [0, 1, 2, 3, 4, 5, 6, 7].map(c => `<span class="a${c}">███</span>`).join('') + '\n' + ' '.repeat(20) + [8, 9, 10, 11, 12, 13, 14, 15].map(c => `<span class="a${c}">███</span>`).join('') + '</span>'; say(s, true); },
- man: a => { a = (a || '').trim(); if (!a || /^tom(grim)?$/i.test(a)) return CMDS.bio(); if (MAN[a]) { say(manPage(a), true); if (a === 'links') CMDS.links(); return; } say(CMDS[a] ? `<div class="manout"><div class="mt">${escH(a.toUpperCase())}(1)</div><div class="mp">${escH(a)} — see "<button type="button" class="getlink runlink xref" data-run="help"><b>help</b></button>" for usage.</div></div>` : `No manual entry for ${escH(a)}`, CMDS[a]); },
+ man: a => { a = (a || '').trim(); if (!a || /^tom(grim)?$/i.test(a)) return CMDS.bio(); if (MAN[a]) { say(manPage(a), true); if (a === 'links') { CMDS.links(); showManPage('links', true); } return; } say(CMDS[a] ? `<div class="manout"><div class="mt">${escH(a.toUpperCase())}(1)</div><div class="mp">${escH(a)} — see "<button type="button" class="getlink runlink xref" data-run="help"><b>help</b></button>" for usage.</div></div>` : `No manual entry for ${escH(a)}`, CMDS[a]); },
  which: a => (a || '').split(/\s+/).filter(Boolean).forEach(c => say(CMDS[c] ? '/usr/bin/' + c : `which: no ${c} in (/usr/local/bin:/usr/bin:/bin)`)),
  ssh: a => { const h = (a || '').split('@').pop() || ''; if (!h) return say('usage: ssh [user@]hostname'); say(`ssh: connect to host ${h} port 22: Connection refused\n(the only open port here is the dancefloor.)`); },
  curl: a => { a = (a || '').trim(); if (/(^|\s)(-O|--remote-name)(\s|$)/.test(a)) return getCmd(a.replace(/(^|\s)(-O|--remote-name|-L|-s)(?=\s|$)/g, ' ').trim()); if (!a) return say("curl: try 'curl --help' for more information");
@@ -1321,6 +1321,10 @@ async function bbsLoad(older) { try { const rows = await rpc('get_messages', {p_
 function bbsPoll(on) { clearInterval(bbs.timer); if (on) bbs.timer = setInterval(() => { if (!document.hidden) bbsLoad(false); }, 60000); }
 function openBBS(fromCmd) { jump('links'); if (fromCmd) say('feedback: ' + V('BBS open') + ' — you are ' + V(bbsMe) + '. type in the box in panel [4].', true); }
 $('#bbsme').textContent = bbsMe;
+function showManPage(pg, go) { const L = pg === 'links'; $('#mp-links').hidden = !L; $('#mp-tomgrim').classList.toggle('mhide', L);
+ $('#mtab-links').setAttribute('aria-pressed', L); $('#mtab-tomgrim').setAttribute('aria-pressed', !L); if (go) jump('man', true); }
+document.querySelectorAll('.mtab').forEach(b => b.addEventListener('click', () => showManPage(b.dataset.mp)));
+document.querySelectorAll('#mp-links a').forEach(a => a.addEventListener('click', () => window.tgTrack('link', a.textContent.trim())));
 bbsLoad(false); bbsPoll(true); document.addEventListener('visibilitychange', () => { if (!document.hidden) bbsLoad(false); });
 $('#bbsreroll').addEventListener('click', () => { bbsMe = localStorage.grimHandle = genHandle(); $('#bbsme').textContent = bbsMe; });
 $('#bbsolder').addEventListener('click', () => bbsLoad(true));

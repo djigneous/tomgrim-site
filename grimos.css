@@ -517,3 +517,10 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 #bbsin:focus{border-bottom-color:var(--hi)}#bbscnt{font-size:.85em}
 #bbsform button{font:inherit;padding:0 .6ch;height:1.4em}
 .xl[hidden],#bbs [hidden]{display:none!important}
+/* man window: 2 pages (man tomgrim | ls -la ~/links) stacked in one cell so height stays stable */
+.mpages{display:grid;min-height:0}.mpages>*{grid-area:1/1;min-width:0}
+.manbody.mhide{visibility:hidden}.mlinkpg{background:var(--bg);overflow:auto}.mlinkpg[hidden]{display:none}
+.mtab{all:unset;cursor:pointer;color:var(--a3,var(--acc));border-bottom:1px dotted color-mix(in srgb,var(--a3,var(--acc)) 60%,transparent);-webkit-tap-highlight-color:transparent}
+.mtab[aria-pressed=true]{color:#fff;border-bottom:0;cursor:default}
+.mtab:focus-visible{outline:1px dotted var(--hi)}@media (hover:hover){.mtab[aria-pressed=false]:hover{color:var(--bg);background:var(--a3,var(--acc))}}
+#man .mtab[aria-pressed=true]{background:none!important;color:#fff!important}
