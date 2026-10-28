@@ -26,7 +26,7 @@
 <meta name="twitter:image" content="https://thomasgrim.com/assets/og-card.jpg">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"MusicGroup","@id":"https://thomasgrim.com/#tomgrim","name":"tomGRIM","alternateName":"dj ign3ous","url":"https://thomasgrim.com/","image":"https://thomasgrim.com/assets/og-card.jpg","genre":["Downtempo","Breakbeat","Electro","Experimental"],"foundingLocation":{"@type":"Place","name":"Lehigh Valley, PA"},"album":[{"@type":"MusicAlbum","name":"Ember Hours","datePublished":"2026","albumProductionType":"https://schema.org/StudioAlbum","byArtist":{"@id":"https://thomasgrim.com/#tomgrim"},"numTracks":9,"image":"https://thomasgrim.com/assets/covers/ember-hours-512.png"},{"@type":"MusicAlbum","name":"Night Signals","datePublished":"2025","albumProductionType":"https://schema.org/StudioAlbum","byArtist":{"@id":"https://thomasgrim.com/#tomgrim"},"numTracks":11,"image":"https://thomasgrim.com/assets/covers/night-signals-512.png"},{"@type":"MusicAlbum","name":"ELEMENTS","datePublished":"2009","albumProductionType":"https://schema.org/StudioAlbum","byArtist":{"@id":"https://thomasgrim.com/#tomgrim"},"numTracks":7,"image":"https://thomasgrim.com/assets/covers/elements-512.png"}]}</script>
 <link rel="icon" href="favicon.ico?v=2" sizes="48x48"><link rel="icon" href="favicon.svg?v=2" type="image/svg+xml"><link rel="icon" href="favicon-32.png?v=2" sizes="32x32" type="image/png"><link rel="icon" href="favicon-192.png?v=2" sizes="192x192" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" sizes="180x180">
-<link rel="stylesheet" href="grimos.css?v=20261027204538">
+<link rel="stylesheet" href="grimos.css?v=20261027205934">
 <script data-goatcounter="https://tomgrim.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body class="theme-cyan">
@@ -41,7 +41,7 @@
     <button data-jump="fetch" data-ico="fetch" aria-label="1 sysinfo"><span class="lb">[1] sysinfo</span></button>
     <button data-jump="man" data-ico="man" aria-label="2 man tomgrim"><span class="lb">[2] man</span></button>
     <button data-jump="player" data-ico="player" aria-label="3 grimamp player"><span class="lb">[3] grimamp</span></button>
-    <button data-jump="links" data-ico="links" aria-label="4 links"><span class="lb">[4] links</span></button>
+    <button data-jump="links" data-ico="links" aria-label="4 bbs feedback"><span class="lb">[4] bbs</span></button>
     <button data-jump="shell" data-ico="shell" aria-label="5 shell"><span class="lb">[5] shell</span></button>
     <button data-jump="photos" data-ico="photos" aria-label="6 photos"><span class="lb">[6] photos</span></button>
     <button data-open="irc" data-ico="irc" aria-label="7 irc chat"><span class="lb">[7] irc</span></button>
@@ -77,7 +77,7 @@
 <li><b>Releases:</b> ELEMENTS (2009) · Elements II (2023)</li>
 <li><b>Singles:</b> Radio Flows · No Good · Passing High</li>
 <li><b>Shell:</b> grimsh — type <button type="button" class="getlink runlink xref helpchip" data-run="help" title="run help"><b>help</b></button></li>
-<li><b>Links:</b> <a href="#links" data-jump="links">see [4]</a></li>
+<li><b>Links:</b> <button type="button" class="getlink runlink xref" data-run="links"><b>links</b></button></li>
 <li class="swatch" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></li>
 </ul>
     </div>
@@ -132,19 +132,8 @@
   </section>
 
   <section id="links" class="win" tabindex="-1" aria-labelledby="t-links">
-    <h2 class="wt" id="t-links"><span>─[ ls -la ~/links ]─</span></h2>
-<div class="tabs" role="tablist" aria-label="links or feedback"><button type="button" role="tab" id="tab-links" aria-selected="true" aria-controls="pane-links">[links]</button><button type="button" role="tab" id="tab-bbs" aria-selected="false" aria-controls="pane-bbs" tabindex="-1">[feedback]</button></div>
-<div id="pane-links" role="tabpanel" aria-labelledby="tab-links">
-<ul class="lnk">
-<li>lrwxr-xr-x <a href="https://open.spotify.com/artist/1tBp2oza76uuM5bC3fx8Vg" target="_blank" rel="noopener">spotify</a></li>
-<li>lrwxr-xr-x <a href="https://music.apple.com/us/artist/tomgrim/1705139904" target="_blank" rel="noopener">apple-music</a></li>
-<li>lrwxr-xr-x <a href="https://www.youtube.com/@ig3.productions" target="_blank" rel="noopener">youtube</a></li>
-<li>lrwxr-xr-x <a href="https://soundcloud.com/thomasgrim" target="_blank" rel="noopener">soundcloud</a></li>
-<li>-rw-r--r-- <a href="contact.html" data-open="mail">mail tom</a></li>
-<li>srwxr-xr-x <a href="irc.html" data-open="irc">irc #tomgrim</a></li>
-</ul>
-</div>
-<div id="pane-bbs" class="bbs" role="tabpanel" aria-labelledby="tab-bbs" hidden>
+    <h2 class="wt" id="t-links"><span>─[ bbs ~/feedback ]─</span></h2>
+<div id="pane-bbs" class="bbs">
 <div class="bbshead dim">GRIM/BBS · anon · you are <b id="bbsme"></b> <button type="button" class="xl" id="bbsreroll"><b>reroll</b></button></div>
 <button type="button" class="xl" id="bbsolder"><b>load older</b></button>
 <div id="bbslist" class="bbslist" aria-live="polite"></div>
@@ -222,8 +211,8 @@
   <img id="lbimg" alt="">
   <div class="lbnav"><button id="lbprev" aria-label="Previous photo">◀ prev</button><span id="lbn" class="dim"></span><button id="lbnext" aria-label="Next photo">next ▶</button><button id="lbclose" aria-label="Close">[ esc ]</button></div>
  </div></div>
-<script src="contact.js?v=20261027204538"></script>
-<script src="irc.js?v=20261027204538"></script>
-<script src="grimos.js?v=20261027204538"></script>
+<script src="contact.js?v=20261027205934"></script>
+<script src="irc.js?v=20261027205934"></script>
+<script src="grimos.js?v=20261027205934"></script>
 </body>
 </html>

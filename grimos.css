@@ -498,9 +498,10 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 #shell.floating.sheet{padding-bottom:calc(.4em + env(safe-area-inset-bottom))}
 /* likes */
 .like{all:unset;cursor:pointer;color:var(--dim);padding:0 .35ch 0 .1ch;-webkit-tap-highlight-color:transparent}
-.like.on{color:var(--a3,var(--acc))}.like .lc{margin-left:.25ch;font-size:.9em}
-.like:focus-visible{outline:1px dotted var(--hi)}@media (hover:hover){.like:hover{color:var(--a3,var(--acc))}}
-#playlist .tr.sel .like,#playlist .tr.sel .like.on{color:inherit}
+.like.on,.like.on .lc{color:#fff}.like .lc{margin-left:.25ch;font-size:.9em}
+.like:focus-visible{outline:1px dotted var(--hi)}@media (hover:hover){.like:not(.on):hover{color:var(--a3,var(--acc))}}
+#playlist .tr.sel .like{color:inherit}#playlist .tr.sel .like.on,#playlist .tr.sel .like.on .lc{color:#fff}
+.like,.like:hover,.like:active,.like:focus,.like:focus-visible,.like.on{background:none!important;box-shadow:none!important}
 .likeh{color:var(--a3,var(--acc))}
 /* links | feedback tabs + BBS */
 #links .tabs{display:flex;gap:1ch;margin:0 0 .3em}
@@ -509,7 +510,7 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 #links .tabs button:focus-visible{outline:1px dotted var(--hi)}@media (hover:hover){#links .tabs button:hover{color:var(--hi)}}
 .xl{all:unset;cursor:pointer;border-bottom:1px dotted color-mix(in srgb,var(--a3,var(--acc)) 60%,transparent);-webkit-tap-highlight-color:transparent}
 .xl b{color:var(--a3,var(--acc))}.xl:focus-visible b,.xl:active b{color:var(--bg);background:var(--a3,var(--acc))}@media (hover:hover){.xl:hover b{color:var(--bg);background:var(--a3,var(--acc))}}
-.bbslist{max-height:14em;overflow:auto;margin:.3em 0;word-break:break-word}
+.bbslist{max-height:22em;overflow:auto;margin:.3em 0;word-break:break-word}
 .bbs .bm{padding:.05em 0}.bbs .bt{color:var(--dim)}.bbs .bh{color:var(--val,var(--br))}.bbs .ba{color:var(--a3,var(--acc))}
 #bbsform{display:flex;gap:.5ch;align-items:center}#bbsform .bp{color:var(--a3,var(--acc))}
 #bbsin{flex:1;min-width:0;background:transparent;border:0;border-bottom:1px solid var(--dim);color:var(--fg);font:inherit;outline:none;padding:.1em 0}
