@@ -432,6 +432,13 @@ async function installCmd() {
  if (installEvt) { const e = installEvt; installEvt = null; e.prompt(); const r = await e.userChoice.catch(() => ({outcome: 'dismissed'})); return say('install: ' + V(r.outcome === 'accepted' ? 'installing…' : 'cancelled'), true); }
  if (isIOS()) return say('install: on iPhone/iPad open this page in <b>Safari</b>, tap <b>Share</b> <span class="ab-d">(□↑)</span>, then <b>Add to Home Screen</b>. It opens full screen from the new icon.', true);
  say('install: no install prompt available right now. In Chrome use the <b>⋮ menu → Cast, save and share → Install page as app</b> (or the install icon in the address bar). If GRIM/OS is already installed, open it from your apps.', true); }
+/* ---------- now-playing status line in grimsh (once per track start; not on resume) ---------- */
+let npAnn = null;
+audio.addEventListener('ended', () => { npAnn = null; }); // repeat-one replays announce again
+audio.addEventListener('playing', () => { const t = curT(); if (!t) return; const key = t.file + '#' + cur; if (key === npAnn) return; npAnn = key;
+ const al = t.al || {}, n = (al.tracks || []).length, pos = n ? ` · [${V((t.ti + 1) + '/' + n)}]` : '';
+ say(`<span class="npline">▶ now playing: ${V(t.title)}${al.title ? ' · ' + V(t.single ? 'Single' : al.title) : ''}${t.bpm ? ' · ' + V(Math.round(t.bpm)) + ' bpm' : ''}${pos}</span>`, true);
+ while (out.childElementCount > 500) out.firstElementChild.remove(); }); // keep scrollback sane
 /* ---------- shell ---------- */
 const out = $('#out'), cmd = $('#cmd'); const hist = []; let hp = 0;
 function say(html, raw) { const d = document.createElement('div'); if (raw) d.innerHTML = html; else if (typeof ansi === 'function' && (String(html).includes('\x1b') || ERRRE.test(html))) d.innerHTML = ansi(String(html).includes('\x1b') ? html : String(html).split('\n').map(l => ERRRE.test(l) ? '\x1b[31m' + l + '\x1b[0m' : l).join('\n')); else d.textContent = html; out.appendChild(d); out.scrollTop = out.scrollHeight; }
