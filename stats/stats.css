@@ -4,8 +4,11 @@ a{color:var(--a3,var(--acc));text-decoration:none}
 .dim{color:var(--dim)}.hi{color:#fff}
 .tty{padding:24px;font-size:22px;color:var(--fg);text-shadow:var(--glow)}
 .tty pre{margin:0;font:inherit;white-space:pre-wrap}
-#lform{display:flex;align-items:baseline;margin:0}
-#pw{position:absolute;opacity:0;width:1px;height:1px;border:0;padding:0}
+#lform{margin:0}.tl{display:flex;align-items:baseline}
+#lform input{background:transparent;border:0;outline:0;color:var(--fg);font:inherit;text-shadow:var(--glow);padding:0;caret-color:var(--fg);flex:0 1 auto;min-width:2ch;width:16ch}
+#lform #pw{width:min(60vw,22ch);letter-spacing:.1em}
+.sr{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+#lform .kcur{display:none}
 .kcur{animation:kb 1.06s steps(1) infinite}@keyframes kb{50%{visibility:hidden}}
 .sbar{display:flex;flex-wrap:wrap;gap:.4em 1em;align-items:baseline;padding:.4em .8em;background:var(--bar);color:var(--barfg)}
 .sbar b{letter-spacing:.05em}.sbar .dim{color:var(--barfg);opacity:.7}.sbar a{color:var(--barfg)}.sbar a.on{background:var(--barfg);color:var(--bar)}

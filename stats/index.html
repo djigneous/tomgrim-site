@@ -10,7 +10,10 @@
 </head><body class="theme-cyan">
 <div id="login" class="tty" hidden>
 <pre id="ttyout"></pre>
-<form id="lform" autocomplete="off"><label for="pw" id="pwl">Password: </label><input id="pw" type="password" autocomplete="current-password" spellcheck="false" aria-label="Password"><span id="stars" aria-hidden="true"></span><span class="kcur">█</span></form>
+<form id="lform" method="post" action="#" autocomplete="on">
+<div class="tl"><label for="un">grimos login: </label><input id="un" name="username" type="text" value="tom" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
+<div class="tl"><label for="pw">Password: </label><input id="pw" name="password" type="password" autocomplete="current-password" spellcheck="false" required><span class="kcur">█</span></div>
+<button type="submit" class="sr">log in</button></form>
 </div>
 <div id="dash" hidden>
 <header class="sbar"><b>GRIM/STATS</b> <span class="dim">thomasgrim.com</span>

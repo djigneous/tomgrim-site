@@ -10,12 +10,11 @@ fetch('/tracks.json').then(r => r.json()).then(j => { (j.albums || []).forEach(a
 const title = f => TITLES[f] || String(f).split('/').pop().replace(/\.mp3$/, '');
 
 /* ---------- login (terminal-styled) ---------- */
-const tty = $('#ttyout'), pw = $('#pw'), stars = $('#stars');
+const tty = $('#ttyout'), pw = $('#pw');
 function showLogin(msg) { $('#dash').hidden = true; $('#login').hidden = false;
- tty.textContent = (msg ? msg + '\n\n' : '') + 'GRIM/OS 6.10 (Downtempo) tty1\n\ngrimos login: tom\n'; pw.value = ''; stars.textContent = ''; pw.focus(); }
-pw.addEventListener('input', () => { stars.textContent = '*'.repeat(pw.value.length); });
-$('#login').addEventListener('click', () => pw.focus());
-$('#lform').addEventListener('submit', e => { e.preventDefault(); const p = pw.value; tty.textContent += 'Password: ' + '*'.repeat(p.length) + '\n'; stars.textContent = ''; load(p, true); });
+ tty.textContent = (msg ? msg + '\n\n' : '') + 'GRIM/OS 6.10 (Downtempo) tty1\n'; pw.value = ''; pw.focus(); }
+$('#login').addEventListener('click', e => { if (!e.target.closest('input')) pw.focus(); });
+$('#lform').addEventListener('submit', e => { e.preventDefault(); const p = pw.value; if (!p) return; load(p, true); });
 async function load(p, fromLogin) {
  let r; try { r = await rpc('get_stats', {p_pass: p}); } catch (e) { return showLogin('carrier lost — could not reach the stats server.'); }
  if (!r || r.error || r.code) { try { localStorage.removeItem('grimStatsPass'); } catch (e) {}
