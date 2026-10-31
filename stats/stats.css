@@ -1,0 +1,30 @@
+body{min-height:100vh;padding:0;margin:0}
+a{color:var(--a3,var(--acc));text-decoration:none}
+@media (hover:hover){a:hover{color:var(--bg);background:var(--a3,var(--acc))}}
+.dim{color:var(--dim)}.hi{color:#fff}
+.tty{padding:24px;font-size:22px;color:var(--fg);text-shadow:var(--glow)}
+.tty pre{margin:0;font:inherit;white-space:pre-wrap}
+#lform{display:flex;align-items:baseline;margin:0}
+#pw{position:absolute;opacity:0;width:1px;height:1px;border:0;padding:0}
+.kcur{animation:kb 1.06s steps(1) infinite}@keyframes kb{50%{visibility:hidden}}
+.sbar{display:flex;flex-wrap:wrap;gap:.4em 1em;align-items:baseline;padding:.4em .8em;background:var(--bar);color:var(--barfg)}
+.sbar b{letter-spacing:.05em}.sbar .dim{color:var(--barfg);opacity:.7}.sbar a{color:var(--barfg)}.sbar a.on{background:var(--barfg);color:var(--bar)}
+.sbar .right{margin-left:auto}
+.tabs a{margin-right:.5ch}.tabs a.on{color:#fff;background:none;cursor:default}
+.ctl{display:flex;flex-wrap:wrap;gap:.4em 1.4em;padding:.6em .8em .2em}
+#chips .chip{border:1px dashed var(--dim);padding:0 .4ch;margin-right:.6ch;color:var(--fg)}#chips .chip a{margin-left:.4ch}
+main{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22em),1fr));gap:1.4em 1em;padding:1.2em .8em}
+main .win.wide{grid-column:1/-1}
+.kpis{display:flex;flex-wrap:wrap;gap:.3em 2em}.kpi b{display:block;font-size:2em;color:#fff;text-shadow:var(--glow);line-height:1}.kpi span{color:var(--dim)}
+.list{width:100%;border-collapse:collapse}.list td{padding:.05em .3ch;vertical-align:top}.list td.n{text-align:right;color:#fff;white-space:nowrap}
+.list td.b{width:38%}.bar{display:block;height:.55em;background:var(--fg);box-shadow:var(--glow);margin-top:.35em;min-width:1px}
+.chart{display:flex;align-items:flex-end;gap:2px;height:9em;padding-top:.4em;border-bottom:1px solid var(--dim)}
+.chart a{flex:1;display:flex;flex-direction:column-reverse;height:100%;min-width:3px;background:none!important}
+.chart i{display:block;background:var(--fg);box-shadow:var(--glow)}.chart i.bt{background:var(--dim);box-shadow:none;opacity:.6}
+.chart a.on i{background:#fff}
+.axis{display:flex;justify-content:space-between;color:var(--dim);font-size:.85em}
+.tag{padding:0 .4ch}.tag.h{color:var(--bg);background:var(--fg)}.tag.b{color:var(--dim);border:1px solid var(--dim)}
+.log td{padding:.05em .6ch .05em 0;white-space:nowrap}.log td.ua{white-space:normal;color:var(--dim);font-size:.85em}
+.scroll{overflow:auto}
+.sfoot{padding:.4em .8em 1.4em}
+.empty{color:var(--dim)}

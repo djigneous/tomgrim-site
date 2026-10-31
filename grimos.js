@@ -165,7 +165,7 @@ function play(i) {
  secret = null; intent = 'play';
  if (i == null || !flat[i]) i = sel >= 0 && flat[sel] ? sel : 0;
  ensureCtx();
- if (i !== cur || !playedOnce[i]) { playedOnce[i] = 1; window.tgTrack('play', flat[i].title); }
+ if (i !== cur || !playedOnce[i]) { playedOnce[i] = 1; window.tgTrack('play', flat[i].title); if (window.grimVisitPlay) window.grimVisitPlay(flat[i].file); }
  if (lazySrc) { if (i === cur) audio.src = lazySrc; lazySrc = null; audio.preload = 'metadata'; }
  if (i !== cur) { switching = 1; clearTimeout(switchTO); switchTO = setTimeout(() => { switching = 0; msState(); }, 8000); setMediaMeta(flat[i]); cur = i; audio.src = flat[i].file; setRecord(flat[i]); loadWave(flat[i]); }
  if (pendingAt && pendingAt.i === i) { const t0 = pendingAt.t; pendingAt = null; const go = () => { try { audio.currentTime = Math.min(t0, (audio.duration || t0 + 1) - 1); } catch {} }; audio.readyState >= 1 ? go() : audio.addEventListener('loadedmetadata', go, {once: true}); }
@@ -1376,3 +1376,20 @@ $('#bbsform').addEventListener('submit', async e => { e.preventDefault(); const 
 })();
 // Android address bar / status bar follows the active theme (was a fixed white #ffffff in light mode)
 (() => { const m = document.querySelector('meta[name=theme-color]'); if (!m) return; const upd = () => { const c = getComputedStyle(document.body).getPropertyValue('--bg').trim(); if (c) m.content = c; }; upd(); new MutationObserver(upd).observe(document.body, {attributes: true, attributeFilter: ['class']});  })();
+/* visit logger for /stats (Supabase RPC; no raw IPs; skipped for the owner's browser, set by visiting /stats) */
+(() => { try { if (localStorage.grimOwner === '1') return; } catch (e) { return; }
+ const U = 'https://hlbllxgiexjqkqfmoxow.supabase.co/rest/v1/rpc/', KEY = 'sb_publishable_ZAXjx3TioEoF2E0UfFWndg_PaI7NsDl';
+ const post = (fn, body, keep) => fetch(U + fn, {method: 'POST', keepalive: !!keep, headers: {apikey: KEY, 'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+ let vid = localStorage.grimVid; if (!vid) { vid = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now()); localStorage.grimVid = vid; }
+ const T0 = Date.now(); let v = null, acted = false, sent = 0;
+ const p = {vid, path: location.pathname + location.search, ref: document.referrer && !document.referrer.startsWith(location.origin) ? document.referrer : '', scr: screen.width + 'x' + screen.height,
+  tz: (Intl.DateTimeFormat().resolvedOptions().timeZone || ''), lang: navigator.language || '', wd: !!navigator.webdriver};
+ post('log_visit', {p}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.id) v = j; }).catch(() => {});
+ const upd = (track, keep) => { if (!v) return; post('update_visit', {p_id: v.id, p_token: v.token, p_interacted: acted, p_dwell_ms: Date.now() - T0, p_track: track || null}, keep).catch(() => {}); };
+ const act = () => { if (acted) return; acted = true; ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(e => removeEventListener(e, act, true)); setTimeout(() => upd(), 1500); };
+ ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(e => addEventListener(e, act, {capture: true, passive: true}));
+ window.grimVisitPlay = f => upd(f);
+ const bye = () => { if (Date.now() - sent > 2000) { sent = Date.now(); upd(null, true); } };
+ document.addEventListener('visibilitychange', () => { if (document.hidden) bye(); }); addEventListener('pagehide', bye);
+ setTimeout(() => upd(), 15000); })();
+

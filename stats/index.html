@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
+<title>GRIM/OS :: tty1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+<link rel="stylesheet" href="/grimos.css">
+<link rel="stylesheet" href="stats.css">
+</head><body class="theme-cyan">
+<div id="login" class="tty" hidden>
+<pre id="ttyout"></pre>
+<form id="lform" autocomplete="off"><label for="pw" id="pwl">Password: </label><input id="pw" type="password" autocomplete="current-password" spellcheck="false" aria-label="Password"><span id="stars" aria-hidden="true"></span><span class="kcur">█</span></form>
+</div>
+<div id="dash" hidden>
+<header class="sbar"><b>GRIM/STATS</b> <span class="dim">thomasgrim.com</span>
+ <nav class="tabs" id="sect"><a href="#traffic" data-s="traffic" class="on">[traffic]</a><a href="#music" data-s="music">[music]</a><a href="#socials" data-s="socials">[socials]</a><a href="#log" data-s="log">[log]</a></nav>
+ <span class="right"><a href="#" id="refresh">refresh</a> · <a href="#" id="logout">logout</a></span></header>
+<div class="ctl"><span class="tabs" id="range"><a href="#" data-r="today">[today]</a><a href="#" data-r="7d" class="on">[7d]</a><a href="#" data-r="30d">[30d]</a><a href="#" data-r="90d">[90d]</a></span>
+ <span class="tabs" id="who"><a href="#" data-w="human" class="on">[humans]</a><a href="#" data-w="bot">[bots]</a><a href="#" data-w="all">[all]</a></span>
+ <span id="chips"></span></div>
+<main id="body"></main>
+<footer class="sfoot dim" id="owner"></footer>
+</div>
+<script src="stats.js"></script>
+</body></html>
