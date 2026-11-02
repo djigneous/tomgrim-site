@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.3', SITE_UPDATED = '2026-11-01'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.4', SITE_UPDATED = '2026-11-01'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -999,6 +999,7 @@ const ICONS = { // 8x8 pixel glyphs
  irc: ['11111110','10000010','10101010','10000010','11111110','00100000','01000000','00000000'],
  mail: ['00000000','11111111','11000011','10100101','10011001','10000001','11111111','00000000'],
  weather: ['00000000','00011000','00100110','01000001','10000001','11111111','00100100','01001000'],
+ full: ['11100111','10000001','10000001','00000000','00000000','10000001','10000001','11100111'],
  photos: ['00011000','11111111','10000001','10011001','10100101','10011001','10000001','11111111']};
 document.querySelectorAll('#topbar nav button').forEach(b => { const m = ICONS[b.dataset.ico]; if (!m) return; let r = ''; m.forEach((row, y) => [...row].forEach((v, x) => { if (v === '1') r += `<rect x="${x}" y="${y}" width="1" height="1"/>`; }));
  b.insertAdjacentHTML('afterbegin', `<svg class="ico" viewBox="0 0 8 8" aria-hidden="true" shape-rendering="crispEdges">${r}</svg>`); });

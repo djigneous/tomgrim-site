@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.4 — 2026-11-01
+- Fix: the fullscreen icon next to weather now uses a pixel icon and follows the bar colours in every theme (it showed a pale box in some themes).
+
 ## 1.3.3 — 2026-11-01
 - The theme picker is now a **THEME** dropdown styled exactly like **DISPLAY** (same box height, font, panel and keyboard controls). Both menus use all-uppercase labels.
 
