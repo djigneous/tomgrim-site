@@ -26,7 +26,7 @@
 <meta name="twitter:image" content="https://thomasgrim.com/assets/og-card.jpg">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"MusicGroup","@id":"https://thomasgrim.com/#tomgrim","name":"tomGRIM","alternateName":"dj ign3ous","url":"https://thomasgrim.com/","image":"https://thomasgrim.com/assets/og-card.jpg","genre":["Downtempo","Breakbeat","Electro","Experimental"],"foundingLocation":{"@type":"Place","name":"Lehigh Valley, PA"},"album":[{"@type":"MusicAlbum","name":"Ember Hours","datePublished":"2026","albumProductionType":"https://schema.org/StudioAlbum","byArtist":{"@id":"https://thomasgrim.com/#tomgrim"},"numTracks":9,"image":"https://thomasgrim.com/assets/covers/ember-hours-512.png"},{"@type":"MusicAlbum","name":"Night Signals","datePublished":"2025","albumProductionType":"https://schema.org/StudioAlbum","byArtist":{"@id":"https://thomasgrim.com/#tomgrim"},"numTracks":11,"image":"https://thomasgrim.com/assets/covers/night-signals-512.png"},{"@type":"MusicAlbum","name":"ELEMENTS","datePublished":"2009","albumProductionType":"https://schema.org/StudioAlbum","byArtist":{"@id":"https://thomasgrim.com/#tomgrim"},"numTracks":7,"image":"https://thomasgrim.com/assets/covers/elements-512.png"}]}</script>
 <link rel="icon" href="favicon.ico?v=2" sizes="48x48"><link rel="icon" href="favicon.svg?v=2" type="image/svg+xml"><link rel="icon" href="favicon-32.png?v=2" sizes="32x32" type="image/png"><link rel="icon" href="favicon-192.png?v=2" sizes="192x192" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" sizes="180x180">
-<link rel="stylesheet" href="grimos.css?v=20261031163235">
+<link rel="stylesheet" href="grimos.css?v=20261101191450">
 <script data-goatcounter="https://tomgrim.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body class="theme-cyan">
@@ -36,7 +36,7 @@
 <div id="npov" hidden role="status" aria-live="off"></div>
 <div id="crt">
 <header id="topbar">
-  <span class="brand">GRIM/OS 6.10</span>
+  <span class="brand">GRIM/OS 6.11</span>
   <nav aria-label="Sections">
     <button data-jump="fetch" data-ico="fetch" aria-label="1 sysinfo"><span class="lb">[1] sysinfo</span></button>
     <button data-jump="man" data-ico="man" aria-label="2 man tomgrim"><span class="lb">[2] man</span></button>
@@ -44,14 +44,16 @@
     <button data-jump="links" data-ico="links" aria-label="4 bbs feedback"><span class="lb">[4] bbs</span></button>
     <button data-jump="shell" data-ico="shell" aria-label="5 shell"><span class="lb">[5] shell</span></button>
     <button data-jump="photos" data-ico="photos" aria-label="6 photos"><span class="lb">[6] photos</span></button>
-    <button data-open="irc" data-ico="irc" aria-label="7 irc chat"><span class="lb">[7] irc</span></button>
-    <button data-open="mail" data-ico="mail" aria-label="8 mail"><span class="lb">[8] mail</span></button>
-    <button data-wx data-ico="weather" aria-label="weather" title="weather"><span class="lb">[9] weather</span></button>
+    <button data-open="mail" data-ico="mail" aria-label="7 mail" title="mail tom"><span class="lb">[7] mail</span></button>
+    <button data-wx data-ico="weather" aria-label="weather" title="weather"><span class="lb">[8] weather</span></button>
   </nav>
   <span id="tools">
     <label for="themesel" class="sr" style="position:absolute;left:-9999px">Theme</label>
     <select id="themesel" aria-label="Theme" title="theme (t)"></select>
     <button id="bcrt" aria-pressed="true" title="CRT filter (f)">CRT:on</button>
+    <button id="bfull" class="tbtn" type="button" title="best viewed in fullscreen (F11): click to toggle fullscreen" aria-label="Toggle fullscreen (best viewed in fullscreen, F11)" aria-pressed="false">⛶</button>
+    <button id="binst" class="tbtn" type="button" title="install GRIM/OS as an app" aria-label="Install GRIM/OS as an app">install</button>
+    <a id="bspot" class="tbtn spico" href="https://open.spotify.com/artist/1tBp2oza76uuM5bC3fx8Vg" target="_blank" rel="noopener" title="tomGRIM on Spotify" aria-label="tomGRIM on Spotify (opens in a new tab)"><svg viewBox="0 0 12 12" width="22" height="22" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path fill="#1DB954" d="M4 0h4v1h2v1h1v2h1v4h-1v2h-1v1H8v1H4v-1H2v-1H1V8H0V4h1V2h1V1h2z"/><path fill="#000" d="M3 3h5v1h2v1H8V4H3zM3 6h4v1h2v1H7V7H3zM4 8h3v1h1v1H7V9H4z"/></svg></a>
   </span>
   <span id="clock" aria-hidden="true"></span>
 </header>
@@ -78,6 +80,7 @@
 <li><b>Singles:</b> Radio Flows · No Good · Passing High</li>
 <li><b>Shell:</b> grimsh — type <button type="button" class="getlink runlink xref helpchip" data-run="help" title="run help"><b>help</b></button></li>
 <li><b>Links:</b> <button type="button" class="getlink runlink xref" data-run="links"><b>links</b></button></li>
+<li><b>Updated:</b> <span id="siteupd">v1.3.0</span> · <button type="button" class="getlink runlink xref" data-run="changelog" title="what's new"><b>changelog</b></button></li>
 <li class="swatch" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></li>
 </ul>
     </div>
@@ -102,7 +105,6 @@
 <li>lrwxr-xr-x <a href="https://www.youtube.com/@ig3.productions" target="_blank" rel="noopener">youtube</a></li>
 <li>lrwxr-xr-x <a href="https://soundcloud.com/thomasgrim" target="_blank" rel="noopener">soundcloud</a></li>
 <li>-rw-r--r-- <a href="contact.html" data-open="mail">mail tom</a></li>
-<li>srwxr-xr-x <a href="irc.html" data-open="irc">irc #tomgrim</a></li>
 </ul>
     </div>
     </div>
@@ -115,7 +117,7 @@
       <canvas id="hscope" aria-hidden="true"></canvas>
       <div class="ringwrap"><canvas id="ring" aria-hidden="true"></canvas><pre id="cover" class="cover" aria-hidden="true"></pre></div>
       <div class="npinfo">
-        <div id="nptitle" aria-live="polite">▶ select a track</div>
+        <div class="nprow"><div id="nptitle" aria-live="polite">▶ select a track</div><a id="spbtn" class="spbtn" href="#" target="_blank" rel="noopener" hidden title="listen to this song on Spotify" aria-label="Listen to this song on Spotify">Listen@Spotify</a></div>
         <div id="npalbum" class="dim">—</div>
         <div class="row trow"><span class="tt"><span id="tcur">00:00</span> / <span id="tdur">00:00</span> <span id="modes" class="dim"></span></span><button id="beye" aria-label="Auto visuals" aria-pressed="false" title="auto visuals (screensaver while idle)">👁&#xFE0E; off</button></div>
         <div class="row volrow">VOL <button id="voldn" aria-label="Volume down">-</button><span id="volbar"></span><span id="volpct"></span><button id="volup" aria-label="Volume up">+</button></div>
@@ -182,10 +184,11 @@
     </form>
   </section>
 </div>
-<div id="ircm" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="t-irc">
-  <section class="win iwin"><h2 class="wt" id="t-irc"><span>─[ irc :: irc.unrealircd.org #tomgrim ]─</span></h2>
-    <div class="mbar"><span class="dim" id="ircnick"></span><a id="ircpop" href="irc.html" target="_blank" rel="noopener">[ pop out ↗ ]</a><button class="mclose" aria-label="Close">[ esc ]</button></div>
-    <div id="ircbox"></div>
+
+<div id="changelogm" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="t-changelog">
+  <section class="win cwin"><h2 class="wt" id="t-changelog"><span>─[ cat ~/CHANGELOG ]─</span></h2>
+    <div class="mbar"><span class="dim">what's new on GRIM/OS</span><button class="mclose" aria-label="Close">[ esc ]</button></div>
+    <div id="clog" class="clog">loading…</div>
   </section>
 </div>
 
@@ -212,7 +215,7 @@
  ★ = special feature
 
  shell: help ls albums play &lt;n|name&gt; pause next prev bio links
-        mail irc get clear theme &lt;name&gt; themes crt on|off repeat
+        mail get changelog clear theme &lt;name&gt; themes crt on|off repeat
         shuffle vol &lt;0-100&gt; whoami fetch photos (gallery)
    fun: matrix glitch fire hack starfield plasma tunnel rain dvd life
         cube [torus] donut snow pipes (any key/click exits) · screensaver on|off|&lt;sec&gt;|&lt;fx&gt; · cowsay &lt;text&gt;
@@ -223,8 +226,7 @@
   <img id="lbimg" alt="">
   <div class="lbnav"><button id="lbprev" aria-label="Previous photo">◀ prev</button><span id="lbn" class="dim"></span><button id="lbnext" aria-label="Next photo">next ▶</button><button id="lbclose" aria-label="Close">[ esc ]</button></div>
  </div></div>
-<script src="contact.js?v=20261031163235"></script>
-<script src="irc.js?v=20261031163235"></script>
-<script src="grimos.js?v=20261031163235"></script>
+<script src="contact.js?v=20261101191450"></script>
+<script src="grimos.js?v=20261101191450"></script>
 </body>
 </html>

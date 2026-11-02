@@ -90,7 +90,8 @@
           "file": "assets/audio/night-signals/01-menace.mp3",
           "duration_sec": 177.3,
           "bpm": 152,
-          "original": "tomGRIM-menace.mp3"
+          "original": "tomGRIM-menace.mp3",
+          "spotify": "2l1uxxqTTPrz1lerQxuOr3"
         },
         {
           "title": "Animal Instinct",
@@ -117,7 +118,8 @@
           "original": "96sOMETHING.Mp3 (Drive: 96SOMETHING.mp3)",
           "aliases": [
             "ninety-six-something"
-          ]
+          ],
+          "spotify": "01TrhdRdrcPC6X7muiBxoO"
         },
         {
           "title": "Uplift",
@@ -192,28 +194,32 @@
           "file": "assets/audio/elements/01-walking-green.mp3",
           "duration_sec": 403.5,
           "bpm": 123,
-          "original": "ign3ous_-_walking_green.mp3"
+          "original": "ign3ous_-_walking_green.mp3",
+          "spotify": "66wyJx9Dqlq5NfzAZCXq9c"
         },
         {
           "title": "Kids at Play",
           "file": "assets/audio/elements/02-kids-at-play.mp3",
           "duration_sec": 270.1,
           "bpm": 129,
-          "original": "ign3ous - kids at play.mp3"
+          "original": "ign3ous - kids at play.mp3",
+          "spotify": "7rXHXZ4LI4fWOQPomCwGJo"
         },
         {
           "title": "Robots",
           "file": "assets/audio/elements/03-robots.mp3",
           "duration_sec": 484.4,
           "bpm": 129,
-          "original": "ign3ous - robots.mp3"
+          "original": "ign3ous - robots.mp3",
+          "spotify": "3VYvPJlTu2wlJkW3P3AJhK"
         },
         {
           "title": "No Good",
           "file": "assets/audio/elements/04-no-good.mp3",
           "duration_sec": 361.9,
           "bpm": 136,
-          "original": "igneous_-_no_good70799.mp3"
+          "original": "igneous_-_no_good70799.mp3",
+          "spotify": "3HvQReul7vV1g20qzNQT5C"
         },
         {
           "title": "February Static",
@@ -227,7 +233,8 @@
           "file": "assets/audio/elements/06-radio-flows.mp3",
           "duration_sec": 204.1,
           "bpm": 129,
-          "original": "Copy of 102912render.mp3"
+          "original": "Copy of 102912render.mp3",
+          "spotify": "1Zjpmc6EpfxQrlUKBVFumH"
         }
       ]
     },
@@ -766,7 +773,8 @@
           "file": "assets/audio/singles/get-out.mp3",
           "duration_sec": 269.0,
           "bpm": 99,
-          "original": "OUTIFE RECOVER lv12-3FINAL.wav"
+          "original": "OUTIFE RECOVER lv12-3FINAL.wav",
+          "spotify": "7A8cupUmM1j0ISrlXeGylw"
         }
       ]
     },

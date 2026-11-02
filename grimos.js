@@ -1,6 +1,8 @@
 (() => {
 'use strict';
-const GRIMOS_VERSION = '6.10'; // last-updated stamp: (year-2020).(month), auto-set by scripts/stamp-version.sh
+const SITE_VERSION = '1.3.0', SITE_UPDATED = '2026-11-01'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
+const GRIMOS_VERSION = '6.11'; // last-updated stamp: (year-2020).(month), auto-set by scripts/stamp-version.sh
 const $ = s => document.querySelector(s);
 var QUIPS = {
  like: ['the needle approves.', 'logged to /var/log/vinyl.log.', '+1 to the late-night canon.', 'saved to the heart sector.', 'a warm signal in the dark.', 'stored in non-volatile memory.', 'the machine noted your taste.'],
@@ -218,7 +220,7 @@ if ('mediaSession' in navigator) { const ms = navigator.mediaSession, h = (a, f)
  audio.addEventListener('durationchange', posState); audio.addEventListener('pause', () => msState()); }
 function updateNP() {
  const t = curT();
- setTitle(t ? (!isPlaying() ? '❚❚ ' : '▶ ') + t.title + (t.special ? ' ★' : '') : '▶ select a track');
+ setTitle(t ? (!isPlaying() ? '❚❚ ' : '▶ ') + t.title + (t.special ? ' ★' : '') : '▶ select a track'); updSpot(t);
  $('#npalbum').textContent = t ? `${data.artist || 'tomGRIM'} — ${t.al.title}${t.al.year ? ' (' + t.al.year + ')' : ''}${t.bpm ? ' · ' + Math.round(t.bpm) + ' bpm' : ''}` : '—';
  $('#tdur').textContent = fmt(audio.duration || t?.duration_sec);
  const b = $('#bplay'); b.textContent = !isPlaying() ? '▶ PLAY' : '❚❚ PAUSE'; b.setAttribute('aria-label', !isPlaying() ? 'Play' : 'Pause');
@@ -481,9 +483,9 @@ function sayCmd(v) { say(promptHtml() + ' ' + hl(v), true); }
 function colorHelp(s) { return s.split('\n').map(l => { const m = l.match(/^(\w+:)(\s+)(.*)$/); const head = m ? A('1;35', m[1]) + m[2] : '', body = m ? m[3] : l;
  return head + body.split(/(\s+)/).map(w => /^\s+$/.test(w) || !w ? w : /^<.*>$|^\[.*\]$/.test(w) ? A('2', w) : /^--?\w/.test(w) ? A('35', w) : /^\(|\)$|^·$|^\(.*\)$/.test(w) ? A('2', w) : /^[a-z][\w-]*[,]?$/i.test(w) && (typeof CMDS !== 'undefined' && CMDS[w.replace(/,$/, '')]) ? A('1;33', w) : /\|/.test(w) && !/[<>]/.test(w) ? w.split('|').map(x => typeof CMDS !== 'undefined' && CMDS[x] ? A('1;33', x) : x).join(A('2', '|')) : w).join(''); }).join('\n'); }
 const HELP = () => [
- ['shell', 'help ls albums pause stop next prev bio links mail irc clear themes repeat shuffle whoami fetch', [['help', '[section|cmd|-a]', 'this help (? works the same)'], ['share', '', 'copy a link to this track at this moment'], ['play', '<n|name>', 'play a track by number or name'], ['theme', '<' + THEMES.join('|') + '>', 'switch color theme'], ['crt', 'on|off', 'CRT filter'], ['vol', '<0-100>', 'set volume'], ['man', '<cmd>', 'manual page for a command']]],
+ ['shell', 'help ls albums pause stop next prev bio links mail changelog clear themes repeat shuffle whoami fetch', [['help', '[section|cmd|-a]', 'this help (? works the same)'], ['share', '', 'copy a link to this track at this moment'], ['play', '<n|name>', 'play a track by number or name'], ['theme', '<' + THEMES.join('|') + '>', 'switch color theme'], ['crt', 'on|off', 'CRT filter'], ['vol', '<0-100>', 'set volume'], ['man', '<cmd>', 'manual page for a command']]],
  ['get', '', [['get', '<n|name>', 'download a track'], ['get album', '<name>', 'download a whole album'], ['get', '--list', 'list everything downloadable']], 'aliases: wget, curl -O'],
- ['net', 'mail irc feedback like install', [], 'mail = contact form · irc = #tomgrim on irc.unrealircd.org'],
+ ['net', 'mail feedback like install spotify', [], 'mail = contact form · feedback = the BBS · spotify = tomGRIM on Spotify'],
  ['fun', 'random weather matrix glitch fire hack starfield plasma tunnel rain dvd life cube torus donut snow pipes', [['cowsay', '<text>', 'a cow says it']], 'any key or click exits an effect'],
  ['system', 'pwd dir history cls hostname date uptime ifconfig top htop ps neofetch exit', [['cd', '<dir>', 'change directory'], ['ls', '-la [path]', 'list files'], ['cat', '<file>', 'print a file'], ['echo', '<text>', 'print text'], ['uname', '-a', 'system info'], ['ping', '<host>', 'ping a host'], ['ip', 'a', 'network interfaces'], ['df', '-h', 'disk usage'], ['free', '-h', 'memory usage'], ['which', '<cmd>', 'locate a command'], ['ssh', '<host>', 'connect (sort of)'], ['curl', '<url>', 'fetch a url'], ['apt', 'install <pkg>', 'install a package'], ['sudo', '<cmd>', 'try your luck']]],
  ['fx', '', [['fx', '', 'show knob values'], ['fx', 'reset', 'all knobs back to default'], ['fx', '<filter|res|verb|crush> <value>', 'set a knob (or drag it)']]],
@@ -750,8 +752,8 @@ const CMDS = {
  vol: a => { setVol((+a || 0) / 100); say('volume ' + V(Math.round(vol * 100) + '%'), true); },
  bio: () => { say(manBio(), true); jump('man'); },
  man: a => CMDS.bio(), whoami: () => say('tomGRIM — formerly dj ign3ous. Lehigh Valley, PA.'), fetch: () => jump('fetch'), weather: () => weatherFx(true), wx: () => weatherFx(true), grimfetch: () => jump('fetch'),
- links: () => (showManPage('links', true), LINKS.concat([['mail', 'contact.html'], ['irc', 'irc.html']]).forEach(([n, u]) => say(`${n.padEnd(12)} <a href="${u}" target="_blank" rel="noopener">${u}</a>`, true))),
- contact: () => { say('opening mail client…'); openModal('mail'); }, mail: () => CMDS.contact(), irc: () => { say('opening irc #tomgrim on irc.unrealircd.org…'); openModal('irc'); }, chat: () => CMDS.irc(),
+ links: () => (showManPage('links', true), LINKS.concat([['mail', 'contact.html']]).forEach(([n, u]) => say(`${n.padEnd(12)} <a href="${u}" target="_blank" rel="noopener">${u}</a>`, true))),
+ contact: () => { say('opening mail client…'); openModal('mail'); }, mail: () => CMDS.contact(), ...(IRC_ENABLED ? {irc: () => { say('opening irc #tomgrim on irc.unrealircd.org…'); openModal('irc'); }} : {}), changelog: () => openChangelog(), spotify: () => { say('opening ' + V('tomGRIM on Spotify') + '…', true); window.open('https://open.spotify.com/artist/1tBp2oza76uuM5bC3fx8Vg', '_blank', 'noopener'); }, fullscreen: () => toggleFull(),
  zach: () => zach(), get: a => getCmd(a), wget: a => getCmd(a), curl: a => getCmd((a || '').replace(/(^|\s)(-O|--remote-name|-L|-s)(?=\s|$)/g, ' ').trim()),
  clear: () => { out.innerHTML = ''; }, theme: a => setTheme((a || '').trim()),
  sudo: a => { const m = (a || '').match(/^(\S+)\s*(.*)$/); if (m && /^(apt|apt-get)$/.test(m[1])) return CMDS[m[1]](m[2], true); say('[sudo] password for tom: ********\ntom is not in the sudoers file. This incident will be reported.'); },
@@ -859,7 +861,7 @@ const esc2 = s => String(s).replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', 
 const slug2 = s => String(s).toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const prompt = () => 'tom@grimos:' + (cwd === HOME ? '~' : cwd.startsWith(HOME + '/') ? '~' + cwd.slice(HOME.length) : cwd) + '$';
 const setPrompt = () => { $('#prompt label').innerHTML = promptHtml(); };
-const OSREL = 'NAME="GrimOS"\nPRETTY_NAME="GrimOS ' + GRIMOS_VERSION + ' (Downtempo)"\nVERSION="' + GRIMOS_VERSION + '-warm"\nVERSION_ID="' + GRIMOS_VERSION + '"\nID=grimos\nID_LIKE=debian\nHOME_URL="https://thomasgrim.com"\nBUG_REPORT_URL="irc://irc.unrealircd.org/#tomgrim"';
+const OSREL = 'NAME="GrimOS"\nPRETTY_NAME="GrimOS ' + GRIMOS_VERSION + ' (Downtempo)"\nVERSION="' + GRIMOS_VERSION + '-warm"\nVERSION_ID="' + GRIMOS_VERSION + '"\nID=grimos\nID_LIKE=debian\nHOME_URL="https://thomasgrim.com"\nBUG_REPORT_URL="https://thomasgrim.com/#links"';
 function fsTree() { const D = (o) => ({d: 1, c: o}), F = (txt, size) => ({f: 1, txt, size: size ?? (txt ? txt.length : 0)});
  const music = {}, albums = {};
  data.albums.forEach(a => { const dir = {}; (a.tracks || []).forEach(t => { const fn = t.file.split('/').pop(); const f = F(null, t.size || Math.round((t.duration_sec || 180) * 40000)); f.track = t; dir[fn] = f; music[fn] = f; }); albums[a.id] = D(dir); });
@@ -867,7 +869,7 @@ function fsTree() { const D = (o) => ({d: 1, c: o}), F = (txt, size) => ({f: 1, 
   home: D({tom: D({music: D(music), albums: D(albums), photos: D(Object.fromEntries((PHOTOS || []).map((p, i) => ['frame-' + String(i + 1).padStart(2, '0') + '.jpg', F(null, 240000 + i * 7919)]))),
    'readme.txt': F('tomGRIM :: GRIM/OS\n\ndark, warm machine music after midnight.\n\n  ls            list tracks        play <n>   play a track\n  get <n>       download a track   help       all commands\n  cd ~/albums   browse albums      neofetch   system info\n\nbookings / inquiries: type "mail".'),
    '.bashrc': F('export PS1="tom@grimos:\\w$ "\nalias ll="ls -la"\nalias please="sudo"\n# play loud.'), '.bash_history': F(null, 4096)})}),
-  etc: D({motd: F('Welcome to GrimOS ' + GRIMOS_VERSION + ' (Downtempo)\n\n * Every track is free to download: get <track#>\n * Effects: fire, starfield, plasma, donut, pipes\n * Support: irc #tomgrim\n * Whatever you do, don\'t rm -rf /\n'), 'os-release': F(OSREL), hostname: F('grimos'), passwd: F(null, 1871), shadow: F(null, 1024), hosts: F('127.0.0.1\tlocalhost\n127.0.1.1\tgrimos\n185.199.108.153\tthomasgrim.com'), fstab: F(null, 612)}),
+  etc: D({motd: F('Welcome to GrimOS ' + GRIMOS_VERSION + ' (Downtempo)\n\n * Every track is free to download: get <track#>\n * Effects: fire, starfield, plasma, donut, pipes\n * Feedback: type bbs\n * Whatever you do, don\'t rm -rf /\n'), 'os-release': F(OSREL), hostname: F('grimos'), passwd: F(null, 1871), shadow: F(null, 1024), hosts: F('127.0.0.1\tlocalhost\n127.0.1.1\tgrimos\n185.199.108.153\tthomasgrim.com'), fstab: F(null, 612)}),
   var: D({log: D({syslog: F(null, 88231), 'scope.log': F(null, 12044), 'vinyl.log': F(null, 3301), 'auth.log': F(null, 5120)})}),
   bin: D({bash: F(null, 1183448), sh: F(null, 125560), ls: F(null, 138208), grimsh: F(null, 66600)}), usr: D({bin: D({grimamp: F(null, 420666), python3: F(null, 5904904)}), lib: D({'libgrimamp.so.2': F(null, 81920)})}),
   sys: D({vinyl: D({'spin.ko': F(null, 16384), needle: F(null, 4096)})}), proc: D({cpuinfo: F(null, 0), uptime: F(null, 0)}), tmp: D({}), dev: D({bass: F(null, 0), kick0: F(null, 0), null: F(null, 0)}), boot: D({'vmlinuz-grim': F(null, 11534336)})}); }
@@ -886,7 +888,7 @@ function lsPath(a) { const flags = (a.match(/(^|\s)-\w+/g) || []).join(''), p = 
 const lsName = (k, v) => v.d ? A('1;34', k + '/') : /\.mp3$/.test(k) ? A('35', k) : /\.(jpe?g|png)$/.test(k) ? A('36', k) : k.startsWith('.') ? A('2', k) : /^(bash|sh|ls|grimsh|grimamp|python3)$/.test(k) ? A('1;32', k) : k;
 function startJob(stop, kind) { job = {stop: () => { if (!job) return; stop(); job = null; }, kind}; }
 const pingCmd = a => { const host = (a || '').replace(/-\S+\s*\S*/g, '').trim(); if (!host) return say('ping: usage error: Destination address required');
- const known = {'thomasgrim.com': '185.199.108.153', localhost: '127.0.0.1', grimos: '127.0.1.1', 'google.com': '142.250.72.14', 'irc.unrealircd.org': '94.130.0.1'};
+ const known = {'thomasgrim.com': '185.199.108.153', localhost: '127.0.0.1', grimos: '127.0.1.1', 'google.com': '142.250.72.14'};
  const ip = known[host] || (/^\d+\.\d+\.\d+\.\d+$/.test(host) ? host : (host.length * 37 % 200 + 20) + '.' + (host.charCodeAt(0) * 3 % 255) + '.' + (host.length * 13 % 255) + '.' + (host.charCodeAt(host.length - 1) % 250 + 2));
  const base = ip.startsWith('127.') ? .04 : host === 'thomasgrim.com' ? 11 : 20 + host.length * 2.3; let n = 0; const times = [];
  say(`PING ${host} (${ip}) 56(84) bytes of data.`);
@@ -894,7 +896,7 @@ const pingCmd = a => { const host = (a || '').replace(/-\S+\s*\S*/g, '').trim();
   say(`\n--- ${host} ping statistics ---\n${n} packets transmitted, ${times.length} received, 0% packet loss, time ${n * 1000 - 999}ms` + (times.length ? `\nrtt min/avg/max/mdev = ${mn.toFixed(3)}/${av.toFixed(3)}/${mx2.toFixed(3)}/${((mx2 - mn) / 2).toFixed(3)} ms` : '')); };
  const tick = () => { n++; const t = base * (1 + (Math.random() - .3) * .25); times.push(t); sayA(`64 bytes from ${A('1;36', host === ip ? ip : host)}${host === ip ? '' : ' (' + A('36', ip) + ')'}: icmp_seq=${A('33', n)} ttl=${A('33', ip.startsWith('127.') ? 64 : 57)} time=${A('1;32', t < 1 ? t.toFixed(3) : t.toFixed(1))} ms`); if (n >= 4) { clearInterval(iv); job = null; fin(); } };
  const iv = setInterval(tick, 1000); setTimeout(tick, 60); startJob(() => { clearInterval(iv); say('^C'); fin(); }, 'ping'); };
-const PROCS = [['1', 'root', 'init'], ['42', 'root', 'kworker/bass'], ['133', 'tom', 'grimsh'], ['208', 'tom', 'grimamp'], ['209', 'tom', 'vinyl-spin'], ['211', 'tom', 'scope'], ['212', 'tom', 'spectrum'], ['230', 'tom', 'waveformd'], ['301', 'root', 'crt-phosphor'], ['333', 'tom', 'ircd-client'], ['404', 'root', 'sshd'], ['666', 'tom', 'ember-hours']];
+const PROCS = [['1', 'root', 'init'], ['42', 'root', 'kworker/bass'], ['133', 'tom', 'grimsh'], ['208', 'tom', 'grimamp'], ['209', 'tom', 'vinyl-spin'], ['211', 'tom', 'scope'], ['212', 'tom', 'spectrum'], ['230', 'tom', 'waveformd'], ['301', 'root', 'crt-phosphor'], ['404', 'root', 'sshd'], ['666', 'tom', 'ember-hours']];
 function procRows() { const L = typeof level === 'function' ? level() : {lvl: .2}, pl2 = !audio.paused;
  return PROCS.map(([pid, u, c], i) => { const busy = pl2 && /vinyl|scope|spectrum|grimamp|waveform/.test(c); const cpu = busy ? 4 + L.lvl * 30 * (1 + (i % 3)) * Math.random() + 3 : Math.random() * 1.2; return [pid, u, cpu, (i * 1.7 % 6 + .3), c]; }).sort((a, b) => b[2] - a[2]); }
 const topCmd = () => { const d = document.createElement('div'); out.appendChild(d); const draw = () => { const up = Math.floor((Date.now() - T_START) / 1000), r = procRows(), tot = r.reduce((s, x) => s + x[2], 0);
@@ -909,7 +911,7 @@ const aptCmd = (a, su) => { const m = (a || '').match(/^(install|update|upgrade|
   if (p >= 100) { clearInterval(iv); job = null; say(`Unpacking ${pkg} (${GRIMOS_VERSION}) ...\nSetting up ${pkg} (${GRIMOS_VERSION}) ...\nProcessing triggers for vinyl-spin (1.0) ...\n${pkg}: installed. (it was always there, deep in the mix.)`); } }, 120);
  startJob(() => { clearInterval(iv); say('^C\nE: Sub-process /usr/bin/dpkg received signal 2.'); }, 'apt'); };
 const NEO = ['████████╗ ██████╗ ', '╚══██╔══╝██╔════╝ ', '   ██║   ██║  ███╗', '   ██║   ██║   ██║', '   ██║   ╚██████╔╝', '   ╚═╝    ╚═════╝ ', '  >_ tomGRIM       ', '                  '];
-const MAN = {grimamp: 'grimamp — GRIMAMP v1, the ascii audio terminal player: record + round scope, waveform (click to seek), spectrum, FX knobs (filter/res/verb/crush), rep / shuf / 👁 auto-visuals toggles. keys: space play, n/p next/prev, r repeat, s shuffle, ←→ seek, +- volume. see also: play, ls, albums, get.', links: 'links — where to find tomGRIM: streaming, socials and downloads. type links to list them. see also: mail, irc, feedback.', contact: 'contact — send tom a message (mail form) or join #tomgrim on irc. see also: mail, irc.', weather: 'weather — GRIM/WX: a 90s "local on the 8s" weather screen for Allentown, Bethlehem and Easton with live data from open-meteo.com (current conditions, latest observations, extended and local forecast). It also takes over the screensaver while any Walking Green version plays. Any key or click exits. Alias: wx.', share: 'share — copies a link to the current track at the current time (thomasgrim.com/?t=<track>&at=<seconds>). Opening it selects the track; press play and it starts at that moment.', help: 'help [section|cmd|-a] — list commands grouped by section. Commands with flags or args get their own line (args colored, dim description); simple commands flow together separated by •. help <section> shows one section (shell get net fun system fx look idle), help <cmd> opens its man page, help -a shows everything. ? is identical to help in every form: ?, ? fx, ? -a, ? <cmd>. Outside the prompt the ? key opens the keyboard help.', '?': 'see help — ? is an alias of help.', ls: 'ls [-la] [path] — without args lists every track; with a path lists the fake filesystem.', play: 'play <n|name> — play a track by number (see ls) or name.', get: 'get <n|name> — download a track. get album <name>, get --list.', cd: 'cd [dir] — change directory. try ~/albums, /etc, /var/log.', cat: 'cat <file> — print a file. try /etc/motd or readme.txt.', ping: 'ping <host> — send 4 ICMP echo requests (Ctrl+C stops).', top: 'top — live process list. q to quit.', theme: 'theme <name> — switch color theme: ' + THEMES.join(' ') + ' (cyan is the default). silicon, nightshift and neon are full-color palettes; Tab completes names.', screensaver: 'screensaver on|off|<seconds>|<effect>|random', apt: 'apt install <pkg> — needs sudo. you know how this ends.'};
+const MAN = {grimamp: 'grimamp — GRIMAMP v1, the ascii audio terminal player: record + round scope, waveform (click to seek), spectrum, FX knobs (filter/res/verb/crush), rep / shuf / 👁 auto-visuals toggles. keys: space play, n/p next/prev, r repeat, s shuffle, ←→ seek, +- volume. see also: play, ls, albums, get.', links: 'links — where to find tomGRIM: streaming, socials and downloads. type links to list them. see also: mail, feedback.', contact: 'contact — send tom a message with the mail form, or leave a note on the BBS. see also: mail, feedback.', weather: 'weather — GRIM/WX: a 90s "local on the 8s" weather screen for Allentown, Bethlehem and Easton with live data from open-meteo.com (current conditions, latest observations, extended and local forecast). It also takes over the screensaver while any Walking Green version plays. Any key or click exits. Alias: wx.', share: 'share — copies a link to the current track at the current time (thomasgrim.com/?t=<track>&at=<seconds>). Opening it selects the track; press play and it starts at that moment.', help: 'help [section|cmd|-a] — list commands grouped by section. Commands with flags or args get their own line (args colored, dim description); simple commands flow together separated by •. help <section> shows one section (shell get net fun system fx look idle), help <cmd> opens its man page, help -a shows everything. ? is identical to help in every form: ?, ? fx, ? -a, ? <cmd>. Outside the prompt the ? key opens the keyboard help.', '?': 'see help — ? is an alias of help.', ls: 'ls [-la] [path] — without args lists every track; with a path lists the fake filesystem.', play: 'play <n|name> — play a track by number (see ls) or name.', get: 'get <n|name> — download a track. get album <name>, get --list.', cd: 'cd [dir] — change directory. try ~/albums, /etc, /var/log.', cat: 'cat <file> — print a file. try /etc/motd or readme.txt.', ping: 'ping <host> — send 4 ICMP echo requests (Ctrl+C stops).', top: 'top — live process list. q to quit.', theme: 'theme <name> — switch color theme: ' + THEMES.join(' ') + ' (cyan is the default). silicon, nightshift and neon are full-color palettes; Tab completes names.', screensaver: 'screensaver on|off|<seconds>|<effect>|random', apt: 'apt install <pkg> — needs sudo. you know how this ends.'};
 Object.assign(CMDS, {
  ls: a => { a = (a || '').trim(); if (!a) return flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}${t.special ? ' ★' : ''}  [${t.single ? 'single' : t.al.title}]`)); lsPath(a); },
  ll: a => lsPath('-la ' + (a || '')), pwd: () => say(cwd),
@@ -1014,7 +1016,7 @@ document.addEventListener('keydown', e => {
  else if (k === 'f') setCrt(document.body.classList.contains('nocrt'));
  else if (k === 'c') { document.body.classList.toggle('flicker'); localStorage.grimFlicker = document.body.classList.contains('flicker') ? 1 : ''; }
  else if (/^[1-6]$/.test(k)) jump(SECTIONS[+k - 1]);
- else if (k === '7') openModal('irc'); else if (k === '8') openModal('mail');
+ else if (k === '7') openModal('mail'); else if (k === '8') weatherFx(true);
  else if (k === 'g') jump('photos');
  else if (/^[A-Z]$/.test(k)) { const ai = k.charCodeAt(0) - 65, i = flat.findIndex(t => t.ai === ai); if (i >= 0) { if (search.value) { search.value = ''; renderList(); } select(i); jump('player'); document.getElementById('al-' + ai)?.scrollIntoView({block: 'nearest'}); } }
 });
@@ -1034,7 +1036,7 @@ let openM = null, mLast = null;
 const ircNick = 'grim_guest' + String(Math.random() * 10000 | 0).padStart(4, '0');
 function openModal(id) { closeModal(); const m = $('#' + id + 'm'); if (!m) return; window.tgTrack('view', id); mLast = document.activeElement; m.hidden = false; openM = m;
  if (id === 'irc') { const irc = window.tgIRC($('#ircbox'), {nick: ircNick}); $('#ircnick').textContent = 'server: irc.unrealircd.org'; setTimeout(irc.focus, 30); }
- else m.querySelector('input[name=name]').focus(); }
+ else (m.querySelector('input[name=name]') || m.querySelector('.mclose')).focus(); }
 function closeModal() { if (!openM) return; openM.hidden = true; openM = null; mLast?.focus?.(); }
 document.querySelectorAll('.modal').forEach(m => { m.addEventListener('click', e => { if (e.target === m) closeModal(); }); m.querySelector('.mclose').onclick = closeModal; });
 document.querySelectorAll('[data-wx]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); b.blur(); weatherFx(true); }));
@@ -1373,6 +1375,43 @@ $('#bbsform').addEventListener('submit', async e => { e.preventDefault(); const 
   if (r.hidden) bbsStatus('<span class="dim">message held for review.</span>'); else { bbs.mine.add(r.id); say(`bbs: posted as ${V(r.handle)}${quip('post')}`, true); bbsAdd([{id: r.id, handle: r.handle, body: r.body, created_at: new Date().toISOString()}]); bbsStatus(r.body !== body ? '<span class="dim">posted (links removed).</span>' : ''); } }
  catch (err) { bbsStatus('<span class="dim">' + (/rate/.test(err.message) ? 'slow down — 1 message a minute, 10 a day.' : /spam/.test(err.message) ? 'rejected: looks like spam.' : /empty/.test(err.message) ? 'say a bit more.' : 'carrier lost — could not post.') + '</span>'); }
  finally { btn.disabled = false; } });
+/* ---------- 1.3.0: Listen@Spotify, menu bar tools, broadcast mode, changelog ---------- */
+const SP_ARTIST = 'spotify:artist:1tBp2oza76uuM5bC3fx8Vg';
+function updSpot(t) { const b = document.getElementById('spbtn'); if (!b) return; const id = t && t.spotify;
+ if (!id) { b.hidden = true; return; } b.href = 'https://open.spotify.com/track/' + id + '?context=' + encodeURIComponent(SP_ARTIST); b.title = 'listen to ' + t.title + ' on Spotify (keeps playing tomGRIM after it)'; b.setAttribute('aria-label', 'Listen to ' + t.title + ' on Spotify'); if (b.hidden) { b.hidden = false; requestAnimationFrame(fitTitle); } }
+document.getElementById('spbtn').addEventListener('click', () => { const t = curT(); window.tgTrack('spotify', t ? t.title : 'track'); });
+document.getElementById('bspot').addEventListener('click', () => window.tgTrack('spotify', 'artist'));
+document.getElementById('siteupd').textContent = 'v' + SITE_VERSION + ' · ' + SITE_UPDATED;
+/* fullscreen */
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+function toggleFull() { const d = document.documentElement; try { if (fsEl()) (document.exitFullscreen || document.webkitExitFullscreen).call(document); else if (d.requestFullscreen || d.webkitRequestFullscreen) (d.requestFullscreen || d.webkitRequestFullscreen).call(d); else say('fullscreen: not supported here — on desktop press ' + V('F11') + '.', true); } catch (e) { say('fullscreen: press ' + V('F11') + '.', true); } }
+const bfull = document.getElementById('bfull'); bfull.addEventListener('click', () => { bfull.blur(); toggleFull(); });
+['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { const on = !!fsEl(); bfull.setAttribute('aria-pressed', on); bfull.title = on ? 'exit fullscreen (Esc)' : 'best viewed in fullscreen (F11): click to toggle fullscreen'; }));
+if (!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)) bfull.hidden = true; // iPhone Safari: no Fullscreen API
+/* install */
+const binst = document.getElementById('binst'); binst.addEventListener('click', () => { binst.blur(); jump('shell', true); installCmd(); });
+const instUpd = () => { binst.hidden = isStandalone(); }; instUpd(); addEventListener('appinstalled', instUpd);
+/* changelog window (rendered from CHANGELOG.md, the single source) */
+let clogDone = false;
+function mdInline(t) { return escH(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<span class="val">$1</span>'); }
+function openChangelog() { openModal('changelog'); if (clogDone) return;
+ fetch('CHANGELOG.md', {cache: 'no-cache'}).then(r => r.ok ? r.text() : Promise.reject()).then(md => { let h = '', inList = false;
+  md.split('\n').forEach(l => { if (/^## /.test(l)) { if (inList) { h += '</ul>'; inList = false; } const m = l.slice(3).split(' — '); h += `<h3><span class="cv">${escH(m[0])}</span>${m[1] ? ' <span class="dim">' + escH(m[1]) + '</span>' : ''}</h3>`; }
+   else if (/^- /.test(l)) { if (!inList) { h += '<ul>'; inList = true; } h += '<li>' + mdInline(l.slice(2)) + '</li>'; }
+   else if (l.trim() && !/^# /.test(l)) { if (inList) { h += '</ul>'; inList = false; } h += '<p class="dim">' + mdInline(l) + '</p>'; } });
+  if (inList) h += '</ul>'; document.getElementById('clog').innerHTML = h; clogDone = true; })
+ .catch(() => { document.getElementById('clog').textContent = 'could not load the changelog.'; }); }
+/* background broadcast mode: ticker title + playing favicon while hidden and playing */
+const bc = {title: document.title, icons: null, timer: 0, i: 0};
+function bcIcon() { const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, 32, 32);
+ g.fillStyle = getComputedStyle(document.body).getPropertyValue('--fg').trim() || '#6ff6ff'; [[4, 14], [11, 6], [18, 10], [25, 4]].forEach(([x, y]) => g.fillRect(x, y, 5, 28 - y)); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(3, 2); g.lineTo(13, 7); g.lineTo(3, 12); g.fill(); return c.toDataURL('image/png'); }
+function bcStart() { const t = curT(); if (!t || !isPlaying() || bc.timer) return; bc.title = document.title;
+ bc.icons = [...document.querySelectorAll('link[rel~=icon]')].map(l => [l, l.href]); const ico = bcIcon(); bc.icons.forEach(([l]) => { l.href = ico; });
+ const txt = '▶ now playing: ' + t.title + ' · tomGRIM   ·   '; bc.i = 0; const tick = () => { const s = txt.slice(bc.i) + txt.slice(0, bc.i); document.title = s.slice(0, 48); bc.i = (bc.i + 1) % txt.length; };
+ tick(); bc.timer = setInterval(tick, 400); }
+function bcStop() { if (!bc.timer) return; clearInterval(bc.timer); bc.timer = 0; document.title = bc.title; (bc.icons || []).forEach(([l, h]) => { l.href = h; }); bc.icons = null; }
+document.addEventListener('visibilitychange', () => { document.hidden ? bcStart() : bcStop(); });
+audio.addEventListener('pause', () => { if (document.hidden) bcStop(); }); audio.addEventListener('playing', () => { if (document.hidden) { bcStop(); bcStart(); } });
 })();
 // Android address bar / status bar follows the active theme (was a fixed white #ffffff in light mode)
 (() => { const m = document.querySelector('meta[name=theme-color]'); if (!m) return; const upd = () => { const c = getComputedStyle(document.body).getPropertyValue('--bg').trim(); if (c) m.content = c; }; upd(); new MutationObserver(upd).observe(document.body, {attributes: true, attributeFilter: ['class']});  })();
@@ -1392,4 +1431,3 @@ $('#bbsform').addEventListener('submit', async e => { e.preventDefault(); const 
  const bye = () => { if (Date.now() - sent > 2000) { sent = Date.now(); upd(null, true); } };
  document.addEventListener('visibilitychange', () => { if (document.hidden) bye(); }); addEventListener('pagehide', bye);
  setTimeout(() => upd(), 15000); })();
-
