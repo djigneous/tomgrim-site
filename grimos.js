@@ -2,7 +2,7 @@
 'use strict';
 const SITE_VERSION = '1.3.1', SITE_UPDATED = '2026-11-01'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
-const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); scripts/stamp-version.sh copies it into index.html + stats.js
+const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
 var QUIPS = {
  like: ['the needle approves.', 'logged to /var/log/vinyl.log.', '+1 to the late-night canon.', 'saved to the heart sector.', 'a warm signal in the dark.', 'stored in non-volatile memory.', 'the machine noted your taste.'],
