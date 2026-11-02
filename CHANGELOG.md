@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.6 — 2026-11-02
+- SEO: clearer page title and description (tomGRIM / Tom Grim, downtempo, breakbeat, electro); name variants, genres and keywords added to the artist data; genres on each Spotify track.
+
 ## 1.3.5 — 2026-11-02
 - SEO: artist profile now links Spotify, YouTube, TikTok and Instagram for search engines; the 8 Spotify tracks are listed as recordings; Spotify added to share metadata; sitemap refreshed.
 
