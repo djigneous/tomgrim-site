@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.0', SITE_UPDATED = '2026-11-01'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.1', SITE_UPDATED = '2026-11-01'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = '6.11'; // last-updated stamp: (year-2020).(month), auto-set by scripts/stamp-version.sh
 const $ = s => document.querySelector(s);
@@ -1386,7 +1386,7 @@ document.getElementById('siteupd').textContent = 'v' + SITE_VERSION + ' · ' + S
 const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
 function toggleFull() { const d = document.documentElement; try { if (fsEl()) (document.exitFullscreen || document.webkitExitFullscreen).call(document); else if (d.requestFullscreen || d.webkitRequestFullscreen) (d.requestFullscreen || d.webkitRequestFullscreen).call(d); else say('fullscreen: not supported here — on desktop press ' + V('F11') + '.', true); } catch (e) { say('fullscreen: press ' + V('F11') + '.', true); } }
 const bfull = document.getElementById('bfull'); bfull.addEventListener('click', () => { bfull.blur(); toggleFull(); });
-['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { const on = !!fsEl(); bfull.setAttribute('aria-pressed', on); bfull.title = on ? 'exit fullscreen (Esc)' : 'best viewed in fullscreen (F11): click to toggle fullscreen'; }));
+['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { const on = !!fsEl(); bfull.setAttribute('aria-pressed', on); bfull.title = on ? 'Exit fullscreen (Esc)' : 'Fullscreen: best viewed in fullscreen (F11). Click to enter or exit fullscreen'; }));
 if (!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)) bfull.hidden = true; // iPhone Safari: no Fullscreen API
 /* install */
 const binst = document.getElementById('binst'); binst.addEventListener('click', () => { binst.blur(); jump('shell', true); installCmd(); });

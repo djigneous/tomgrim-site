@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.1 — 2026-11-01
+- Menu bar: FULLSCREEN and INSTALL moved to the left with icon + label; Spotify is now a "ᯤ SPOTIFY" text link (small uppercase), still last on the right. Clear tooltips and labels on all three.
+
 ## 1.3.0 — 2026-11-01
 - **Listen@Spotify** button on the now-playing line for tracks that are on Spotify (opens the song on Spotify with tomGRIM's artist page as the play context).
 - Menu bar: pixel Spotify icon (artist page), **install** button (PWA install, or Add to Home Screen steps), **fullscreen** toggle ("best viewed in fullscreen, F11").
