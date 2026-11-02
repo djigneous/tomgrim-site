@@ -26,7 +26,7 @@
 <meta name="twitter:image" content="https://thomasgrim.com/assets/og-card.jpg">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"MusicGroup","@id":"https://thomasgrim.com/#tomgrim","name":"tomGRIM","alternateName":"dj ign3ous","url":"https://thomasgrim.com/","image":"https://thomasgrim.com/assets/og-card.jpg","genre":["Downtempo","Breakbeat","Electro","Experimental"],"foundingLocation":{"@type":"Place","name":"Lehigh Valley, PA"},"album":[{"@type":"MusicAlbum","name":"Ember Hours","datePublished":"2026","albumProductionType":"https://schema.org/StudioAlbum","byArtist":{"@id":"https://thomasgrim.com/#tomgrim"},"numTracks":9,"image":"https://thomasgrim.com/assets/covers/ember-hours-512.png"},{"@type":"MusicAlbum","name":"Night Signals","datePublished":"2025","albumProductionType":"https://schema.org/StudioAlbum","byArtist":{"@id":"https://thomasgrim.com/#tomgrim"},"numTracks":11,"image":"https://thomasgrim.com/assets/covers/night-signals-512.png"},{"@type":"MusicAlbum","name":"ELEMENTS","datePublished":"2009","albumProductionType":"https://schema.org/StudioAlbum","byArtist":{"@id":"https://thomasgrim.com/#tomgrim"},"numTracks":7,"image":"https://thomasgrim.com/assets/covers/elements-512.png"}]}</script>
 <link rel="icon" href="favicon.ico?v=2" sizes="48x48"><link rel="icon" href="favicon.svg?v=2" type="image/svg+xml"><link rel="icon" href="favicon-32.png?v=2" sizes="32x32" type="image/png"><link rel="icon" href="favicon-192.png?v=2" sizes="192x192" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" sizes="180x180">
-<link rel="stylesheet" href="grimos.css?v=20261101192833">
+<link rel="stylesheet" href="grimos.css?v=20261101194547">
 <script data-goatcounter="https://tomgrim.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body class="theme-cyan">
@@ -36,25 +36,28 @@
 <div id="npov" hidden role="status" aria-live="off"></div>
 <div id="crt">
 <header id="topbar">
-  <span class="brand">GRIM/OS v1.3.1</span>
-  <span id="ltools">
-    <button id="bfull" class="tbtn sm" type="button" title="Fullscreen: best viewed in fullscreen (F11). Click to enter or exit fullscreen" aria-label="Toggle fullscreen. The site is best viewed in fullscreen, F11" aria-pressed="false"><span aria-hidden="true">⛶</span> FULLSCREEN</button>
-    <button id="binst" class="tbtn sm" type="button" title="Install GRIM/OS as an app on this device (home screen / app list)" aria-label="Install GRIM/OS as an app on this device"><span aria-hidden="true">⬇</span> INSTALL</button>
-  </span>
+  <span class="brand">GRIM/OS v1.3.2</span>
   <nav aria-label="Sections">
-    <button data-jump="fetch" data-ico="fetch" aria-label="1 sysinfo"><span class="lb">[1] sysinfo</span></button>
-    <button data-jump="man" data-ico="man" aria-label="2 man tomgrim"><span class="lb">[2] man</span></button>
-    <button data-jump="player" data-ico="player" aria-label="3 grimamp player"><span class="lb">[3] grimamp</span></button>
-    <button data-jump="links" data-ico="links" aria-label="4 bbs feedback"><span class="lb">[4] bbs</span></button>
-    <button data-jump="shell" data-ico="shell" aria-label="5 shell"><span class="lb">[5] shell</span></button>
-    <button data-jump="photos" data-ico="photos" aria-label="6 photos"><span class="lb">[6] photos</span></button>
+    <button data-jump="fetch" data-ico="fetch" aria-label="1 sysinfo" title="1 sysinfo (key 1)"><span class="lb">[1] sysinfo</span></button>
+    <button data-jump="man" data-ico="man" aria-label="2 man tomgrim" title="2 man tomgrim (key 2)"><span class="lb">[2] man</span></button>
+    <button data-jump="player" data-ico="player" aria-label="3 grimamp player" title="3 grimamp player (key 3)"><span class="lb">[3] grimamp</span></button>
+    <button data-jump="links" data-ico="links" aria-label="4 bbs feedback" title="4 bbs feedback (key 4)"><span class="lb">[4] bbs</span></button>
+    <button data-jump="shell" data-ico="shell" aria-label="5 shell" title="5 shell (key 5)"><span class="lb">[5] shell</span></button>
+    <button data-jump="photos" data-ico="photos" aria-label="6 photos" title="6 photos (key 6)"><span class="lb">[6] photos</span></button>
     <button data-open="mail" data-ico="mail" aria-label="7 mail" title="mail tom"><span class="lb">[7] mail</span></button>
     <button data-wx data-ico="weather" aria-label="weather" title="weather"><span class="lb">[8] weather</span></button>
+    <button id="bfull2" class="fsico" type="button" title="Fullscreen: best viewed in fullscreen (F11). Click to enter or exit fullscreen" aria-label="Toggle fullscreen (best viewed in fullscreen, F11)">⛶</button>
   </nav>
   <span id="tools">
     <label for="themesel" class="sr" style="position:absolute;left:-9999px">Theme</label>
     <select id="themesel" aria-label="Theme" title="theme (t)"></select>
-    <button id="bcrt" aria-pressed="true" title="CRT filter (f)">CRT:on</button>
+    <span class="ddwrap"><button id="bdisp" class="tbtn sm" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="dispmenu" title="Display settings: CRT filter, fullscreen, install as app">DISPLAY ▾</button>
+      <span id="dispmenu" class="ddmenu" role="menu" aria-label="Display settings" hidden>
+        <button id="bcrt" role="menuitemcheckbox" aria-checked="true" aria-pressed="true" type="button" title="CRT filter: scanlines, glow and curved corners (f)">CRT:on</button>
+        <button id="bflick" role="menuitemcheckbox" aria-checked="false" type="button" title="CRT flicker effect (c)">FLICKER:off</button>
+        <button id="bfull" role="menuitem" type="button" title="Fullscreen: best viewed in fullscreen (F11). Click to enter or exit fullscreen" aria-label="Toggle fullscreen. The site is best viewed in fullscreen, F11"><span aria-hidden="true">⛶</span> FULLSCREEN</button>
+        <button id="binst" role="menuitem" type="button" title="Install GRIM/OS as an app on this device (home screen / app list)" aria-label="Install GRIM/OS as an app on this device"><span aria-hidden="true">⬇</span> INSTALL APP</button>
+      </span></span>
     <a id="bspot" class="tbtn sm" href="https://open.spotify.com/artist/1tBp2oza76uuM5bC3fx8Vg" target="_blank" rel="noopener" title="Open tomGRIM on Spotify (artist page, new tab)" aria-label="Open tomGRIM on Spotify, artist page, opens in a new tab"><span aria-hidden="true">ᯤ</span> SPOTIFY</a>
   </span>
   <span id="clock" aria-hidden="true"></span>
@@ -82,7 +85,7 @@
 <li><b>Singles:</b> Radio Flows · No Good · Passing High</li>
 <li><b>Shell:</b> grimsh — type <button type="button" class="getlink runlink xref helpchip" data-run="help" title="run help"><b>help</b></button></li>
 <li><b>Links:</b> <button type="button" class="getlink runlink xref" data-run="links"><b>links</b></button></li>
-<li><b>Updated:</b> <span id="siteupd">v1.3.1</span> · <button type="button" class="getlink runlink xref" data-run="changelog" title="what's new"><b>changelog</b></button></li>
+<li><b>Updated:</b> <span id="siteupd">v1.3.2</span> · <button type="button" class="getlink runlink xref" data-run="changelog" title="what's new"><b>changelog</b></button></li>
 <li class="swatch" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></li>
 </ul>
     </div>
@@ -228,7 +231,7 @@
   <img id="lbimg" alt="">
   <div class="lbnav"><button id="lbprev" aria-label="Previous photo">◀ prev</button><span id="lbn" class="dim"></span><button id="lbnext" aria-label="Next photo">next ▶</button><button id="lbclose" aria-label="Close">[ esc ]</button></div>
  </div></div>
-<script src="contact.js?v=20261101192833"></script>
-<script src="grimos.js?v=20261101192833"></script>
+<script src="contact.js?v=20261101194547"></script>
+<script src="grimos.js?v=20261101194547"></script>
 </body>
 </html>

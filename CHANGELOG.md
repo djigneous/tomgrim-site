@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.2 — 2026-11-01
+- Compact menu bar: one line on desktop, two on phones. New **DISPLAY** menu holds CRT, flicker, fullscreen and install app; a fullscreen icon sits next to weather; shorter theme box ("nightshift" is shown as "night").
+
 ## 1.3.1 — 2026-11-01
 - Menu bar: FULLSCREEN and INSTALL moved to the left with icon + label; Spotify is now a "ᯤ SPOTIFY" text link (small uppercase), still last on the right. Clear tooltips and labels on all three.
 - Titlebar, grimsh banner, uname/neofetch/motd/os-release and the /stats login now all show the real site version (v1.3.1) from one constant; the old month-based 6.x stamp is retired.
