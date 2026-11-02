@@ -2,7 +2,7 @@
 'use strict';
 const SITE_VERSION = '1.3.1', SITE_UPDATED = '2026-11-01'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
-const GRIMOS_VERSION = '6.11'; // last-updated stamp: (year-2020).(month), auto-set by scripts/stamp-version.sh
+const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); scripts/stamp-version.sh copies it into index.html + stats.js
 const $ = s => document.querySelector(s);
 var QUIPS = {
  like: ['the needle approves.', 'logged to /var/log/vinyl.log.', '+1 to the late-night canon.', 'saved to the heart sector.', 'a warm signal in the dark.', 'stored in non-volatile memory.', 'the machine noted your taste.'],
@@ -694,7 +694,7 @@ function blackout() { const st = rmSt || {}; if (st.t == null) st.t = audio.curr
  setTimeout(() => { d.innerHTML = 'Kernel panic - not syncing: Attempted to kill init!\n<span class="kq">"' + escH(Q()) + '"</span><span class="kcur">_</span>'; const c = d.querySelector('.kcur'); const blink = setInterval(() => { c.style.visibility = c.style.visibility === 'hidden' ? '' : 'hidden'; }, 530);
   setTimeout(() => { clearInterval(blink); c.remove(); boot(); }, 5000); }, PANIC_AT);
  const boot = () => { const log = document.createElement('div'); log.style.cssText = 'margin-top:2.6em;color:#9a9a9a'; d.appendChild(log);
-  const L = ['GRIM-BIOS v6.10 (c) 1995 Gibson Systems', 'CPU: GRIM-808 @ 33 MHz ...... OK', 'Memory test: 640K ................ OK', '"' + Q() + '"', 'Detecting drives: /dev/kick0 /dev/bass ..... OK', 'Loading vmlinuz-grim ......... done', '[  OK  ] restored / from vinyl backup', (q[2] ? '"' + Q() + '"' : '"undefined"'), '[  OK  ] started grimamp.service', '[  OK  ] mounted /home/tomgrim/music', (q[3] ? '"' + Q() + '"' : '"undefined"'), '[  OK  ] reached target late-night.target', 'GRIM/OS ' + GRIMOS_VERSION + ' ready.'].filter(x => x !== '"undefined"');
+  const L = ['GRIM-BIOS v' + GRIMOS_VERSION + ' (c) 1995 Gibson Systems', 'CPU: GRIM-808 @ 33 MHz ...... OK', 'Memory test: 640K ................ OK', '"' + Q() + '"', 'Detecting drives: /dev/kick0 /dev/bass ..... OK', 'Loading vmlinuz-grim ......... done', '[  OK  ] restored / from vinyl backup', (q[2] ? '"' + Q() + '"' : '"undefined"'), '[  OK  ] started grimamp.service', '[  OK  ] mounted /home/tomgrim/music', (q[3] ? '"' + Q() + '"' : '"undefined"'), '[  OK  ] reached target late-night.target', 'GRIM/OS ' + GRIMOS_VERSION + ' ready.'].filter(x => x !== '"undefined"');
   const per = RM ? 260 : 380; let i = 0;
   const next = () => { if (i < L.length) { const ln = document.createElement('div'); const s = L[i++]; ln.textContent = s; if (s[0] === '"') ln.style.color = '#d8d8d8'; log.appendChild(ln); setTimeout(next, per); } else setTimeout(restore, 500); };
   next(); };
@@ -1376,6 +1376,7 @@ $('#bbsform').addEventListener('submit', async e => { e.preventDefault(); const 
  catch (err) { bbsStatus('<span class="dim">' + (/rate/.test(err.message) ? 'slow down — 1 message a minute, 10 a day.' : /spam/.test(err.message) ? 'rejected: looks like spam.' : /empty/.test(err.message) ? 'say a bit more.' : 'carrier lost — could not post.') + '</span>'); }
  finally { btn.disabled = false; } });
 /* ---------- 1.3.0: Listen@Spotify, menu bar tools, broadcast mode, changelog ---------- */
+{ const br = document.querySelector('#topbar .brand'); if (br) br.textContent = 'GRIM/OS v' + SITE_VERSION; }
 const SP_ARTIST = 'spotify:artist:1tBp2oza76uuM5bC3fx8Vg';
 function updSpot(t) { const b = document.getElementById('spbtn'); if (!b) return; const id = t && t.spotify;
  if (!id) { b.hidden = true; return; } b.href = 'https://open.spotify.com/track/' + id + '?context=' + encodeURIComponent(SP_ARTIST); b.title = 'listen to ' + t.title + ' on Spotify (keeps playing tomGRIM after it)'; b.setAttribute('aria-label', 'Listen to ' + t.title + ' on Spotify'); if (b.hidden) { b.hidden = false; requestAnimationFrame(fitTitle); } }
