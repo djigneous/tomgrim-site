@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.5 — 2026-11-02
+- SEO: artist profile now links Spotify, YouTube, TikTok and Instagram for search engines; the 8 Spotify tracks are listed as recordings; Spotify added to share metadata; sitemap refreshed.
+
 ## 1.3.4 — 2026-11-01
 - Fix: the fullscreen icon next to weather now uses a pixel icon and follows the bar colours in every theme (it showed a pale box in some themes).
 
