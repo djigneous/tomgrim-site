@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.2', SITE_UPDATED = '2026-11-01'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.3', SITE_UPDATED = '2026-11-01'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -514,8 +514,27 @@ let hlLast = null; const hlSync = () => { if (cmd.value !== hlLast) { hlLast = c
 ['input', 'keyup', 'scroll', 'focus', 'select'].forEach(ev => cmd.addEventListener(ev, hlSync)); setInterval(() => { if (!document.hidden) hlSync(); }, 120);
 const LINKS = [['spotify','https://open.spotify.com/artist/1tBp2oza76uuM5bC3fx8Vg'],['apple-music','https://music.apple.com/us/artist/tomgrim/1705139904'],['youtube','https://www.youtube.com/@ig3.productions'],['soundcloud','https://soundcloud.com/thomasgrim']];
 const THEMES = ['cyan', 'green', 'amber', 'red', 'fire', 'ice', 'silicon', 'nightshift', 'neon', 'gray']; // gray last (dropdown, swatches, 't' cycle)
+/* menu-bar dropdowns (THEME + DISPLAY): Enter/Space/↓ opens, ↑↓ Home End move, Esc closes, Tab leaves */
+const DD = {};
+function ddSetup(key, btn, menu) {
+ const items = () => [...menu.querySelectorAll('button')].filter(b => !b.hidden);
+ const open = focus => { Object.values(DD).forEach(d => d !== DD[key] && d.close()); menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); if (focus) (menu.querySelector('[aria-checked="true"]') || items()[0])?.focus(); };
+ const close = refocus => { if (menu.hidden) return; menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); if (refocus) btn.focus(); };
+ btn.addEventListener('click', e => { e.stopPropagation(); menu.hidden ? open(e.detail === 0) : close(); });
+ btn.addEventListener('keydown', e => { if (e.key === 'ArrowDown') { e.preventDefault(); open(true); } });
+ menu.addEventListener('keydown', e => { const it = items(), i = it.indexOf(document.activeElement);
+  if (e.key === 'ArrowDown') { e.preventDefault(); it[(i + 1) % it.length].focus(); } else if (e.key === 'ArrowUp') { e.preventDefault(); it[(i - 1 + it.length) % it.length].focus(); }
+  else if (e.key === 'Home') { e.preventDefault(); it[0].focus(); } else if (e.key === 'End') { e.preventDefault(); it[it.length - 1].focus(); }
+  else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true); } else if (e.key === 'Tab') close(); });
+ document.addEventListener('click', e => { if (!btn.parentNode.contains(e.target)) close(); });
+ DD[key] = {open, close};
+}
+ddSetup('theme', $('#btheme'), $('#thememenu')); ddSetup('disp', $('#bdisp'), $('#dispmenu'));
 const TLABEL = {nightshift: 'night'}; // short display names (internal keys / saved prefs unchanged)
-const themeSel = $('#themesel'); themeSel.innerHTML = THEMES.map(t => `<option value="${t}">${TLABEL[t] || t}</option>`).join('');
+const tUp = t => (TLABEL[t] || t).toUpperCase();
+$('#thememenu').innerHTML = THEMES.map(t => `<button type="button" role="menuitemradio" aria-checked="false" data-theme="${t}" title="Switch to the ${tUp(t)} theme (t cycles)">${tUp(t)}</button>`).join('');
+$('#thememenu').addEventListener('click', e => { const b = e.target.closest('[data-theme]'); if (!b) return; DD.theme.close(true); setTheme(b.dataset.theme); });
+const themeSel = { set value(t) { $('#btheme').innerHTML = '<span class="ddpre">THEME: </span>' + tUp(t) + ' ▾'; $('#btheme').setAttribute('aria-label', 'Theme: ' + tUp(t) + '. Open theme menu'); $('#thememenu').querySelectorAll('[data-theme]').forEach(b => b.setAttribute('aria-checked', b.dataset.theme === t)); }, addEventListener() {} };
 const curTheme = () => (document.body.className.match(/theme-(\w+)/) || [])[1] || 'cyan';
 function setTheme(t, quiet) { if (t === 'grey' || t === 'grayscale') t = 'gray'; if (t === 'night') t = 'nightshift'; if (!THEMES.includes(t)) return say('usage: theme ' + THEMES.map(x => TLABEL[x] || x).join('|'));
  document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + t); if (quiet !== 'mood') { localStorage.grimTheme = t; if (mood) mood.prev = t; } themeSel.value = t; refreshColors(); if (!quiet) say('theme → ' + V(TLABEL[t] || t) + quip('theme'), true); }
@@ -529,7 +548,7 @@ if (swEl) { swEl.removeAttribute('aria-hidden'); swEl.setAttribute('role', 'grou
  const pick = e => { const i = e.target.closest('i[data-theme]'); if (!i) return; if (e.type === 'keydown') { if (e.key !== 'Enter' && e.key !== ' ') return; e.preventDefault(); } setTheme(i.dataset.theme); };
  swEl.addEventListener('click', pick); swEl.addEventListener('keydown', pick); }
 new MutationObserver(markSwatch).observe(document.body, {attributes: true, attributeFilter: ['class']}); markSwatch();
-function setCrt(on, quiet) { document.body.classList.toggle('nocrt', !on); localStorage.grimCrt = on ? '1' : '0'; const b = $('#bcrt'); b.textContent = 'CRT:' + (on ? 'on' : 'off'); b.setAttribute('aria-pressed', on); if (!quiet) say('crt filter: ' + V(on ? 'on' : 'off'), true); }
+function setCrt(on, quiet) { document.body.classList.toggle('nocrt', !on); localStorage.grimCrt = on ? '1' : '0'; const b = $('#bcrt'); b.textContent = 'CRT: ' + (on ? 'ON' : 'OFF'); b.setAttribute('aria-pressed', on); if (!quiet) say('crt filter: ' + V(on ? 'on' : 'off'), true); }
 $('#bcrt').onclick = () => setCrt(document.body.classList.contains('nocrt'));
 // CRT button lives in the DISPLAY menu: mirror aria-checked
 new MutationObserver(() => $('#bcrt').setAttribute('aria-checked', $('#bcrt').getAttribute('aria-pressed'))).observe($('#bcrt'), {attributes: true, attributeFilter: ['aria-pressed']});
@@ -1391,19 +1410,8 @@ const fsEl = () => document.fullscreenElement || document.webkitFullscreenElemen
 function toggleFull() { const d = document.documentElement; try { if (fsEl()) (document.exitFullscreen || document.webkitExitFullscreen).call(document); else if (d.requestFullscreen || d.webkitRequestFullscreen) (d.requestFullscreen || d.webkitRequestFullscreen).call(d); else say('fullscreen: not supported here — on desktop press ' + V('F11') + '.', true); } catch (e) { say('fullscreen: press ' + V('F11') + '.', true); } }
 const bfull = document.getElementById('bfull'), bfull2 = document.getElementById('bfull2');
 bfull.addEventListener('click', () => { closeDisp(); toggleFull(); }); bfull2.addEventListener('click', () => { bfull2.blur(); toggleFull(); });
-/* DISPLAY dropdown (keyboard: Enter/Space/↓ opens, ↑↓ move, Esc closes, Tab leaves) */
-const bdisp = document.getElementById('bdisp'), dmenu = document.getElementById('dispmenu');
-const dItems = () => [...dmenu.querySelectorAll('button')].filter(b => !b.hidden);
-function openDisp(focusFirst) { dmenu.hidden = false; bdisp.setAttribute('aria-expanded', 'true'); if (focusFirst) dItems()[0]?.focus(); }
-function closeDisp(refocus) { if (dmenu.hidden) return; dmenu.hidden = true; bdisp.setAttribute('aria-expanded', 'false'); if (refocus) bdisp.focus(); }
-bdisp.addEventListener('click', e => { e.stopPropagation(); dmenu.hidden ? openDisp(e.detail === 0) : closeDisp(); });
-bdisp.addEventListener('keydown', e => { if (e.key === 'ArrowDown') { e.preventDefault(); openDisp(true); } });
-dmenu.addEventListener('keydown', e => { const it = dItems(), i = it.indexOf(document.activeElement);
- if (e.key === 'ArrowDown') { e.preventDefault(); it[(i + 1) % it.length].focus(); } else if (e.key === 'ArrowUp') { e.preventDefault(); it[(i - 1 + it.length) % it.length].focus(); }
- else if (e.key === 'Home') { e.preventDefault(); it[0].focus(); } else if (e.key === 'End') { e.preventDefault(); it[it.length - 1].focus(); }
- else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeDisp(true); } else if (e.key === 'Tab') closeDisp(); });
-document.addEventListener('click', e => { if (!e.target.closest('.ddwrap')) closeDisp(); });
-const bflick = document.getElementById('bflick'); const flickUpd = () => { const on = document.body.classList.contains('flicker'); bflick.textContent = 'FLICKER:' + (on ? 'on' : 'off'); bflick.setAttribute('aria-checked', on); };
+const closeDisp = DD.disp.close;
+const bflick = document.getElementById('bflick'); const flickUpd = () => { const on = document.body.classList.contains('flicker'); bflick.textContent = 'FLICKER: ' + (on ? 'ON' : 'OFF'); bflick.setAttribute('aria-checked', on); };
 flickUpd(); new MutationObserver(flickUpd).observe(document.body, {attributes: true, attributeFilter: ['class']});
 bflick.addEventListener('click', () => { document.body.classList.toggle('flicker'); localStorage.grimFlicker = document.body.classList.contains('flicker') ? 1 : ''; });
 ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { const on = !!fsEl(); [bfull, bfull2].forEach(b => { b.setAttribute('aria-pressed', on); b.title = on ? 'Exit fullscreen (Esc)' : 'Fullscreen: best viewed in fullscreen (F11). Click to enter or exit fullscreen'; }); }));
