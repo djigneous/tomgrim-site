@@ -9,6 +9,7 @@ Versions before 1.3.0 were assigned retroactively from the git history, so their
 - **Background broadcast mode**: while the tab is hidden and music plays, the tab title becomes a scrolling "▶ now playing" ticker and the favicon shows a playing indicator; both restore when you come back.
 - Media Session: title / artist / album / artwork and play, pause, next, previous, seek on lock screens and media keys.
 - "Updated" line in sysinfo, driven by one version constant.
+- grimfetch portrait fades to black at every edge and sits closer to the right border.
 - This changelog (`changelog` command, link in sysinfo, CHANGELOG.md).
 - IRC chat removed from the menu, links, help and man pages (code kept behind a flag for later).
 
