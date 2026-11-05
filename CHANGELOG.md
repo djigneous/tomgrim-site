@@ -5,6 +5,7 @@ Versions before 1.3.0 were assigned retroactively from the git history, so their
 
 ## 1.3.24 — 2026-11-05
 - Maguntsche Ch. 1 / Ch. 2 replace the ASCII vinyl with a circular PS1-style Maguntsche demon face (theme glow + outline, slow rotate and bob). Driven by an optional per-track `disc` image field in tracks.json.
+- Remixes: Gus Gus track retitled to Gus Gus - Believe (tomGRIM RMX) (display like other remixes; old name kept as alias).
 
 ## 1.3.23 — 2026-11-05
 - Calmer visualizers: record spins a bit slower (time-based, not FPS-based), more analyser smoothing, slower spectrum peak falloff, and FX motion scaled by delta time. Spectrum stays log-scaled with bass on the left and treble on the right (label updated). Higher render detail from 1.3.21 kept.

@@ -1042,14 +1042,20 @@
           "id3_artist": "Radiohead"
         },
         {
-          "title": "Gus Gus - Believe (TG Remix)",
+          "title": "Gus Gus - Believe (tomGRIM RMX)",
           "file": "assets/audio/remixes/02-believe.mp3",
           "duration_sec": 225.6,
           "bpm": 120,
           "year": 2025,
           "original": "gus-gus-believe01test-mix3.mp3",
-          "id3_title": "Believe (TG Remix)",
-          "id3_artist": "Gus Gus"
+          "id3_title": "Believe (tomGRIM RMX)",
+          "id3_artist": "Gus Gus",
+          "aliases": [
+            "gus gus - believe (tg remix)",
+            "believe",
+            "gus gus believe",
+            "believe (tg remix)"
+          ]
         },
         {
           "title": "The Supremes - Where Did Our Love Go (tomGRIM RMX)",
