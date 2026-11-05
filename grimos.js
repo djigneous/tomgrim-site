@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.21', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.22', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -78,13 +78,13 @@ const pl = $('#playlist');
 function renderList(q = '') {
  q = q.toLowerCase(); view = []; let html = '', last = -1;
  flat.forEach((t, i) => {
-  if (q && !(t.title + ' ' + t.al.title).toLowerCase().includes(q)) return;
+  if (q && !(t.title + ' ' + t.al.title + ' ' + (t.aliases || []).join(' ')).toLowerCase().includes(q)) return;
   if (t.ai !== last) { last = t.ai; const al = t.al, key = String.fromCharCode(65 + t.ai);
    if (t.single) { const n = flat.filter(x => x.ai === t.ai).length;
     html += `<li class="div" role="presentation" id="al-${t.ai}">══[${key}]═ SINGLES <small>${n} trk</small> ════════════════════════════</li>`; }
    else html += `<li class="div" role="presentation" id="al-${t.ai}">══[${key}]═ ${esc(al.title.toUpperCase())} <small>${al.year ? al.year + ' · ' : ''}${al.type === 'loops' ? 'loop pack' : al.type || 'album'} · ${al.tracks.length} trk</small> ════════════════════════════</li>`; }
   view.push(i);
-  html += `<li class="tr" role="option" id="tr-${i}" data-i="${i}" aria-selected="false"><span class="n">${String(t.ti + 1).padStart(2, '0')}</span><span class="t">${esc(t.title)}${t.special ? ' <span class="star" title="special feature">★ special</span>' : ''}${t.single && t.al.year ? ' <span class="dim">(' + t.al.year + ')</span>' : ''}</span><span class="dim">${heartHTML(t)}${t.bpm ? Math.round(t.bpm) + 'bpm ' : ''}${t.duration_sec ? fmt(t.duration_sec) : ''}</span></li>`;
+  html += `<li class="tr" role="option" id="tr-${i}" data-i="${i}" aria-selected="false"><span class="n">${String(t.ti + 1).padStart(2, '0')}</span><span class="t">${esc(t.title)}${t.link ? ' ' + linkHTML(t) : ''}${t.special ? ' <span class="star" title="special feature">★ special</span>' : ''}${t.single && t.al.year ? ' <span class="dim">(' + t.al.year + ')</span>' : ''}</span><span class="dim">${heartHTML(t)}${t.bpm ? Math.round(t.bpm) + 'bpm ' : ''}${t.duration_sec ? fmt(t.duration_sec) : ''}</span></li>`;
  });
  pl.innerHTML = html || '<li class="dim">no matches</li>';
  mark();
@@ -94,7 +94,7 @@ function mark() {
  const s = $('#tr-' + sel); if (s) { pl.setAttribute('aria-activedescendant', s.id); const top = s.offsetTop - pl.offsetTop; if (top < pl.scrollTop || top > pl.scrollTop + pl.clientHeight - 24) pl.scrollTop = top - pl.clientHeight / 2; }
 }
 function select(i) { sel = i; mark(); }
-pl.addEventListener('click', e => { const li = e.target.closest('.tr'); if (li) { select(+li.dataset.i); play(+li.dataset.i); } });
+pl.addEventListener('click', e => { if (e.target.closest('a.tlink,button.like')) return; const li = e.target.closest('.tr'); if (li) { select(+li.dataset.i); play(+li.dataset.i); } });
 function moveSel(d) { const p = view.indexOf(sel); const n = view[Math.max(0, Math.min(view.length - 1, (p < 0 ? 0 : p + d)))]; if (n != null) select(n); }
 
 /* ---------- audio graph ---------- */
@@ -211,6 +211,8 @@ function artFor(t) { const id = t && COVERS.includes(t.al.id) ? t.al.id : 'tomgr
 // display helpers: tracks with their own artist (id3_artist / id3_title, e.g. DJ iGNEOUS mixes, remixes) carry the artist in their title already
 const artistOf = t => (t && t.id3_artist) || 'tomGRIM';
 const fullName = t => t.id3_title || /^tomGRIM - /.test(t.title) ? t.title : 'tomGRIM - ' + t.title;
+const linkHTML = t => { const L = t && t.link; if (!L || !L.href) return ''; const tx = esc(L.text || '(game)'), lab = esc(L.title || ('open ' + (L.text || 'link') + ' for ' + t.title)); return `<a class="tlink" href="${esc(L.href)}" target="_blank" rel="noopener" title="${lab}" aria-label="${lab}" onclick="event.stopPropagation()">${tx}</a>`; };
+function updGame(t) { const b = document.getElementById('gamelink'); if (!b) return; const L = t && t.link; if (!L || !L.href) { b.hidden = true; b.removeAttribute('href'); return; } b.href = L.href; b.textContent = L.text || '(game)'; const lab = L.title || ('open ' + (L.text || 'link') + ' for ' + t.title); b.title = lab; b.setAttribute('aria-label', lab); if (b.hidden) { b.hidden = false; requestAnimationFrame(fitTitle); } }
 function setMediaMeta(t, force) { if (!t) return; audio.title = `${t.id3_title || t.title} — ${t.id3_artist || 'tomGRIM'}`; if (!('mediaSession' in navigator) || !window.MediaMetadata) return; const key = t.file; if (key === lastMeta && !force && navigator.mediaSession.metadata) return; lastMeta = key;
  navigator.mediaSession.metadata = new MediaMetadata({title: t.id3_title || t.title, artist: t.id3_artist || 'tomGRIM', album: t.single ? 'Single' : t.al.title, artwork: artFor(t)}); }
 function posState() { try { const el = outEl(); if ('mediaSession' in navigator && el.duration && isFinite(el.duration)) navigator.mediaSession.setPositionState({duration: el.duration, playbackRate: el.playbackRate || 1, position: Math.min(el.currentTime, el.duration)}); } catch {} }
@@ -225,7 +227,7 @@ if ('mediaSession' in navigator) { const ms = navigator.mediaSession, h = (a, f)
  audio.addEventListener('durationchange', posState); audio.addEventListener('pause', () => msState()); }
 function updateNP() {
  const t = curT();
- setTitle(t ? (!isPlaying() ? '❚❚ ' : '▶ ') + t.title + (t.special ? ' ★' : '') : '▶ select a track'); updSpot(t);
+ setTitle(t ? (!isPlaying() ? '❚❚ ' : '▶ ') + t.title + (t.special ? ' ★' : '') : '▶ select a track'); updSpot(t); updGame(t);
  $('#npalbum').textContent = t ? `${t.id3_artist || data.artist || 'tomGRIM'} — ${t.al.title}${(t.year || t.al.year) ? ' (' + (t.year || t.al.year) + ')' : ''}${t.bpm ? ' · ' + Math.round(t.bpm) + ' bpm' : ''}` : '—';
  $('#tdur').textContent = fmt(audio.duration || t?.duration_sec);
  const b = $('#bplay'); b.textContent = !isPlaying() ? '▶ PLAY' : '❚❚ PAUSE'; b.setAttribute('aria-label', !isPlaying() ? 'Play' : 'Pause');

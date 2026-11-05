@@ -965,12 +965,22 @@
       "cover": "assets/covers/soundtracks.jpg",
       "tracks": [
         {
-          "title": "Maguntsche",
+          "title": "Maguntsche Ch. 1",
           "file": "assets/audio/soundtracks/01-maguntsche.mp3",
           "duration_sec": 193.8,
           "bpm": 120,
           "year": 2023,
-          "original": "MAGUNT-BACK IN SCHOOL.mp3 (title tag MAG-AUG23)"
+          "original": "MAGUNT-BACK IN SCHOOL.mp3 (title tag MAG-AUG23)",
+          "aliases": [
+            "maguntsche",
+            "maguntsche ch 1",
+            "maguntsche chapter one"
+          ],
+          "link": {
+            "href": "https://store.steampowered.com/app/1623240/Maguntsche_Chapter_One/",
+            "text": "(game)",
+            "title": "Maguntsche Chapter One on Steam"
+          }
         },
         {
           "title": "Afterwards",
@@ -981,12 +991,25 @@
           "original": "UNTSCHE-08-27-25 version2.mp3"
         },
         {
-          "title": "Maguntsche (Four Corners)",
+          "title": "Maguntsche Ch. 2",
           "file": "assets/audio/soundtracks/03-maguntsche-four-corners.mp3",
           "duration_sec": 70.3,
           "bpm": 108,
           "year": 2019,
-          "original": "four corners theme (ign3ous, maguntsche series, 2019; glass dev games)"
+          "original": "four corners theme (ign3ous, maguntsche series, 2019; glass dev games)",
+          "aliases": [
+            "maguntsche (four corners)",
+            "maguntsche four corners",
+            "four corners",
+            "maguntsche-four-corners",
+            "maguntsche ch 2",
+            "maguntsche chapter two"
+          ],
+          "link": {
+            "href": "https://store.steampowered.com/app/1809230/Maguntsche_Chapter_Two/",
+            "text": "(game)",
+            "title": "Maguntsche Chapter Two on Steam"
+          }
         },
         {
           "title": "Another Scary Movie",

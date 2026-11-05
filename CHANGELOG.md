@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.22 — 2026-11-05
+- Soundtracks: Maguntsche → Maguntsche Ch. 1 and Maguntsche (Four Corners) → Maguntsche Ch. 2, each with a "(game)" link to its Steam page (opens in a new tab; does not start playback).
+
 ## 1.3.21 — 2026-11-05
 - Visualizers run sharper and smoother: up to 2× DPR, larger FFT (4096), denser spectrum/oscilloscope points, higher phone FPS (~55), and pause while the tab is hidden. The round and horizontal scopes now stroke with a themed gradient from the current theme colors.
 

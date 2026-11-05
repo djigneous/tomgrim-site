@@ -596,3 +596,10 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 /* 1.3.19 terminal word wrap toggle (DISPLAY > WRAP / wrap on|off) */
 body.nowrap #out,body.nowrap #out *{white-space:pre!important;word-break:normal!important;overflow-wrap:normal!important}
 body.nowrap #out{overflow-x:auto}
+
+/* 1.3.22 external track links (Steam game, etc.) — next to title; click must not start playback */
+a.tlink{color:var(--acc);text-decoration:underline dotted;text-underline-offset:2px;margin-left:.15em;cursor:pointer;font-weight:normal}
+a.tlink:focus-visible{color:var(--hi);outline:1px dotted var(--hi)}
+@media (hover:hover){a.tlink:hover{color:var(--hi)}}
+#playlist .tr.sel a.tlink,#playlist .tr.sel.cur a.tlink{color:var(--barfg);text-decoration-color:var(--barfg)}
+#gamelink{flex:none;align-self:center;font-size:.85em;margin-left:.35em}
