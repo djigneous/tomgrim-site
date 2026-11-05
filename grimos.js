@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.16', SITE_UPDATED = '2026-11-04'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.17', SITE_UPDATED = '2026-11-04'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -150,7 +150,7 @@ function shareUrl() { const t = curT(); if (!t || secret) return null; const i =
 function toast(html) { let el = $('#toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
  el.innerHTML = html; el.classList.add('on'); clearTimeout(toast.tm); toast.tm = setTimeout(() => el.classList.remove('on'), 1800); }
 function shareTrack(btn) { const s = shareUrl(); if (!s) { if (btn) toast('<span class="p">$</span> share: pick a track first'); return say('share: nothing playing — pick a track first'); }
- window.tgTrack('share', s.t.title); const title = 'tomGRIM - ' + s.t.title;
+ window.tgTrack('share', s.t.title); const title = fullName(s.t);
  const copied = ok => { say(`share: ${ok ? 'copied' : 'link'} → <a href="${escH(s.url)}">${escH(s.url)}</a>${s.sec > 3 ? ' (starts at ' + fmt(s.sec) + ')' : ''}`, true); if (btn) toast(ok ? '<span class="p">$</span> share: link copied' : escH(s.url)); };
  const copy = () => navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(s.url).then(() => copied(1), () => copied(0)) : copied(0);
  if (btn && navigator.share && matchMedia('(pointer:coarse)').matches) navigator.share({title, text: title, url: s.url}).catch(e => { if (e && e.name !== 'AbortError') copy(); }); else copy(); }
@@ -208,6 +208,9 @@ const COVERS = ['ember-hours', 'elements', 'mixes-sets', 'night-signals', 'phosp
 let lastMeta = '';
 function artFor(t) { const id = t && COVERS.includes(t.al.id) ? t.al.id : 'tomgrim-default', base = new URL('assets/covers/', location.href).href;
  return [96, 192, 256, 512].map(s => ({src: `${base}${id}-${s}.png`, sizes: `${s}x${s}`, type: 'image/png'})); }
+// display helpers: tracks with their own artist (id3_artist / id3_title, e.g. DJ iGNEOUS mixes, remixes) carry the artist in their title already
+const artistOf = t => (t && t.id3_artist) || 'tomGRIM';
+const fullName = t => t.id3_title || /^tomGRIM - /.test(t.title) ? t.title : 'tomGRIM - ' + t.title;
 function setMediaMeta(t, force) { if (!t) return; audio.title = `${t.id3_title || t.title} — ${t.id3_artist || 'tomGRIM'}`; if (!('mediaSession' in navigator) || !window.MediaMetadata) return; const key = t.file; if (key === lastMeta && !force && navigator.mediaSession.metadata) return; lastMeta = key;
  navigator.mediaSession.metadata = new MediaMetadata({title: t.id3_title || t.title, artist: t.id3_artist || 'tomGRIM', album: t.single ? 'Single' : t.al.title, artwork: artFor(t)}); }
 function posState() { try { const el = outEl(); if ('mediaSession' in navigator && el.duration && isFinite(el.duration)) navigator.mediaSession.setPositionState({duration: el.duration, playbackRate: el.playbackRate || 1, position: Math.min(el.currentTime, el.duration)}); } catch {} }
@@ -223,7 +226,7 @@ if ('mediaSession' in navigator) { const ms = navigator.mediaSession, h = (a, f)
 function updateNP() {
  const t = curT();
  setTitle(t ? (!isPlaying() ? '❚❚ ' : '▶ ') + t.title + (t.special ? ' ★' : '') : '▶ select a track'); updSpot(t);
- $('#npalbum').textContent = t ? `${data.artist || 'tomGRIM'} — ${t.al.title}${t.al.year ? ' (' + t.al.year + ')' : ''}${t.bpm ? ' · ' + Math.round(t.bpm) + ' bpm' : ''}` : '—';
+ $('#npalbum').textContent = t ? `${t.id3_artist || data.artist || 'tomGRIM'} — ${t.al.title}${t.al.year ? ' (' + t.al.year + ')' : ''}${t.bpm ? ' · ' + Math.round(t.bpm) + ' bpm' : ''}` : '—';
  $('#tdur').textContent = fmt(audio.duration || t?.duration_sec);
  const b = $('#bplay'); b.textContent = !isPlaying() ? '▶ PLAY' : '❚❚ PAUSE'; b.setAttribute('aria-label', !isPlaying() ? 'Play' : 'Pause');
  document.title = t && !!isPlaying() ? `▶ ${t.title} · tomGRIM` : 'tomGRIM :: GRIM/OS terminal';
@@ -1071,7 +1074,7 @@ addEventListener('keydown', e => { if (openM && e.key === 'Escape') { e.preventD
 window.tgContactInit && tgContactInit($('#mailm'));
 /* ---------- get / wget ---------- */
 const sizeCache = {};
-const fname = t => `tomGRIM - ${t.title.replace(/[\\/:*?"<>|]+/g, '-')}.mp3`;
+const fname = t => `${fullName(t).replace(/[\\/:*?"<>|]+/g, '-')}.mp3`;
 const hsize = b => b == null ? '   ?' : b > 1048576 ? (b / 1048576).toFixed(1) + 'M' : (b / 1024 | 0) + 'K';
 async function fsize(t) { if (t.file in sizeCache) return sizeCache[t.file]; try { const r = await fetch(t.file, {method: 'HEAD'}); return sizeCache[t.file] = +r.headers.get('content-length') || null; } catch { return sizeCache[t.file] = null; } }
 function findTrack(a) { const n = parseInt(a, 10); if (/^\d+$/.test(a) && flat[n - 1]) return n - 1; a = a.toLowerCase(); const al = flat.findIndex(t => (t.aliases || []).includes(a)); if (al >= 0) return al; let i = flat.findIndex(t => t.title.toLowerCase() === a); return i >= 0 ? i : flat.findIndex(t => t.title.toLowerCase().includes(a)); }
@@ -1336,7 +1339,7 @@ load().then(() => requestAnimationFrame(frame));
   const dur = audio.duration || t.duration_sec || 0, cur = audio.currentTime || 0, w = innerWidth < 500 ? 14 : 22, f = dur ? Math.round(cur / dur * w) : 0;
   const al = t.al || {}, meta = [al.title && !t.single ? al.title : (t.single ? 'Single' : ''), al.year ? `(${al.year})` : ''].filter(Boolean).join(' ') + (t.bpm ? ` · ${t.bpm} bpm` : '');
   const r = typeof effRepeat === 'function' ? effRepeat() : repeat;
-  { const h = `<span class="np-p">tom@grimos:~$</span> nowplaying\n<b>tomGRIM - ${escH(t.title)}</b>\n<span class="np-d">${escH(meta)}</span>\n${audio.paused ? '❚❚' : '▶'} ${fmt(cur)} [${'█'.repeat(f)}${'░'.repeat(w - f)}] ${fmt(dur)}\n<span class="np-d">repeat:${r} · shuffle:${shuffle ? 'on' : 'off'}</span>\n<span class="np-p">tom@grimos:~$</span> <span class="np-c"></span>`; if (h !== el.__h) { el.__h = h; el.innerHTML = h; } } };
+  { const h = `<span class="np-p">tom@grimos:~$</span> nowplaying\n<b>${escH(fullName(t))}</b>\n<span class="np-d">${escH(meta)}</span>\n${audio.paused ? '❚❚' : '▶'} ${fmt(cur)} [${'█'.repeat(f)}${'░'.repeat(w - f)}] ${fmt(dur)}\n<span class="np-d">repeat:${r} · shuffle:${shuffle ? 'on' : 'off'}</span>\n<span class="np-p">tom@grimos:~$</span> <span class="np-c"></span>`; if (h !== el.__h) { el.__h = h; el.innerHTML = h; } } };
  setInterval(() => { if (!document.hidden) render(); }, 250); })();
 /* ---------- likes + BBS feedback (Supabase RPCs only; publishable key is public by design) ---------- */
 const SB = {url: 'https://hlbllxgiexjqkqfmoxow.supabase.co/rest/v1/rpc/', key: 'sb_publishable_ZAXjx3TioEoF2E0UfFWndg_PaI7NsDl'};

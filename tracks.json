@@ -292,8 +292,8 @@
           "file": "assets/audio/elements/13-face.mp3",
           "duration_sec": 437.5,
           "bpm": 134,
-          "year": 2005,
-          "original": "ign3ous - face.mp3 (Google Drive; embedded date 2006, 2005 per Tom; BPM 134 from artist tag), -0.9 dB gain only"
+          "year": 2006,
+          "original": "ign3ous - face.mp3 (Google Drive; embedded date 2006, 2006 per Tom; BPM 134 from artist tag), -0.9 dB gain only"
         },
         {
           "title": "hmph.",
@@ -343,13 +343,13 @@
           ]
         },
         {
-          "title": "DJ iGNEOUS - 90s Hip Hop (2007)",
-          "id3_title": "90s Hip Hop (2007)",
+          "title": "DJ iGNEOUS - 90s Hip Hop (2017)",
+          "id3_title": "90s Hip Hop (2017)",
           "id3_artist": "DJ iGNEOUS",
-          "year": 2007,
-          "file": "assets/audio/mixes-sets/03-90s-hip-hop-2007.mp3",
+          "year": 2017,
+          "file": "assets/audio/mixes-sets/03-90s-hip-hop-2017.mp3",
           "duration_sec": 3945.5,
-          "original": "dj ign3ous - random mix 8 (04091).mp3 (Google Drive; embedded title 'club mix 040915', comment 'Recorded 4/9/15', date 2015), -2.5 dB gain only, 160k",
+          "original": "dj ign3ous - random mix 8 (04091).mp3 (Google Drive; embedded title 'club mix 040915', comment 'Recorded 4/9/15', date 2015; 2017 per Tom), -2.5 dB gain only, 160k",
           "aliases": [
             "90s-hip-hop",
             "random-mix-8"
