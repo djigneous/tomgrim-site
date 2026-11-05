@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.23 — 2026-11-05
+- Calmer visualizers: record spins a bit slower (time-based, not FPS-based), more analyser smoothing, slower spectrum peak falloff, and FX motion scaled by delta time. Spectrum stays log-scaled with bass on the left and treble on the right (label updated). Higher render detail from 1.3.21 kept.
+
 ## 1.3.22 — 2026-11-05
 - Soundtracks: Maguntsche → Maguntsche Ch. 1 and Maguntsche (Four Corners) → Maguntsche Ch. 2, each with a "(game)" link to its Steam page (opens in a new tab; does not start playback).
 

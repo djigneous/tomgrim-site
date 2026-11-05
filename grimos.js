@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.22', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.23', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -30,7 +30,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 
 /* ---------- boot ---------- */
 const bootLines = ['GRIM/OS ' + GRIMOS_VERSION + '-warm #1 SMP PREEMPT lehigh-valley x86_64','[    0.000000] BIOS-e820: phosphor memory map ok','[    0.004113] Booting tomGRIM kernel on ign3ous-legacy hardware',
- '[    0.120771] crt0: scanline driver loaded (60Hz, P1 green phosphor)','[    0.250004] snd-grim: Web Audio bridge initialised','[    0.333333] analyser0: fft 4096, smoothing 0.72',
+ '[    0.120771] crt0: scanline driver loaded (60Hz, P1 green phosphor)','[    0.250004] snd-grim: Web Audio bridge initialised','[    0.333333] analyser0: fft 4096, smoothing 0.82',
  '[    0.410000] mounting /music/albums ... ok','[    0.512345] mounting /music/loops ... ok','[    0.601010] breakbeat.ko: tempo locked','[  OK  ] Started GRIMAMP ascii audio daemon.',
  '[  OK  ] Reached target Downtempo.','','grimos login: tom','Password: ********','Last login: from the ign3ous era',''];
 const boot = $('#boot'), bootlog = $('#bootlog');
@@ -110,10 +110,10 @@ function ensureCtx() {
  // Fallback (Safari/iOS: no captureStream): the classic createMediaElementSource graph.
  let src; if (NATIVE) { try { src = streamSrc(); } catch (e) { NATIVE = false; } }
  if (!NATIVE) src = actx.createMediaElementSource(audio);
- an = actx.createAnalyser(); an.fftSize = 4096; an.smoothingTimeConstant = .72;
+ an = actx.createAnalyser(); an.fftSize = 4096; an.smoothingTimeConstant = .82;
  outG = actx.createGain(); outG.gain.value = NATIVE ? 0 : 1; an.connect(outG); outG.connect(actx.destination);
  // spectrum tap: pre-FX/pre-limiter, float dB, volume-compensated + AGC below (was the output analyser in bytes with maxDecibels -30 → loud masters pegged)
- san = actx.createAnalyser(); san.fftSize = 4096; san.smoothingTimeConstant = .55; san.minDecibels = -100; san.maxDecibels = 0; src.connect(san); const sink = actx.createGain(); sink.gain.value = 0; san.connect(sink); sink.connect(actx.destination);
+ san = actx.createAnalyser(); san.fftSize = 4096; san.smoothingTimeConstant = .82; san.minDecibels = -100; san.maxDecibels = 0; src.connect(san); const sink = actx.createGain(); sink.gain.value = 0; san.connect(sink); sink.connect(actx.destination);
  fxInit(src);
 }
 let NATIVE = !!(HTMLMediaElement.prototype.captureStream || HTMLMediaElement.prototype.mozCaptureStream) && !/iP(hone|ad|od)/.test(navigator.userAgent), outG = null, boundTrack = null;
@@ -300,8 +300,9 @@ function drawRecord() {
   out += line + '\n'; }
  coverEl.innerHTML = out;
 }
-function spinRecord(now) { const dt = Math.min(.1, (now - recLast) / 1000 || 0); if (now - recLast < 24) return; recLast = now; // ~40fps
- const target = (actx && !audio.paused && !RM) ? 3.49 : 0; rec.spd += (target - rec.spd) * Math.min(1, dt * (target ? 3 : 1.6)); if (rec.spd < .002) rec.spd = 0;
+function spinRecord(now) { const dt = Math.min(.1, (now - recLast) / 1000 || 0); if (now - recLast < 50) return; recLast = now; // ~20fps ascii redraw (spin itself is time-based)
+ // target rad/s — slightly slower than pre-1.3.21's 3.49 so higher FPS can't make it feel rushed
+ const target = (actx && !audio.paused && !RM) ? 2.15 : 0; rec.spd += (target - rec.spd) * Math.min(1, dt * (target ? 2.4 : 1.4)); if (rec.spd < .002) rec.spd = 0;
  if (rec.spd || !coverEl.innerHTML) { rec.ang += rec.spd * dt; drawRecord(); } }
 rec.title = 'TOMGRIM'; drawRecord();
 
@@ -393,29 +394,35 @@ function scopeStroke(ctx, x0, y0, x1, y1, conic) {
  }
  scopeGrad = g; return g;
 }
+let vizLast = 0;
 function frame() {
  if (document.hidden) return requestAnimationFrame(frame); // pause work while the tab is hidden
- if (COARSE) { const now = performance.now(); if (now - lastFrame < 18) return requestAnimationFrame(frame); lastFrame = now; } // phones ~55fps (was ~30)
+ const now = performance.now();
+ if (COARSE && now - lastFrame < 32) return requestAnimationFrame(frame); // phones ~30fps; desktop uncapped
+ lastFrame = now;
+ const dt = Math.min(.05, (now - (vizLast || now)) / 1000) || (1 / 60); vizLast = now;
  const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(7, Math.floor((specEl.clientHeight || 100) / 11) - 1); let vals = new Array(NB).fill(0);
  if (san && playing) { ffb = ffb || new Float32Array(san.frequencyBinCount); san.getFloatFrequencyData(ffb);
-  const n = ffb.length, nyq = (actx.sampleRate || 44100) / 2, f0 = 30, f1 = Math.min(16000, nyq);
+  // log spectrum LEFT=bass → RIGHT=treble (bin 0 = lowest). f0 lowered so bass isn't cramped into one bar.
+  const n = ffb.length, nyq = (actx.sampleRate || 44100) / 2, f0 = 20, f1 = Math.min(16000, nyq);
   const vc = !NATIVE && audio.volume > .001 ? -20 * Math.log10(audio.volume) : 0; // undo the volume slider (no-op on iOS where volume is fixed at 1)
   const db = new Array(NB); let fmax = -200;
   for (let b = 0; b < NB; b++) { const fa = f0 * Math.pow(f1 / f0, b / NB), fb = f0 * Math.pow(f1 / f0, (b + 1) / NB);
    const lo = fa / nyq * n, hi = fb / nyq * n; let m = -200;
    if (hi - lo < 1) { const k = Math.floor(lo), fr = lo - k; m = ffb[k] * (1 - fr) + (ffb[k + 1] ?? ffb[k]) * fr; }
    else for (let k = Math.floor(lo); k < Math.ceil(hi); k++) m = Math.max(m, ffb[k]);
-   m += vc + 4.5 * Math.log2(fa / 200 + 1) * .5; // gentle treble tilt in dB (pink-noise-ish), not a multiplier
+   m += vc + 3.2 * Math.log2(fa / 200 + 1) * .5; // gentler treble tilt so bass stays readable on the left
    db[b] = m; if (m > fmax) fmax = m; }
-  if (isFinite(fmax)) agc = fmax > agc ? agc + (fmax - agc) * .5 : Math.max(-60, agc - .12); // fast attack, slow release
+  if (isFinite(fmax)) agc = fmax > agc ? agc + (fmax - agc) * Math.min(1, dt * 12) : Math.max(-60, agc - dt * 2.4); // time-based AGC
   const top = agc + 4, range = 42; // ~4 dB headroom above the recent peak
-  for (let b = 0; b < NB; b++) vals[b] = Math.max(0, Math.min(1, (db[b] - (top - range)) / range)) ** 1.5; }
- window.__specStat = vals; window.__specDbg = () => ({san: !!san, agc, ff: ffb && Array.from(ffb.slice(0, 6))});
- if (!playing) { idle += .03; vals = vals.map((v, b) => Math.max(v * .9, .04 + .03 * Math.sin(idle + b * .4))); }
- if (isBuf()) { const c = (performance.now() / 1400 % 1) * (NB + 10) - 5; vals = vals.map((v, b) => Math.max(v * .5, .7 * Math.exp(-((b - c) ** 2) / 6), .05)); } // slow scanning sweep while buffering
- // spectrum
+  for (let b = 0; b < NB; b++) vals[b] = Math.max(0, Math.min(1, (db[b] - (top - range)) / range)) ** 1.35; }
+ window.__specStat = vals; window.__specDbg = () => ({san: !!san, agc, ff: ffb && Array.from(ffb.slice(0, 6)), f0: 20, f1: 16000, dir: 'bass→treble'});
+ if (!playing) { idle += dt * .9; vals = vals.map((v, b) => Math.max(v * Math.exp(-dt * 2.2), .04 + .03 * Math.sin(idle + b * .4))); }
+ if (isBuf()) { const c = ((now / 2200) % 1) * (NB + 10) - 5; vals = vals.map((v, b) => Math.max(v * .5, .7 * Math.exp(-((b - c) ** 2) / 6), .05)); } // slower buffering sweep
+ // spectrum (bars left→right = low→high)
  let s = '';
- for (let b = 0; b < NB; b++) { peaks[b] = Math.max((peaks[b] || 0) - .012, vals[b]); }
+ const peakFall = dt * 0.45; // time-based peak hold decay (slower than the old .012/frame)
+ for (let b = 0; b < NB; b++) { peaks[b] = Math.max((peaks[b] || 0) - peakFall, vals[b]); }
  s += '─'.repeat(NB) + '\n'; const TOP = '▔▔▀▀▀██'; // bars hang down from the top edge
  for (let r = 0; r < ROWS; r++) { let line = '';
   for (let b = 0; b < NB; b++) { const v = vals[b] * ROWS - r, pk = Math.floor(peaks[b] * ROWS - .001);
@@ -437,7 +444,7 @@ function frame() {
   const N = 512; rg.lineJoin = 'round'; rg.lineCap = 'round';
   const grad = scopeStroke(rg, cx, cy, cx + rx, cy + ry, true);
   for (const [col, lw, al] of [[grad, 9, .16], [grad, 2.8, 1], [colors.hi, 1.05, .95]]) { rg.strokeStyle = col; rg.lineWidth = lw * d; rg.globalAlpha = al; rg.beginPath();
-   for (let i = 0; i <= N; i++) { const t = i % N, a = t / N * Math.PI * 2 - Math.PI / 2; let v; if (live) { const k = Math.floor(t / N * (tbuf.length - 1)), raw = (tbuf[k] - 128) / 128; let lp = 0; for (let q = -8; q <= 8; q += 2) lp += (tbuf[(k + q + tbuf.length) % tbuf.length] - 128) / 128; v = Math.tanh((raw + lp / 9 * .85) * gain); } else v = Math.sin(t / 6 + idle * 3) * .06; const o = Math.max(-.35, Math.min(1, v)) * amp, x = cx + Math.cos(a) * (rx + o), y = cy + Math.sin(a) * (ry + o); i ? rg.lineTo(x, y) : rg.moveTo(x, y); }
+   for (let i = 0; i <= N; i++) { const t = i % N, a = t / N * Math.PI * 2 - Math.PI / 2; let v; if (live) { const k = Math.floor(t / N * (tbuf.length - 1)), raw = (tbuf[k] - 128) / 128; let lp = 0; for (let q = -8; q <= 8; q += 2) lp += (tbuf[(k + q + tbuf.length) % tbuf.length] - 128) / 128; v = Math.tanh((raw + lp / 9 * .85) * gain); } else v = Math.sin(t / 6 + idle * 1.2) * .05; const o = Math.max(-.35, Math.min(1, v)) * amp, x = cx + Math.cos(a) * (rx + o), y = cy + Math.sin(a) * (ry + o); i ? rg.lineTo(x, y) : rg.moveTo(x, y); }
    rg.closePath(); rg.stroke(); } rg.globalAlpha = 1; }
  drawHScope(an && playing);
  drawWave(); spinRecord(performance.now());
@@ -456,7 +463,7 @@ function drawHScope(live) { fitCanvas(hs, RING_D); const W = hs.width, H = hs.he
  let gain = 1; const tb = live && tbuf; if (tb) { let sq = 0; for (let i = 0; i < tb.length; i += 8) { const x = (tb[i] - 128) / 128; sq += x * x; } hsAgc = Math.max(Math.sqrt(sq / (tb.length / 8)), hsAgc * .992, .02); gain = Math.min(8, Math.max(1.2, .45 / hsAgc)); }
  const N = Math.min(420, Math.max(180, W / (1.6 * d) | 0));
  const ys = new Float32Array(N + 1); for (let i = 0; i <= N; i++) { const x = i / N, edge = Math.min(1, x * 8, (1 - x) * 8);
-  let v; if (tb) { const k = Math.floor(x * (tb.length - 1)); v = Math.tanh(((tb[k] - 128) / 128) * gain); } else v = Math.sin(x * 18 + idle * 3) * .05; ys[i] = cy - v * amp * edge; }
+  let v; if (tb) { const k = Math.floor(x * (tb.length - 1)); v = Math.tanh(((tb[k] - 128) / 128) * gain); } else v = Math.sin(x * 18 + idle * 1.2) * .04; ys[i] = cy - v * amp * edge; }
  const grad = scopeStroke(hg, 0, cy, W, cy, false); hg.lineJoin = 'round'; hg.lineCap = 'round';
  for (const [col, lw, al] of [[grad, 7, .14], [grad, 2.3, .95], [colors.hi, 1, .85]]) { hg.strokeStyle = col; hg.lineWidth = lw * d; hg.globalAlpha = al; hg.beginPath();
   for (let i = 0; i <= N; i++) { const x = i / N * W; i ? hg.lineTo(x, ys[i]) : hg.moveTo(x, ys[i]); } hg.stroke(); }
@@ -608,7 +615,7 @@ function matrix() { if (mx || fxs) return; const c = document.createElement('can
 
 /* ---------- fx: glitch / fire / hack / starfield ---------- */
 let fxs = null;
-function level() { if (an && !audio.paused) { fbuf = fbuf || new Uint8Array(an.frequencyBinCount); an.getByteFrequencyData(fbuf); let b = 0, m = 0; for (let i = 0; i < 24; i++) b += fbuf[i]; for (let i = 0; i < 256; i++) m += fbuf[i]; return {bass: b / 24 / 255, lvl: m / 256 / 255}; }
+function level() { if (an && !audio.paused) { fbuf = fbuf || new Uint8Array(an.frequencyBinCount); an.getByteFrequencyData(fbuf); let b = 0, m = 0; for (let i = 0; i < 32; i++) b += fbuf[i]; /* lowest bins = bass */ for (let i = 0; i < Math.min(512, fbuf.length); i++) m += fbuf[i]; return {bass: b / 32 / 255, lvl: m / Math.min(512, fbuf.length) / 255}; }
  const t = performance.now() / 1000, beat = Math.pow(1 - (t * 2.1 % 1), 3); return {bass: beat * .8, lvl: .25 + beat * .35}; }
 let saverMode = false;
 function fxRun(name, msg, init, draw, dur, intro) { if (fxs || mx || (dead && name !== 'glitch')) return; refreshColors(); const saver = saverMode; if (saver) msg = ''; const c = document.createElement('canvas'); c.id = 'matrix'; c.className = 'fx-' + name; c.setAttribute('aria-label', name + ' effect, press any key to exit'); document.body.appendChild(c);
@@ -617,7 +624,7 @@ function fxRun(name, msg, init, draw, dur, intro) { if (fxs || mx || (dead && na
  const stop = () => { if (!fxs) return; cancelAnimationFrame(fxs.raf); clearTimeout(fxs.to); c.remove(); removeEventListener('keydown', onKey, true); removeEventListener('resize', size); fxs = null; if (msg) say(msg); };
  const onKey = e => { e.preventDefault(); e.stopImmediatePropagation(); stop(); };
  let last = 0; const step = mob ? 50 : 33;
- const tick = now => { fxs.raf = requestAnimationFrame(tick); if (now - last < step) return; last = now; const t0 = performance.now(); draw(g, c, st, (now - st.t0) / 1000, level()); const dt = performance.now() - t0; window.__fxms = window.__fxms == null ? dt : window.__fxms * .9 + dt * .1; };
+ const tick = now => { fxs.raf = requestAnimationFrame(tick); if (now - last < step) return; const dtf = Math.min(.1, (now - (last || now)) / 1000) || step / 1000; last = now; const t0 = performance.now(); const L = level(); L.dt = dtf; draw(g, c, st, (now - st.t0) / 1000, L); const dt = performance.now() - t0; window.__fxms = window.__fxms == null ? dt : window.__fxms * .9 + dt * .1; };
  fxs = {raf: 0, stop, name, saver}; window.__fxms = null; if (intro) { msg = ''; c.classList.add('fx-intro'); c.style.pointerEvents = 'none'; fxs.to = setTimeout(() => { c.style.opacity = '0'; setTimeout(stop, 160); }, intro); } else { c.addEventListener('pointerdown', dblExit(stop)); setTimeout(() => addEventListener('keydown', onKey, true), 50); }
  if (RM) { draw(g, c, st, dur || 0, {bass: 0, lvl: .3}); g.fillStyle = colors.fg; g.font = 20 * st.dpr + 'px monospace'; g.fillText(name.toUpperCase() + ' (reduced motion) — any key to exit', 20 * st.dpr, 40 * st.dpr); }
  else fxs.raf = requestAnimationFrame(tick); }
@@ -650,7 +657,7 @@ function hack() { const hex = n => Array.from({length: n}, () => (Math.random() 
    const p = Math.min(1, t / 8.5), bw = st.mob ? 24 : 40, s = steps[Math.min(7, t / 1.05 | 0)]; g.fillStyle = colors.fg; g.fillText(s.padEnd(42).slice(0, 42) + ' [' + '█'.repeat(p * bw | 0) + '░'.repeat(bw - (p * bw | 0)) + '] ' + (p * 100 | 0) + '%', 10 * st.dpr, H - fs * 1.6); }
   else { const fs2 = Math.min(fs * 1.4, W / 46 / .6); g.font = 'bold ' + fs2 + 'px monospace'; g.fillStyle = (t * 4 | 0) % 2 ? colors.hi : colors.fg; const x = (W - 43 * fs2 * .6) / 2, y = (H - AG.length * fs2) / 2; AG.forEach((l, i) => g.fillText(l, x, y + i * fs2)); g.font = fs + 'px monospace'; g.fillStyle = colors.dim; g.fillText('press any key', x, y + (AG.length + 1) * fs2); } }, 9); }
 function starfield() { fxRun('starfield', 'dropping out of warp.', (g, c, st) => { st.n = st.mob ? 220 : 600; st.s = Array.from({length: st.n}, () => ({x: Math.random() * 2 - 1, y: Math.random() * 2 - 1, z: Math.random()})); },
- (g, c, st, t, L) => { const W = c.width, H = c.height, cx = W / 2, cy = H / 2, sp = .004 + L.lvl * .05 + L.bass * .03, fs = 14 * st.dpr; g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, 0, W, H); g.font = fs + 'px monospace';
+ (g, c, st, t, L) => { const W = c.width, H = c.height, cx = W / 2, cy = H / 2, sp = (.004 + L.lvl * .05 + L.bass * .03) * ((L.dt || 1/30) / (1/30)), fs = 14 * st.dpr; g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, 0, W, H); g.font = fs + 'px monospace';
   st.s.forEach(s => { s.z -= sp; if (s.z <= .01) { s.x = Math.random() * 2 - 1; s.y = Math.random() * 2 - 1; s.z = 1; } const px = cx + s.x / s.z * cx * .5, py = cy + s.y / s.z * cy * .5; if (px < 0 || px > W || py < 0 || py > H) { s.z = 0; return; }
    const b = 1 - s.z; g.fillStyle = b > .8 ? colors.hi : b > .45 ? colors.fg : colors.dim; g.fillText(b > .85 ? '*' : b > .6 ? '+' : b > .3 ? '·' : '.', px, py); }); }); }
 
@@ -664,12 +671,12 @@ function drawBuf(g, c, st, ch, lv, bg = '#000') { const {W, H, fs} = st, P = pal
 function beatDet(st, L) { st.avg = st.avg == null ? L.bass : st.avg * .94 + L.bass * .06; const now = performance.now(), hit = L.bass > .28 && L.bass > st.avg * 1.3 && now - (st.lastBeat || 0) > 260; if (hit) st.lastBeat = now; return hit; }
 function bufAlloc(st) { st.ch = new Array(st.W * st.H).fill(' '); st.lv = new Uint8Array(st.W * st.H); }
 function plasma() { fxRun('plasma', 'plasma cooled.', (g, c, st) => { gridInit(st, c, st.mob ? 14 : 12); bufAlloc(st); st.ph = 0; },
- (g, c, st, t, L) => { const {W, H, ch, lv} = st; st.ph += .04 + L.bass * .12; const p = st.ph, k = 1 + L.bass * .8;
+ (g, c, st, t, L) => { const {W, H, ch, lv} = st; st.ph += (.04 + L.bass * .12) * ((L.dt || 1/30) / (1/30)); const p = st.ph, k = 1 + L.bass * .8;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const v = Math.sin(x * .11 * k + p) + Math.sin(y * .17 + p * 1.3) + Math.sin((x + y) * .07 + p * .7) + Math.sin(Math.hypot(x - W / 2, (y - H / 2) * 1.8) * .16 - p * 2), n = (v + 4) / 8, i = y * W + x;
    ch[i] = RAMP[Math.min(9, n * 10 | 0)]; lv[i] = Math.min(3, n * 4 | 0); }
   drawBuf(g, c, st, ch, lv); }); }
 function tunnel() { fxRun('tunnel', 'exited the wormhole.', (g, c, st) => { gridInit(st, c, st.mob ? 14 : 12); bufAlloc(st); st.z = 0; },
- (g, c, st, t, L) => { const {W, H, ch, lv} = st; st.z += .05 + L.lvl * .5 + L.bass * .3; const tw = t * .25;
+ (g, c, st, t, L) => { const {W, H, ch, lv} = st; st.z += (.05 + L.lvl * .5 + L.bass * .3) * ((L.dt || 1/30) / (1/30)); const tw = t * .25;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const dx = (x - W / 2) / W, dy = (y - H / 2) / H * 1.1, r = Math.hypot(dx, dy) + .0001, a = Math.atan2(dy, dx), i = y * W + x;
    const u = .35 / r + st.z, v = a / Math.PI * 8 + tw * 4, chk = ((u | 0) + (v + 100 | 0)) & 1, depth = Math.min(1, r * 2.4);
    const b = depth * (chk ? 1 : .45); ch[i] = r < .03 ? ' ' : RAMP[Math.min(9, b * 10 | 0)]; lv[i] = Math.min(3, b * 4 | 0); }
@@ -678,21 +685,21 @@ function rain() { fxRun('rain', 'the storm passes.', (g, c, st) => { const n = s
  (g, c, st, t, L) => { const W = c.width, H = c.height, d = st.dpr; g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(0, 0, W, H);
   if (beatDet(st, L)) { st.flash = 1; let x = Math.random() * W, y = 0; st.bolt = [[x, y]]; while (y < H * (.5 + Math.random() * .4)) { x += (Math.random() - .5) * 60 * d; y += (20 + Math.random() * 30) * d; st.bolt.push([x, y]); } }
   if (st.flash > .02) { g.fillStyle = colors.hi; g.globalAlpha = st.flash * .35; g.fillRect(0, 0, W, H); g.globalAlpha = 1;
-   if (st.bolt) { g.strokeStyle = '#fff'; g.shadowColor = colors.hi; g.shadowBlur = 20 * d; g.lineWidth = 2.5 * d * st.flash; g.beginPath(); st.bolt.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); g.shadowBlur = 0; } st.flash *= .82; }
+   if (st.bolt) { g.strokeStyle = '#fff'; g.shadowColor = colors.hi; g.shadowBlur = 20 * d; g.lineWidth = 2.5 * d * st.flash; g.beginPath(); st.bolt.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); g.shadowBlur = 0; } st.flash *= Math.exp(-((L.dt || 1/30) * 6)); }
   g.lineWidth = 1.2 * d; g.strokeStyle = colors.fg; g.beginPath();
-  for (const p of st.d) { p.y += p.v * (1 + L.lvl); p.x -= p.v * .15; if (p.y > H) { p.y = -p.l; p.x = Math.random() * W * 1.2; } g.moveTo(p.x, p.y); g.lineTo(p.x + p.l * .15, p.y - p.l); } g.stroke();
+  const rdf = (L.dt || 1/30) / (1/30); for (const p of st.d) { p.y += p.v * (1 + L.lvl) * rdf; p.x -= p.v * .15 * rdf; if (p.y > H) { p.y = -p.l; p.x = Math.random() * W * 1.2; } g.moveTo(p.x, p.y); g.lineTo(p.x + p.l * .15, p.y - p.l); } g.stroke();
   g.fillStyle = colors.dim; for (let i = 0; i < 12; i++) g.fillRect(Math.random() * W, H - 3 * d, 6 * d, d); }); }
 function dvd() { const LOGO = ['████████╗ ██████╗ ', '╚══██╔══╝██╔════╝ ', '   ██║   ██║  ███╗', '   ██║   ██║   ██║', '   ██║   ╚██████╔╝', '   ╚═╝    ╚═════╝ ', '    t o m G R I M '];
  fxRun('dvd', 'the logo hit the corner. probably.', (g, c, st) => { st.fs = (st.mob ? 14 : 18) * st.dpr; st.w = 18 * st.fs * .6; st.h = LOGO.length * st.fs; st.x = st.x ?? Math.random() * (c.width - st.w); st.y = st.y ?? Math.random() * (c.height - st.h); st.vx = st.vx ?? 4 * st.dpr; st.vy = st.vy ?? 3 * st.dpr; st.ci = st.ci || 0; st.party = 0; st.parts = []; },
  (g, c, st, t, L) => { const W = c.width, H = c.height, cols = [colors.fg, colors.hi, colors.acc, '#ff4a8a', '#ffd23f', '#c58cff', '#7dffa0'];
-  g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(0, 0, W, H); const sp = 1 + L.lvl * .6; st.x += st.vx * sp; st.y += st.vy * sp; let hx = false, hy = false;
+  g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(0, 0, W, H); const sp = (1 + L.lvl * .6) * ((L.dt || 1/30) / (1/30)); st.x += st.vx * sp; st.y += st.vy * sp; let hx = false, hy = false;
   if (st.x <= 0 || st.x + st.w >= W) { st.vx *= -1; st.x = Math.max(0, Math.min(W - st.w, st.x)); hx = true; } if (st.y <= 0 || st.y + st.h >= H) { st.vy *= -1; st.y = Math.max(0, Math.min(H - st.h, st.y)); hy = true; }
   if (hx || hy) st.ci = (st.ci + 1) % cols.length;
   const nearX = st.x < 6 * st.dpr || st.x + st.w > W - 6 * st.dpr, nearY = st.y < 6 * st.dpr || st.y + st.h > H - 6 * st.dpr;
   if ((hx && nearY) || (hy && nearX)) { st.party = 3; for (let i = 0; i < 120; i++) st.parts.push({x: st.x + st.w / 2, y: st.y + st.h / 2, vx: (Math.random() - .5) * 18 * st.dpr, vy: (Math.random() - .8) * 18 * st.dpr, c: cols[i % cols.length], ch: '*+✦♪♫#@'[i % 7]}); }
   g.font = 'bold ' + st.fs + 'px monospace'; g.textBaseline = 'top'; g.fillStyle = cols[st.ci]; g.shadowColor = cols[st.ci]; g.shadowBlur = 10 * st.dpr; LOGO.forEach((l, i) => g.fillText(l, st.x, st.y + i * st.fs)); g.shadowBlur = 0;
   if (st.parts.length) { g.font = st.fs + 'px monospace'; st.parts = st.parts.filter(p => (p.x += p.vx, p.y += p.vy, p.vy += .5 * st.dpr, p.y < H)); st.parts.forEach(p => { g.fillStyle = p.c; g.fillText(p.ch, p.x, p.y); }); }
-  if (st.party > 0) { st.party -= .033; g.font = 'bold ' + 48 * st.dpr + 'px monospace'; g.textAlign = 'center'; g.fillStyle = cols[(t * 10 | 0) % cols.length]; g.fillText('★ PERFECT CORNER ★', W / 2, H / 2 - 24 * st.dpr); g.textAlign = 'left'; } }); }
+  if (st.party > 0) { st.party -= (L.dt || 1/30); g.font = 'bold ' + 48 * st.dpr + 'px monospace'; g.textAlign = 'center'; g.fillStyle = cols[(t * 10 | 0) % cols.length]; g.fillText('★ PERFECT CORNER ★', W / 2, H / 2 - 24 * st.dpr); g.textAlign = 'left'; } }); }
 function life() { fxRun('life', 'all cells have died. or evolved.', (g, c, st) => { gridInit(st, c, st.mob ? 14 : 12); bufAlloc(st); st.a = new Uint8Array(st.W * st.H).map(() => Math.random() < .22 ? 1 : 0); st.age = new Uint8Array(st.W * st.H); st.acc = 0; st.gen = 0; },
  (g, c, st, t, L) => { const {W, H, ch, lv} = st;
   if (beatDet(st, L)) for (let k = 0; k < 6; k++) { const cx = Math.random() * W | 0, cy = Math.random() * H | 0; for (let q = 0; q < 14; q++) st.a[((cy + (Math.random() * 7 | 0) - 3 + H) % H) * W + (cx + (Math.random() * 7 | 0) - 3 + W) % W] = 1; }
@@ -703,7 +710,7 @@ function life() { fxRun('life', 'all cells have died. or evolved.', (g, c, st) =
   drawBuf(g, c, st, ch, lv); g.fillStyle = colors.dim; g.font = st.fs + 'px monospace'; g.fillText('gen ' + st.gen, 8 * st.dpr, c.height - st.fs * 1.2); }); }
 function cube(arg) { const donut = /torus|donut/i.test(arg || '');
  fxRun(donut ? 'donut' : 'cube', donut ? 'donut eaten.' : 'cube folded.', (g, c, st) => { gridInit(st, c, st.mob ? 12 : 10); bufAlloc(st); st.z = new Float32Array(st.W * st.H); st.A = 0; st.B = 0; },
- (g, c, st, t, L) => { const {W, H, ch, lv, z} = st; ch.fill(' '); z.fill(0); lv.fill(0); st.A += .04 + L.bass * .08; st.B += .025 + L.lvl * .05; const cA = Math.cos(st.A), sA = Math.sin(st.A), cB = Math.cos(st.B), sB = Math.sin(st.B);
+ (g, c, st, t, L) => { const {W, H, ch, lv, z} = st; ch.fill(' '); z.fill(0); lv.fill(0); const cdt = (L.dt || 1/30) / (1/30); st.A += (.04 + L.bass * .08) * cdt; st.B += (.025 + L.lvl * .05) * cdt; const cA = Math.cos(st.A), sA = Math.sin(st.A), cB = Math.cos(st.B), sB = Math.sin(st.B);
   const sc = Math.min(W * .6, H * 1.2) * .5, plot = (x, y, zz, lum) => { const ooz = 1 / (zz + 5), xp = W / 2 + sc * 2.0 * ooz * x | 0, yp = H / 2 - sc * ooz * y | 0; if (xp < 0 || yp < 0 || xp >= W || yp >= H) return; const k = yp * W + xp; if (ooz > z[k]) { z[k] = ooz; const li = Math.max(0, Math.min(.999, lum)); ch[k] = '.,-~:;=!*#$@'[li * 12 | 0]; lv[k] = Math.min(3, li * 4 | 0); } };
   const rot = (x, y, zz) => { let y1 = y * cA - zz * sA, z1 = y * sA + zz * cA; let x2 = x * cB - y1 * sB, y2 = x * sB + y1 * cB; return [x2, y2, z1]; };
   const light = [0, .7, -.7];
@@ -714,7 +721,7 @@ function cube(arg) { const donut = /torus|donut/i.test(arg || '');
   drawBuf(g, c, st, ch, lv); }); }
 function snow() { fxRun('snow', 'the snow melts.', (g, c, st) => { gridInit(st, c, st.mob ? 16 : 14); st.pile = new Float32Array(st.W); st.f = Array.from({length: st.mob ? 120 : 300}, () => ({x: Math.random() * st.W, y: Math.random() * st.H, v: .1 + Math.random() * .3, c: '*+.·'[Math.random() * 4 | 0], ph: Math.random() * 6})); },
  (g, c, st, t, L) => { const {W, H, fs, cw, pile} = st; g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height); g.font = fs + 'px monospace'; g.textBaseline = 'top';
-  g.fillStyle = colors.hi; for (const p of st.f) { p.y += p.v * (1 + L.lvl); p.x += Math.sin(t * 1.5 + p.ph) * .15; const col = ((p.x % W) + W) % W | 0; if (p.y >= H - pile[col] - 1) { pile[col] = Math.min(H * .4, pile[col] + .35); for (const dc of [-1, 1]) { const n = (col + dc + W) % W; if (pile[col] - pile[n] > 2) { pile[col] -= .35; pile[n] += .35; } } p.y = -1; p.x = Math.random() * W; } g.fillText(p.c, p.x * cw, p.y * fs); }
+  const sdf = (L.dt || 1/30) / (1/30); g.fillStyle = colors.hi; for (const p of st.f) { p.y += p.v * (1 + L.lvl) * sdf; p.x += Math.sin(t * 1.5 + p.ph) * .15 * sdf; const col = ((p.x % W) + W) % W | 0; if (p.y >= H - pile[col] - 1) { pile[col] = Math.min(H * .4, pile[col] + .35); for (const dc of [-1, 1]) { const n = (col + dc + W) % W; if (pile[col] - pile[n] > 2) { pile[col] -= .35; pile[n] += .35; } } p.y = -1; p.x = Math.random() * W; } g.fillText(p.c, p.x * cw, p.y * fs); }
   if (Math.max(...pile) >= H * .4) pile.forEach((v, i) => pile[i] = Math.max(0, v - .02));
   for (let x = 0; x < W; x++) { const h = pile[x]; for (let k = 0; k < Math.floor(h); k++) { g.fillStyle = k === Math.floor(h) - 1 ? colors.hi : colors.fg; g.fillText(k === Math.floor(h) - 1 ? '▄' : '█', x * cw, (H - 1 - k) * fs); } if (h % 1 > .5) { g.fillStyle = colors.dim; g.fillText('▁', x * cw, (H - 1 - Math.floor(h)) * fs); } } }); }
 function pipes() { const BOX = {'0,0': '─', '1,1': '│', '2,2': '─', '3,3': '│', '0,1': '┐', '3,2': '┐', '0,3': '┘', '1,2': '┘', '2,1': '┌', '3,0': '┌', '2,3': '└', '1,0': '└'};
