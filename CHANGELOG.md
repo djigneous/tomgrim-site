@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.18 — 2026-11-04
+- The player's album line now shows each track's own year (falls back to the album year).
+
 ## 1.3.17 — 2026-11-04
 - 90s Hip Hop mix is now dated 2017 (title: DJ iGNEOUS - 90s Hip Hop (2017)); Face (ELEMENTS) is now 2006.
 - Tracks by other artists (DJ iGNEOUS mixes, remixes) no longer get a "tomGRIM - " prefix in now playing, the player album line, shares or download names.

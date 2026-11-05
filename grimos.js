@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.17', SITE_UPDATED = '2026-11-04'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.18', SITE_UPDATED = '2026-11-04'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -226,7 +226,7 @@ if ('mediaSession' in navigator) { const ms = navigator.mediaSession, h = (a, f)
 function updateNP() {
  const t = curT();
  setTitle(t ? (!isPlaying() ? '❚❚ ' : '▶ ') + t.title + (t.special ? ' ★' : '') : '▶ select a track'); updSpot(t);
- $('#npalbum').textContent = t ? `${t.id3_artist || data.artist || 'tomGRIM'} — ${t.al.title}${t.al.year ? ' (' + t.al.year + ')' : ''}${t.bpm ? ' · ' + Math.round(t.bpm) + ' bpm' : ''}` : '—';
+ $('#npalbum').textContent = t ? `${t.id3_artist || data.artist || 'tomGRIM'} — ${t.al.title}${(t.year || t.al.year) ? ' (' + (t.year || t.al.year) + ')' : ''}${t.bpm ? ' · ' + Math.round(t.bpm) + ' bpm' : ''}` : '—';
  $('#tdur').textContent = fmt(audio.duration || t?.duration_sec);
  const b = $('#bplay'); b.textContent = !isPlaying() ? '▶ PLAY' : '❚❚ PAUSE'; b.setAttribute('aria-label', !isPlaying() ? 'Play' : 'Pause');
  document.title = t && !!isPlaying() ? `▶ ${t.title} · tomGRIM` : 'tomGRIM :: GRIM/OS terminal';
