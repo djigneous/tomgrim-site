@@ -243,6 +243,14 @@
           "bpm": 108,
           "year": 2006,
           "original": "untitled 2006 WAV (attachment 01M6MP22JZR2WYJKAC3JRP7QYM.wav), -0.7 dB gain only"
+        },
+        {
+          "title": "String Theory",
+          "file": "assets/audio/elements/08-string-theory.mp3",
+          "duration_sec": 170.0,
+          "bpm": 96,
+          "year": 2006,
+          "original": "96stringz (2006 WAV, attachment 01M6MP627FRQD900088WHQV9Z0.wav), 96k->48k, -1.4 dB gain only"
         }
       ]
     },
