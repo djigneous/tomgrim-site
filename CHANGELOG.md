@@ -7,6 +7,7 @@ Versions before 1.3.0 were assigned retroactively from the git history, so their
 - New on Remixes: **The Supremes - Where Did Our Love Go (tomGRIM RMX)** (2016).
 - New on Soundtracks: **Another Scary Movie** (2018), a horror score.
 - New on ELEMENTS: **Cut Edge**, a dj ign3ous-era cut.
+- New on ELEMENTS: **Think About It** and **4** (2004), the oldest tracks on the site.
 
 ## 1.3.11 — 2026-11-04
 - New on Phosphor Cache: **Freestyle Test 01** and **Freestyle Test 02** (2025).
