@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.11 — 2026-11-04
+- New on Phosphor Cache: **Freestyle Test 01** and **Freestyle Test 02** (2025).
+
 ## 1.3.10 — 2026-11-04
 - New on ELEMENTS: **String Theory** (2006), formerly the "96stringz" demo.
 

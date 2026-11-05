@@ -773,6 +773,22 @@
           "duration_sec": 35.88,
           "bpm": 108,
           "original": "nice shit2acp.wav"
+        },
+        {
+          "title": "Freestyle Test 01",
+          "file": "assets/audio/loops/freestyle-test-01.mp3",
+          "duration_sec": 61.0,
+          "bpm": 123,
+          "year": 2025,
+          "original": "PROPER-FREESTYLE1 (attachment 01M6MPXZ6RPQVWQGGRKKPR7MST.wav), 192k->44.1k, -3.2 dB gain only"
+        },
+        {
+          "title": "Freestyle Test 02",
+          "file": "assets/audio/loops/freestyle-test-02.mp3",
+          "duration_sec": 61.0,
+          "bpm": 123,
+          "year": 2025,
+          "original": "PROPER-FREESTYLE-02-032025 (attachment 01M6MQ8BHEJBH69MWRGGBMB0E1.wav), 192k->44.1k, -3.0 dB gain only"
         }
       ]
     },
