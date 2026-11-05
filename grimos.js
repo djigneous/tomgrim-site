@@ -748,7 +748,7 @@ function saverStop() { if (!saver.active) return; saver.active = false; if (fxs 
 setInterval(() => { if (dead || document.hidden || RM) return; if (saver.active && !fxs && !mx) saver.active = false;
  if (dead || (!saver.on && !wxMood && !mood) || saver.active || fxs || mx || !booted || Date.now() - saver.last < saver.sec * 1000) return;
  const ae = document.activeElement, busy = openM || !$('#photos').hidden || !$('#lb').hidden || !$('#help').hidden || (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.value);
- if (busy) return; const names = Object.keys(SAVERS), pick = wxMood ? 'weather' : mood && SAVERS.fire ? 'fire' : SAVERS[saver.fx] ? saver.fx : names[Math.random() * names.length | 0];
+ if (busy) return; const names = Object.keys(SAVERS), pick = wxMood ? 'weather' : mood && mood.key === 'graveyard' && SAVERS.fire ? 'fire' : SAVERS[saver.fx] ? saver.fx : names[Math.random() * names.length | 0];
  saverMode = true; try { (pick === 'weather' ? weatherFx : SAVERS[pick])(); } finally { saverMode = false; } if (fxs || mx) { saver.active = true; saver.started = Date.now(); } }, 1000);
 function screensaverCmd(a) { a = (a || '').trim().toLowerCase();
  if (!a) { const L = x => `<span class="lw">${x}</span>`, RL = (run, t) => `<button type="button" class="getlink runlink xref" data-run="${escH(run)}" title="${escH(run)}"><b>${escH(t)}</b></button>`, sep = '<span class="ab-d">|</span>';
@@ -1115,7 +1115,8 @@ lb.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, {passive:
 new ResizeObserver(() => updateModes()).observe($('.volrow'));
 new ResizeObserver(() => document.documentElement.style.setProperty('--tb', $('#topbar').offsetHeight + 'px')).observe($('#topbar'));
 
-/* ---------- track moods: Graveyard → fire theme + smoke ---------- */
+/* ---------- track moods: Graveyard → fire theme + smoke (+ fire cues); Lost Together → neon theme + smoke ---------- */
+const MOODS = [{key: 'graveyard', re: /^graveyard over the fire$/i, theme: 'fire'}, {key: 'lost', re: /^lost together$/i, theme: 'neon'}];
 let mood = null;
 let wxMood = false;
 const wxAuto = {t: null, dismissed: false, opening: false};
@@ -1128,9 +1129,9 @@ function trackMood(t) {
  if (t !== wxAuto.t) { wxAuto.t = t; wxAuto.dismissed = false; }
  if (!wg && wxMood && fxs && fxs.name === 'weather' && fxs.auto) fxs.stop();
  if (wg !== wxMood) { wxMood = wg; if (saver.active && fxs && fxs.saver && (wg ? fxs.name !== 'weather' : fxs.name === 'weather')) { saverStop(); if (wg) { saverMode = true; try { weatherFx(); } finally { saverMode = false; } if (fxs) { saver.active = true; saver.started = Date.now(); } } } if (wg) setTimeout(wxAutoCheck, 0); }
- const want = t && /^graveyard over the fire$/i.test(t.title);
- if (want && !mood) { mood = {prev: curTheme()}; if (THEMES.includes('fire')) setTheme('fire', 'mood'); smoke(true); }
- else if (!want && mood) { const p = mood.prev; mood = null; setTheme(p, 'mood'); smoke(false); cueClear(); }
+ const want = t && MOODS.find(m => m.re.test(t.title));
+ if (mood && (!want || want.key !== mood.key)) { const p = mood.prev; mood = null; setTheme(p, 'mood'); smoke(false); cueClear(); }
+ if (want && !mood) { mood = {prev: curTheme(), key: want.key}; if (THEMES.includes(want.theme)) setTheme(want.theme, 'mood'); smoke(true); }
 }
 let smk = null;
 function smoke(on) {
@@ -1159,7 +1160,7 @@ function cueFxStop() { if (cue.fx) { cue.fx = false; if (fxs && fxs.cue) fxs.sto
 function cueClear() { cueFxStop(); cueBlack(0); cue.dismissed = false; }
 function cueDismiss() { cue.dismissed = true; cueFxStop(); cueBlack(0); }
 ['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, e => { if (cue.el && !cue.fx && !cue.dismissed) { cueDismiss(); if (ev === 'keydown') { e.preventDefault(); e.stopImmediatePropagation(); } } }, {capture: true}));
-setInterval(() => { if (!mood || dead || document.hidden) return; const t = audio.currentTime;
+setInterval(() => { if (!mood || mood.key !== 'graveyard' || dead || document.hidden) return; const t = audio.currentTime;
  if (cue.fx && !(fxs && fxs.cue)) { cue.fx = false; cue.dismissed = true; cueBlack(0); } // user closed the fire
  if (t < CUE_B) { if (cue.fx || cue.el) cueFxStop(), cueBlack(0); cue.dismissed = false; return; }
  if (cue.dismissed) return;
@@ -1167,7 +1168,7 @@ setInterval(() => { if (!mood || dead || document.hidden) return; const t = audi
  if (!cue.fx) { if (fxs && !fxs.cue) fxs.stop(); if (mx) mx.stop(); saverStop(); saverMode = true; try { fire(); } finally { saverMode = false; } if (fxs) { fxs.cue = true; cue.fx = true; } }
  if (cue.fx) cueBlack(0); }, 100);
 window.__cue = () => ({black: cue.el ? +cue.el.style.opacity : 0, fire: !!(fxs && fxs.cue), dismissed: cue.dismissed, t: audio.currentTime});
-window.__mood = () => ({mood: !!mood, theme: curTheme(), saved: localStorage.grimTheme, smoke: !!document.getElementById('smoke')});
+window.__mood = () => ({mood: mood ? mood.key : false, theme: curTheme(), saved: localStorage.grimTheme, smoke: !!document.getElementById('smoke')});
 
 /* ---------- Walking Green → GRIM/WX "local on the 8s" weather screensaver (live Open-Meteo data) ---------- */
 const WX_CITIES = [['Allentown', 40.6084, -75.4902], ['Bethlehem', 40.6259, -75.3705], ['Easton', 40.6884, -75.2207]];
