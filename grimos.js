@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.20', SITE_UPDATED = '2026-11-04'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.21', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -30,7 +30,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 
 /* ---------- boot ---------- */
 const bootLines = ['GRIM/OS ' + GRIMOS_VERSION + '-warm #1 SMP PREEMPT lehigh-valley x86_64','[    0.000000] BIOS-e820: phosphor memory map ok','[    0.004113] Booting tomGRIM kernel on ign3ous-legacy hardware',
- '[    0.120771] crt0: scanline driver loaded (60Hz, P1 green phosphor)','[    0.250004] snd-grim: Web Audio bridge initialised','[    0.333333] analyser0: fft 2048, smoothing 0.75',
+ '[    0.120771] crt0: scanline driver loaded (60Hz, P1 green phosphor)','[    0.250004] snd-grim: Web Audio bridge initialised','[    0.333333] analyser0: fft 4096, smoothing 0.72',
  '[    0.410000] mounting /music/albums ... ok','[    0.512345] mounting /music/loops ... ok','[    0.601010] breakbeat.ko: tempo locked','[  OK  ] Started GRIMAMP ascii audio daemon.',
  '[  OK  ] Reached target Downtempo.','','grimos login: tom','Password: ********','Last login: from the ign3ous era',''];
 const boot = $('#boot'), bootlog = $('#bootlog');
@@ -110,10 +110,10 @@ function ensureCtx() {
  // Fallback (Safari/iOS: no captureStream): the classic createMediaElementSource graph.
  let src; if (NATIVE) { try { src = streamSrc(); } catch (e) { NATIVE = false; } }
  if (!NATIVE) src = actx.createMediaElementSource(audio);
- an = actx.createAnalyser(); an.fftSize = 2048; an.smoothingTimeConstant = .75;
+ an = actx.createAnalyser(); an.fftSize = 4096; an.smoothingTimeConstant = .72;
  outG = actx.createGain(); outG.gain.value = NATIVE ? 0 : 1; an.connect(outG); outG.connect(actx.destination);
  // spectrum tap: pre-FX/pre-limiter, float dB, volume-compensated + AGC below (was the output analyser in bytes with maxDecibels -30 → loud masters pegged)
- san = actx.createAnalyser(); san.fftSize = 2048; san.smoothingTimeConstant = .6; san.minDecibels = -100; san.maxDecibels = 0; src.connect(san); const sink = actx.createGain(); sink.gain.value = 0; san.connect(sink); sink.connect(actx.destination);
+ san = actx.createAnalyser(); san.fftSize = 4096; san.smoothingTimeConstant = .55; san.minDecibels = -100; san.maxDecibels = 0; src.connect(san); const sink = actx.createGain(); sink.gain.value = 0; san.connect(sink); sink.connect(actx.destination);
  fxInit(src);
 }
 let NATIVE = !!(HTMLMediaElement.prototype.captureStream || HTMLMediaElement.prototype.mozCaptureStream) && !/iP(hone|ad|od)/.test(navigator.userAgent), outG = null, boundTrack = null;
@@ -298,7 +298,7 @@ function drawRecord() {
   out += line + '\n'; }
  coverEl.innerHTML = out;
 }
-function spinRecord(now) { const dt = Math.min(.1, (now - recLast) / 1000 || 0); if (now - recLast < 50) return; recLast = now; // ~20fps
+function spinRecord(now) { const dt = Math.min(.1, (now - recLast) / 1000 || 0); if (now - recLast < 24) return; recLast = now; // ~40fps
  const target = (actx && !audio.paused && !RM) ? 3.49 : 0; rec.spd += (target - rec.spd) * Math.min(1, dt * (target ? 3 : 1.6)); if (rec.spd < .002) rec.spd = 0;
  if (rec.spd || !coverEl.innerHTML) { rec.ang += rec.spd * dt; drawRecord(); } }
 rec.title = 'TOMGRIM'; drawRecord();
@@ -320,10 +320,10 @@ async function loadWave(t) {
  } catch (e) { waveCache[t.file] = null; }
 }
 function css(v) { return getComputedStyle(document.body).getPropertyValue(v).trim(); }
-let colors = {};
-function refreshColors() { colors = {fg:css('--fg'), dim:css('--dim'), hi:css('--hi'), acc:css('--acc'), ring:css('--ring') || css('--fg')}; }
+let colors = {}, scopeGrad = null, scopeGradKey = '';
+function refreshColors() { colors = {fg:css('--fg'), dim:css('--dim'), hi:css('--hi'), acc:css('--acc'), ring:css('--ring') || css('--fg'), br:css('--br') || css('--hi')}; scopeGrad = null; scopeGradKey = ''; }
 // perf: canvas shadowBlur at phone DPR (2.6x) was the main-thread hotspot (~95% CPU at 6x throttle) → glow faked with a wide translucent stroke, ring canvas capped at 1.5x
-const RING_D = 1.5;
+const RING_D = 2; // 1.3.21: render scopes/wave at up to 2× DPR (phones stay capped)
 function fitCanvas(c, maxD) { const dp = Math.min(devicePixelRatio, maxD || 9), w = c.clientWidth * dp | 0, h = c.clientHeight * dp | 0; if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } }
 // 1.3.20 buffering indicator: waveform pulses BUFFERING… + spectrum scan sweep while the stream (or waveform peaks) loads
 let buffering = false; const setBuf = on => { if (buffering === on) return; buffering = on; document.body.classList.toggle('buffering', on); };
@@ -373,12 +373,28 @@ const specEl = $('#spec'), ring = $('#ring'), rg = ring.getContext('2d');
 const BLK = ' ▁▂▃▄▅▆▇█'; let peaks = [], fbuf, tbuf, idle = 0, san = null, ffb = null, agc = -30;
 let cw = 0, NBc = 32;
 function measure() { const m = document.createElement('span'); m.textContent = '█'.repeat(20); specEl.appendChild(m); cw = m.getBoundingClientRect().width / 20 || 8; m.remove();
- const w = specEl.clientWidth || 300; NBc = Math.max(12, Math.floor(w / cw)); specEl.style.letterSpacing = ((w - NBc * cw) / NBc) + 'px'; }
+ const w = specEl.clientWidth || 300; NBc = Math.max(16, Math.floor(w / Math.max(5.5, cw * .85))); specEl.style.letterSpacing = ((w - NBc * cw) / NBc) + 'px'; }
 new ResizeObserver(measure).observe(specEl);
 const COARSE = matchMedia('(pointer:coarse)').matches; let lastFrame = 0;
+function scopeStroke(ctx, x0, y0, x1, y1, conic) {
+ // themed gradient for scope strokes; rebuilt when theme colors change
+ const key = colors.fg + '|' + colors.acc + '|' + colors.hi + '|' + colors.ring + '|' + (conic ? 'c' : 'l') + '|' + Math.round(x0) + ',' + Math.round(y0) + ',' + Math.round(x1) + ',' + Math.round(y1);
+ if (scopeGrad && scopeGradKey === key) return scopeGrad;
+ scopeGradKey = key;
+ let g;
+ if (conic && typeof ctx.createConicGradient === 'function') {
+  g = ctx.createConicGradient(-Math.PI / 2, x0, y0);
+  g.addColorStop(0, colors.fg); g.addColorStop(.22, colors.acc || colors.fg); g.addColorStop(.45, colors.hi); g.addColorStop(.68, colors.ring || colors.fg); g.addColorStop(.85, colors.acc || colors.fg); g.addColorStop(1, colors.fg);
+ } else {
+  g = ctx.createLinearGradient(x0, y0, x1, y1);
+  g.addColorStop(0, colors.fg); g.addColorStop(.35, colors.acc || colors.fg); g.addColorStop(.65, colors.hi); g.addColorStop(1, colors.ring || colors.fg);
+ }
+ scopeGrad = g; return g;
+}
 function frame() {
- if (COARSE) { const now = performance.now(); if (now - lastFrame < 31) return requestAnimationFrame(frame); lastFrame = now; } // perf: ~30 fps visualizers on phones
-const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(6, Math.floor((specEl.clientHeight || 100) / 12) - 1); let vals = new Array(NB).fill(0);
+ if (document.hidden) return requestAnimationFrame(frame); // pause work while the tab is hidden
+ if (COARSE) { const now = performance.now(); if (now - lastFrame < 18) return requestAnimationFrame(frame); lastFrame = now; } // phones ~55fps (was ~30)
+ const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(7, Math.floor((specEl.clientHeight || 100) / 11) - 1); let vals = new Array(NB).fill(0);
  if (san && playing) { ffb = ffb || new Float32Array(san.frequencyBinCount); san.getFloatFrequencyData(ffb);
   const n = ffb.length, nyq = (actx.sampleRate || 44100) / 2, f0 = 30, f1 = Math.min(16000, nyq);
   const vc = !NATIVE && audio.volume > .001 ? -20 * Math.log10(audio.volume) : 0; // undo the volume slider (no-op on iOS where volume is fixed at 1)
@@ -416,8 +432,10 @@ const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(6, Math.f
   const live = an && playing; let gain = 1;
   if (live) { tbuf = tbuf || new Uint8Array(an.fftSize); an.getByteTimeDomainData(tbuf); let sq = 0; for (let i = 0; i < tbuf.length; i += 4) { const x = (tbuf[i] - 128) / 128; sq += x * x; }
    const rms = Math.sqrt(sq / (tbuf.length / 4)); ringAgc = Math.max(rms, ringAgc * .992, .02); gain = Math.min(9, Math.max(1.5, .55 / ringAgc)); }
-  const N = 240; for (const [col, lw, al] of [[colors.ring || colors.fg, 8, .18], [colors.ring || colors.fg, 2.6, 1], [colors.hi, 1.1, 1]]) { rg.strokeStyle = col; rg.lineWidth = lw * d; rg.globalAlpha = al; rg.beginPath();
-   for (let i = 0; i <= N; i++) { const t = i % N, a = t / N * Math.PI * 2 - Math.PI / 2; let v; if (live) { const k = Math.floor(t / N * (tbuf.length - 1)), raw = (tbuf[k] - 128) / 128; let lp = 0; for (let q = -12; q <= 12; q += 3) lp += (tbuf[(k + q + tbuf.length) % tbuf.length] - 128) / 128; v = Math.tanh((raw + lp / 9 * .9) * gain); } else v = Math.sin(t / 6 + idle * 3) * .06; const o = Math.max(-.35, Math.min(1, v)) * amp, x = cx + Math.cos(a) * (rx + o), y = cy + Math.sin(a) * (ry + o); i ? rg.lineTo(x, y) : rg.moveTo(x, y); }
+  const N = 512; rg.lineJoin = 'round'; rg.lineCap = 'round';
+  const grad = scopeStroke(rg, cx, cy, cx + rx, cy + ry, true);
+  for (const [col, lw, al] of [[grad, 9, .16], [grad, 2.8, 1], [colors.hi, 1.05, .95]]) { rg.strokeStyle = col; rg.lineWidth = lw * d; rg.globalAlpha = al; rg.beginPath();
+   for (let i = 0; i <= N; i++) { const t = i % N, a = t / N * Math.PI * 2 - Math.PI / 2; let v; if (live) { const k = Math.floor(t / N * (tbuf.length - 1)), raw = (tbuf[k] - 128) / 128; let lp = 0; for (let q = -8; q <= 8; q += 2) lp += (tbuf[(k + q + tbuf.length) % tbuf.length] - 128) / 128; v = Math.tanh((raw + lp / 9 * .85) * gain); } else v = Math.sin(t / 6 + idle * 3) * .06; const o = Math.max(-.35, Math.min(1, v)) * amp, x = cx + Math.cos(a) * (rx + o), y = cy + Math.sin(a) * (ry + o); i ? rg.lineTo(x, y) : rg.moveTo(x, y); }
    rg.closePath(); rg.stroke(); } rg.globalAlpha = 1; }
  drawHScope(an && playing);
  drawWave(); spinRecord(performance.now());
@@ -434,10 +452,11 @@ function drawHScope(live) { fitCanvas(hs, RING_D); const W = hs.width, H = hs.he
  const cx = hsG.cx * d, cy = H / 2, R = hsG.R * d, amp = H / 2 - 4 * d;
  hg.save(); hg.beginPath(); hg.rect(0, 0, W, H); hg.arc(cx, cy, R, 0, Math.PI * 2); hg.clip('evenodd'); // hide the line over the disc
  let gain = 1; const tb = live && tbuf; if (tb) { let sq = 0; for (let i = 0; i < tb.length; i += 8) { const x = (tb[i] - 128) / 128; sq += x * x; } hsAgc = Math.max(Math.sqrt(sq / (tb.length / 8)), hsAgc * .992, .02); gain = Math.min(8, Math.max(1.2, .45 / hsAgc)); }
- const N = Math.min(160, W / (3 * d) | 0), col = colors.acc || colors.fg;
+ const N = Math.min(420, Math.max(180, W / (1.6 * d) | 0));
  const ys = new Float32Array(N + 1); for (let i = 0; i <= N; i++) { const x = i / N, edge = Math.min(1, x * 8, (1 - x) * 8);
   let v; if (tb) { const k = Math.floor(x * (tb.length - 1)); v = Math.tanh(((tb[k] - 128) / 128) * gain); } else v = Math.sin(x * 18 + idle * 3) * .05; ys[i] = cy - v * amp * edge; }
- for (const [lw, al] of [[7, .14], [2.2, .9], [1, .8]]) { hg.strokeStyle = lw === 1 ? colors.hi : col; hg.lineWidth = lw * d; hg.globalAlpha = al; hg.beginPath();
+ const grad = scopeStroke(hg, 0, cy, W, cy, false); hg.lineJoin = 'round'; hg.lineCap = 'round';
+ for (const [col, lw, al] of [[grad, 7, .14], [grad, 2.3, .95], [colors.hi, 1, .85]]) { hg.strokeStyle = col; hg.lineWidth = lw * d; hg.globalAlpha = al; hg.beginPath();
   for (let i = 0; i <= N; i++) { const x = i / N * W; i ? hg.lineTo(x, ys[i]) : hg.moveTo(x, ys[i]); } hg.stroke(); }
  hg.restore(); hg.globalAlpha = 1; }
 
