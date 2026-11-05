@@ -251,6 +251,13 @@
           "bpm": 96,
           "year": 2006,
           "original": "96stringz (2006 WAV, attachment 01M6MP627FRQD900088WHQV9Z0.wav), 96k->48k, -1.4 dB gain only"
+        },
+        {
+          "title": "Cut Edge",
+          "file": "assets/audio/elements/09-cut-edge.mp3",
+          "duration_sec": 432.0,
+          "bpm": 120,
+          "original": "ign3ous - cut edge.mp3 (Google Drive, modified 2016-04-07; no embedded year), -1.2 dB gain only"
         }
       ]
     },
