@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.23', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.24', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -272,11 +272,34 @@ const coverEl = $('#cover');
 const PALS = [['#ff7a3d', '@%#*+=-:. ', 2, 3], ['#7dffa0', '§&$%#oO0o:', 3, 5], ['#c58cff', '@#S%?*+;:,', 1, 4], ['#ffd23f', '░▒▓█▓▒░·∙ ', 4, 2], ['#ff4a8a', '╳╱╲┼═║~≈-.', 5, 6], ['#5fb8ff', '◉●○◌∘°·.:;', 2, 7]];
 let rec = {ang: 0, spd: 0, pal: PALS[0], label: 'TG', title: '', seed: 0}, recLast = 0;
 function hash(str) { let h = 7; for (const c of str) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
-function setRecord(t) { const h = hash(t.al.id || t.al.title); rec.pal = PALS[h % PALS.length]; rec.seed = h; rec.label = t.single ? 'S' : (t.al.title.replace(/[^A-Za-z0-9]/g, '')[0] || 'T').toUpperCase(); rec.title = (t.single ? t.title : t.al.title).toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 9); coverEl.style.setProperty('--rec', rec.pal[0]); drawRecord(); }
+const discEl = $('#discface'), discWrap = discEl && discEl.closest('.ringwrap');
+let discImg = null, discSrc = '', discReady = false;
+function ensureDisc(src) { if (!src) return null; if (discSrc === src && discImg) return discImg; discSrc = src; discReady = false; discImg = new Image(); discImg.decoding = 'async'; discImg.onload = () => { discReady = true; drawDiscFace(performance.now()); }; discImg.onerror = () => { discReady = false; }; discImg.src = src; return discImg; }
+function trackDisc(t) { return t && t.disc ? t.disc : ''; }
+function setDiscMode(on) { if (discWrap) discWrap.classList.toggle('has-disc', !!on); if (discEl) discEl.hidden = !on; if (!on && discEl) { const g = discEl.getContext('2d'); if (g) g.clearRect(0, 0, discEl.width, discEl.height); } }
+function drawDiscFace(now) {
+ if (!discEl) return false; const t = curT(), src = trackDisc(t); if (!src) { setDiscMode(false); return false; }
+ setDiscMode(true); ensureDisc(src); fitCanvas(discEl, 2); const W = discEl.width, H = discEl.height; if (!W || !H) return true;
+ const d = Math.min(devicePixelRatio || 1, 2), g = discEl.getContext('2d'); g.clearRect(0, 0, W, H);
+ const R = Math.min(W, H) * .42, bob = Math.sin((now || performance.now()) / 1000 * 1.35) * 3.2 * d, cx = W / 2, cy = H / 2 + bob;
+ const glow = colors.acc || colors.fg, line = colors.fg || glow;
+ // soft theme glow behind the face
+ g.save(); g.globalAlpha = .55; g.shadowColor = glow; g.shadowBlur = 22 * d; g.beginPath(); g.arc(cx, cy, R * .96, 0, Math.PI * 2); g.fillStyle = glow; g.fill(); g.restore();
+ // rotating circular face
+ g.save(); g.translate(cx, cy); g.rotate(rec.ang); g.beginPath(); g.arc(0, 0, R, 0, Math.PI * 2); g.clip();
+ if (discReady && discImg && discImg.naturalWidth) g.drawImage(discImg, -R, -R, R * 2, R * 2);
+ else { g.fillStyle = '#0a0a0c'; g.fillRect(-R, -R, R * 2, R * 2); }
+ g.restore();
+ // theme-colored outline
+ g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.strokeStyle = line; g.lineWidth = Math.max(2, 2.2 * d); g.shadowColor = line; g.shadowBlur = 10 * d; g.stroke(); g.shadowBlur = 0;
+ return true;
+}
+function setRecord(t) { const h = hash(t.al.id || t.al.title); rec.pal = PALS[h % PALS.length]; rec.seed = h; rec.label = t.single ? 'S' : (t.al.title.replace(/[^A-Za-z0-9]/g, '')[0] || 'T').toUpperCase(); rec.title = (t.single ? t.title : t.al.title).toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 9); coverEl.style.setProperty('--rec', rec.pal[0]);
+ if (trackDisc(t)) { ensureDisc(t.disc); setDiscMode(true); drawDiscFace(performance.now()); } else { setDiscMode(false); drawRecord(); } }
 const recGeom = {cw: 6.6, lh: 11, R: 104, ox: 150, oy: 130};
 function measureRec() { const cs = getComputedStyle(coverEl), pl = parseFloat(cs.paddingLeft) || 0, pt = parseFloat(cs.paddingTop) || 0;
  const w = coverEl.clientWidth - 2 * pl, h = coverEl.clientHeight - 2 * pt; if (w > 0 && h > 0) { recGeom.cw = w / 37; recGeom.lh = h / 19; recGeom.R = Math.min(w, h) / 2 * .86;  const wr = document.getElementById('ring').getBoundingClientRect(), cr = coverEl.getBoundingClientRect(); recGeom.ox = cr.left + cr.width / 2 - wr.left; recGeom.oy = cr.top + cr.height / 2 - wr.top; } }
-{ const ro = new ResizeObserver(() => { measureRec(); drawRecord(); if (typeof measureHS === "function") measureHS(); }); ro.observe(coverEl); ro.observe(document.getElementById('ring')); }
+{ const ro = new ResizeObserver(() => { measureRec(); if (trackDisc(curT())) drawDiscFace(performance.now()); else drawRecord(); if (typeof measureHS === "function") measureHS(); }); ro.observe(coverEl); ro.observe(document.getElementById('ring')); }
 function drawRecord() {
  const W = 37, H = 19, cx = (W - 1) / 2, cy = (H - 1) / 2, [, chars, arms, tight] = rec.pal, a = rec.ang; let out = '';
  // true circle: convert cells to CSS px using the measured character box (chars are ~0.6:1, rows 1:1)
@@ -300,10 +323,11 @@ function drawRecord() {
   out += line + '\n'; }
  coverEl.innerHTML = out;
 }
-function spinRecord(now) { const dt = Math.min(.1, (now - recLast) / 1000 || 0); if (now - recLast < 50) return; recLast = now; // ~20fps ascii redraw (spin itself is time-based)
- // target rad/s — slightly slower than pre-1.3.21's 3.49 so higher FPS can't make it feel rushed
- const target = (actx && !audio.paused && !RM) ? 2.15 : 0; rec.spd += (target - rec.spd) * Math.min(1, dt * (target ? 2.4 : 1.4)); if (rec.spd < .002) rec.spd = 0;
- if (rec.spd || !coverEl.innerHTML) { rec.ang += rec.spd * dt; drawRecord(); } }
+function spinRecord(now) { const dt = Math.min(.1, (now - recLast) / 1000 || 0); if (now - recLast < 50) return; recLast = now; // ~20fps redraw (spin itself is time-based)
+ const disc = !!trackDisc(curT());
+ // Maguntsche face spins a touch slower than the vinyl; both are time-based so FPS can't rush them
+ const target = (actx && !audio.paused && !RM) ? (disc ? 1.55 : 2.15) : 0; rec.spd += (target - rec.spd) * Math.min(1, dt * (target ? 2.4 : 1.4)); if (rec.spd < .002) rec.spd = 0;
+ if (rec.spd || disc || !coverEl.innerHTML) { rec.ang += rec.spd * dt; if (disc) drawDiscFace(now); else drawRecord(); } }
 rec.title = 'TOMGRIM'; drawRecord();
 
 /* ---------- waveform ---------- */
@@ -584,7 +608,7 @@ $('#thememenu').addEventListener('click', e => { const b = e.target.closest('[da
 const themeSel = { set value(t) { $('#btheme').innerHTML = '<span class="ddpre">THEME: </span>' + tUp(t) + ' ▾'; $('#btheme').setAttribute('aria-label', 'Theme: ' + tUp(t) + '. Open theme menu'); $('#thememenu').querySelectorAll('[data-theme]').forEach(b => b.setAttribute('aria-checked', b.dataset.theme === t)); }, addEventListener() {} };
 const curTheme = () => (document.body.className.match(/theme-(\w+)/) || [])[1] || 'cyan';
 function setTheme(t, quiet) { if (t === 'grey' || t === 'grayscale') t = 'gray'; if (t === 'night') t = 'nightshift'; if (!THEMES.includes(t)) return say('usage: theme ' + THEMES.map(x => TLABEL[x] || x).join('|'));
- document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + t); if (quiet !== 'mood') { localStorage.grimTheme = t; if (mood) mood.prev = t; } themeSel.value = t; refreshColors(); if (!quiet) say('theme → ' + V(TLABEL[t] || t) + quip('theme'), true); }
+ document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + t); if (quiet !== 'mood') { localStorage.grimTheme = t; if (mood) mood.prev = t; } themeSel.value = t; refreshColors(); if (trackDisc(curT())) drawDiscFace(performance.now()); if (!quiet) say('theme → ' + V(TLABEL[t] || t) + quip('theme'), true); }
 themeSel.addEventListener('change', () => setTheme(themeSel.value));
 // grimfetch color swatches: one per theme (same order as the dropdown); click/Enter/Space = same as picking it in the dropdown
 const SW = {cyan: '#6ff6ff', green: '#4dff7c', amber: '#ffbb20', red: '#ff4a4a', fire: 'linear-gradient(#ffe14d,#ff2a00)', ice: 'linear-gradient(#fff,#7fc4ff)', silicon: 'linear-gradient(#b3c088,#6fb8b4)', nightshift: 'linear-gradient(#a9b8f0,#b28dfd)', neon: 'linear-gradient(#4cc6ff,#df81fc)', gray: '#bbb'};

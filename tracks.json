@@ -980,7 +980,8 @@
             "href": "https://store.steampowered.com/app/1623240/Maguntsche_Chapter_One/",
             "text": "(game)",
             "title": "Maguntsche Chapter One on Steam"
-          }
+          },
+          "disc": "assets/img/maguntsche-demon.png"
         },
         {
           "title": "Afterwards",
@@ -1009,7 +1010,8 @@
             "href": "https://store.steampowered.com/app/1809230/Maguntsche_Chapter_Two/",
             "text": "(game)",
             "title": "Maguntsche Chapter Two on Steam"
-          }
+          },
+          "disc": "assets/img/maguntsche-demon.png"
         },
         {
           "title": "Another Scary Movie",
