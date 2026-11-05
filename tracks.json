@@ -858,6 +858,14 @@
           "bpm": 108,
           "year": 2019,
           "original": "four corners theme (ign3ous, maguntsche series, 2019; glass dev games)"
+        },
+        {
+          "title": "Another Scary Movie",
+          "file": "assets/audio/soundtracks/04-another-scary-movie.mp3",
+          "duration_sec": 134.8,
+          "bpm": 152,
+          "year": 2018,
+          "original": "HORRORSCORE.wav (Google Drive, modified 2018-04-13; no embedded date), -1.1 dB gain only"
         }
       ]
     },
@@ -888,6 +896,16 @@
           "original": "gus-gus-believe01test-mix3.mp3",
           "id3_title": "Believe (TG Remix)",
           "id3_artist": "Gus Gus"
+        },
+        {
+          "title": "The Supremes - Where Did Our Love Go (tomGRIM RMX)",
+          "file": "assets/audio/remixes/03-where-did-our-love-go.mp3",
+          "duration_sec": 276.0,
+          "bpm": 127,
+          "year": 2016,
+          "original": "ign3ous-wheredidourlovego2.mp3 (Google Drive), -2.4 dB gain only",
+          "id3_title": "Where Did Our Love Go (tomGRIM RMX)",
+          "id3_artist": "The Supremes"
         }
       ]
     }
