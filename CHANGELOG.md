@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.8 — 2026-11-04
+- New single: **Lost Together** (2024), with its own ASCII cover, in the Singles section.
+
 ## 1.3.7 — 2026-11-04
 - /stats: "what changed" dialog since the last review, with highlighted changes and a clear-highlights button (saved across devices).
 - /stats: line charts of total and daily visits since tracking began (humans vs bots).

@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.7', SITE_UPDATED = '2026-11-04'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.8', SITE_UPDATED = '2026-11-04'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -202,7 +202,7 @@ audio.addEventListener('play', updateNP); audio.addEventListener('pause', update
 audio.addEventListener('loadedmetadata', updateNP);
 audio.addEventListener('error', () => { switching = 0; msState(); }); audio.addEventListener('error', () => say('error: cannot load ' + (curT()?.file || '')));
 audio.addEventListener('timeupdate', () => { $('#tcur').textContent = fmt(audio.currentTime); });
-const COVERS = ['ember-hours', 'elements', 'mixes-sets', 'night-signals', 'phosphor-cache', 'get-out', 'soundtracks', 'remixes'];
+const COVERS = ['ember-hours', 'elements', 'mixes-sets', 'night-signals', 'phosphor-cache', 'get-out', 'lost-together', 'soundtracks', 'remixes'];
 let lastMeta = '';
 function artFor(t) { const id = t && COVERS.includes(t.al.id) ? t.al.id : 'tomgrim-default', base = new URL('assets/covers/', location.href).href;
  return [96, 192, 256, 512].map(s => ({src: `${base}${id}-${s}.png`, sizes: `${s}x${s}`, type: 'image/png'})); }

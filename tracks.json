@@ -779,6 +779,23 @@
       ]
     },
     {
+      "id": "lost-together",
+      "title": "Lost Together",
+      "type": "single",
+      "year": 2024,
+      "blurb": "A tomGRIM single from 2024.",
+      "cover": "assets/covers/lost-together.jpg",
+      "tracks": [
+        {
+          "title": "Lost Together",
+          "file": "assets/audio/singles/lost-together.mp3",
+          "duration_sec": 110.2,
+          "bpm": 129,
+          "original": "Lost Together (attachment 01M6MNTHHJ319F7JBNP7KJ266S.mp3)"
+        }
+      ]
+    },
+    {
       "id": "soundtracks",
       "title": "Soundtracks",
       "type": "soundtrack",
