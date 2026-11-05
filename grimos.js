@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.24', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.25', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -1169,7 +1169,7 @@ $('#phback').onclick = () => closePhotos();
 addEventListener('popstate', () => location.hash === '#photos' ? openPhotos() : closePhotos(true));
 addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#photos').hidden && $('#lb').hidden) { e.preventDefault(); e.stopImmediatePropagation(); closePhotos(); } }, true);
 if (location.hash === '#photos') setTimeout(openPhotos, 0);
-const PHOTOS = Array.from({length: 14}, (_, i) => 'IMG_' + String(i + 1).padStart(4, '0'));
+const PHOTOS = ['IMG_0001', 'IMG_0015', 'IMG_0016', 'IMG_0002', 'IMG_0017', 'IMG_0018', 'IMG_0003', 'IMG_0019', 'IMG_0020', 'IMG_0004', 'IMG_0021', 'IMG_0022', 'IMG_0005', 'IMG_0023', 'IMG_0024', 'IMG_0006', 'IMG_0025', 'IMG_0026', 'IMG_0007', 'IMG_0027', 'IMG_0028', 'IMG_0008', 'IMG_0029', 'IMG_0030', 'IMG_0009', 'IMG_0031', 'IMG_0032', 'IMG_0010', 'IMG_0033', 'IMG_0011', 'IMG_0012', 'IMG_0013', 'IMG_0014']; // fixed mixed order (old+new interleaved; no shuffle on load)
 const gal = $('#gallery');
 gal.innerHTML = PHOTOS.map((n, i) => `<li><figure class="ph" tabindex="0" role="button" data-i="${i}" aria-label="Open photo ${i + 1} of ${PHOTOS.length}" style="margin:0"><div class="bar"><span>${n}.RAW</span><span>[ 960x1200 ]</span></div><div class="frame"><img src="assets/photos/${n}-t.jpg" loading="lazy" decoding="async" width="480" height="600" alt="tomGRIM behind the decks, photo ${i + 1}"></div><figcaption class="cap">-rw-r--r-- tom ${n.toLowerCase()}.jpg</figcaption></figure></li>`).join('');
 const lb = $('#lb'), lbimg = $('#lbimg'); let lbi = 0, lastFocus = null;

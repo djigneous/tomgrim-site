@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.25 — 2026-11-05
+- Photos: 19 new framed shots (IMG_0015–IMG_0033), gallery is now 33 frames in a fixed mixed order (no shuffle on open). Added tools/add_photos.py for future adds with a near-duplicate check.
+
 ## 1.3.24 — 2026-11-05
 - Maguntsche Ch. 1 / Ch. 2 replace the ASCII vinyl with a circular PS1-style Maguntsche demon face (theme glow + outline, slow rotate and bob). Driven by an optional per-track `disc` image field in tracks.json.
 - Remixes: Gus Gus track retitled to Gus Gus - Believe (tomGRIM RMX) (display like other remixes; old name kept as alias).
