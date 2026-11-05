@@ -826,6 +826,14 @@
           "bpm": 74,
           "year": 2025,
           "original": "UNTSCHE-08-27-25 version2.mp3"
+        },
+        {
+          "title": "Maguntsche (Four Corners)",
+          "file": "assets/audio/soundtracks/03-maguntsche-four-corners.mp3",
+          "duration_sec": 70.3,
+          "bpm": 108,
+          "year": 2019,
+          "original": "four corners theme (ign3ous, maguntsche series, 2019; glass dev games)"
         }
       ]
     },

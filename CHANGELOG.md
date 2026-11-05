@@ -6,6 +6,7 @@ Versions before 1.3.0 were assigned retroactively from the git history, so their
 ## 1.3.9 — 2026-11-04
 - New version of **Alive** (Night Signals, 2023) replaces the old one.
 - New on ELEMENTS: **Slow Burn** (2006), a dj ign3ous-era cut.
+- New on Soundtracks: **Maguntsche (Four Corners)** (2019), the Four Corners theme from the Maguntsche series.
 - Playing **Lost Together** switches to the NEON theme with drifting smoke; your own theme comes back when it ends or another track plays (same as Graveyard Over the Fire → FIRE).
 
 ## 1.3.8 — 2026-11-04
