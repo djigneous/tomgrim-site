@@ -6,6 +6,7 @@ Versions before 1.3.0 were assigned retroactively from the git history, so their
 ## 1.3.17 — 2026-11-04
 - 90s Hip Hop mix is now dated 2017 (title: DJ iGNEOUS - 90s Hip Hop (2017)); Face (ELEMENTS) is now 2006.
 - Tracks by other artists (DJ iGNEOUS mixes, remixes) no longer get a "tomGRIM - " prefix in now playing, the player album line, shares or download names.
+- Shorter privacy line under the BBS; full detail stays in the privacy command.
 
 ## 1.3.16 — 2026-11-04
 - New on MIXES & SETS: DJ iGNEOUS - 90s Hip Hop (2007) and tomGRIM - Jerky Boy Beats (2017).
