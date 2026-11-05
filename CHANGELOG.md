@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.15 — 2026-11-04
+- New on MIXES & SETS: DJ iGNEOUS - Set From Krocks Pub (2007).
+
 ## 1.3.14 — 2026-11-04
 - New single: Trouble Girls (2018).
 

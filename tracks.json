@@ -300,6 +300,20 @@
             "old-element-mix-original-dj-mix",
             "old-element-mix"
           ]
+        },
+        {
+          "title": "DJ iGNEOUS - Set From Krocks Pub",
+          "id3_title": "Set From Krocks Pub",
+          "id3_artist": "DJ iGNEOUS",
+          "year": 2007,
+          "file": "assets/audio/mixes-sets/02-set-from-krocks-pub.mp3",
+          "duration_sec": 2014.9,
+          "bpm": 99,
+          "original": "djigneous - Serato Rec10b (Krocks Pub).mp3 (Google Drive; embedded title 'Serato Recording 10b'), -0.3 dB gain only, 192k",
+          "aliases": [
+            "krocks-pub",
+            "set-from-krocks-pub"
+          ]
         }
       ]
     },
