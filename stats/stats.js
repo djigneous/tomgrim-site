@@ -12,7 +12,7 @@ const title = f => TITLES[f] || String(f).split('/').pop().replace(/\.mp3$/, '')
 /* ---------- login (terminal-styled) ---------- */
 const tty = $('#ttyout'), pw = $('#pw');
 function showLogin(msg) { $('#dash').hidden = true; $('#login').hidden = false;
- tty.textContent = (msg ? msg + '\n\n' : '') + 'GRIM/OS 1.3.19 (Downtempo) tty1\n'; pw.value = ''; pw.focus(); }
+ tty.textContent = (msg ? msg + '\n\n' : '') + 'GRIM/OS 1.3.20 (Downtempo) tty1\n'; pw.value = ''; pw.focus(); }
 $('#login').addEventListener('click', e => { if (!e.target.closest('input')) pw.focus(); });
 $('#lform').addEventListener('submit', e => { e.preventDefault(); const p = pw.value; if (!p) return; load(p, true); });
 async function load(p, fromLogin) {

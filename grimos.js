@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.19', SITE_UPDATED = '2026-11-04'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.20', SITE_UPDATED = '2026-11-04'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -325,15 +325,28 @@ function refreshColors() { colors = {fg:css('--fg'), dim:css('--dim'), hi:css('-
 // perf: canvas shadowBlur at phone DPR (2.6x) was the main-thread hotspot (~95% CPU at 6x throttle) → glow faked with a wide translucent stroke, ring canvas capped at 1.5x
 const RING_D = 1.5;
 function fitCanvas(c, maxD) { const dp = Math.min(devicePixelRatio, maxD || 9), w = c.clientWidth * dp | 0, h = c.clientHeight * dp | 0; if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } }
+// 1.3.20 buffering indicator: waveform pulses BUFFERING… + spectrum scan sweep while the stream (or waveform peaks) loads
+let buffering = false; const setBuf = on => { if (buffering === on) return; buffering = on; document.body.classList.toggle('buffering', on); };
+audio.addEventListener('loadstart', () => { if (audio.src) setBuf(true); });
+['waiting', 'seeking'].forEach(ev => audio.addEventListener(ev, () => { if (audio.readyState < 3) setBuf(true); }));
+audio.addEventListener('stalled', () => { if (audio.readyState < 3 && !audio.paused) setBuf(true); });
+['canplay', 'canplaythrough', 'playing', 'seeked', 'error', 'emptied'].forEach(ev => audio.addEventListener(ev, () => { if (ev !== 'seeked' || audio.readyState >= 3) setBuf(false); }));
+const isBuf = () => { const t = curT(); return buffering || !!(t && waveCache[t.file] === 'loading'); };
+window.__buf = () => ({buffering, wave: (curT() && waveCache[curT().file]) === 'loading' ? 'loading' : 'ok', rs: audio.readyState});
 let waveKey = '';
 function drawWave() {
  fitCanvas(wave, 2); const W = wave.width, H = wave.height;
  const t = curT(), p = t && waveCache[t.file], pos = audio.duration ? audio.currentTime / audio.duration : 0;
- const key = W + 'x' + H + ':' + (t && t.file) + ':' + (p && p.length) + ':' + Math.round(pos * W) + ':' + colors.fg; if (key === waveKey) return; waveKey = key; // perf: redraw only when the playhead moves a pixel
+ const bz = isBuf(), ph = performance.now() / 1000;
+ const key = W + 'x' + H + ':' + (t && t.file) + ':' + (p && p.length) + ':' + Math.round(pos * W) + ':' + colors.fg + (bz ? ':b' + Math.floor(ph * 20) : ''); if (key === waveKey) return; waveKey = key; // perf: redraw only when the playhead moves a pixel
  wg.clearRect(0, 0, W, H);
  if (p && p.length) { const bw = W / p.length;
   for (let i = 0; i < p.length; i++) { const h = Math.max(1, p[i] * H * .95); wg.fillStyle = i / p.length < pos ? colors.fg : colors.dim; wg.fillRect(i * bw, (H - h) / 2, Math.max(1, bw - .5), h); } }
+ else if (t && bz) { const n = 96, bw = W / n; wg.fillStyle = colors.dim; // placeholder bars drawing in left→right, looping
+  for (let i = 0; i < n; i++) { const k = ((ph * .6) % 1.2) * n - i; if (k < 0) continue; const h = Math.max(2, H * (.12 + .28 * Math.abs(Math.sin(i * .7) * Math.cos(i * .23))) * Math.min(1, k / 6)); wg.globalAlpha = .55; wg.fillRect(i * bw, (H - h) / 2, Math.max(1, bw - 1), h); } wg.globalAlpha = 1; }
  else { wg.fillStyle = colors.dim; wg.font = 14 * devicePixelRatio + 'px monospace'; wg.fillText(t ? (p === 'loading' ? 'decoding waveform…' : 'waveform n/a') : 'no track loaded', 8, H / 2 + 5); }
+ if (t && bz) { const dp = Math.min(devicePixelRatio, 2), fs = Math.round(13 * dp), a = .45 + .55 * (.5 + .5 * Math.sin(ph * 5)); wg.font = `bold ${fs}px "IBM Plex Mono",monospace`; const tx = 'BUFFERING' + '.'.repeat(1 + Math.floor(ph * 3) % 3), tw = wg.measureText('BUFFERING...').width;
+  wg.globalAlpha = .75; wg.fillStyle = css('--bg') || '#000'; wg.fillRect(W / 2 - tw / 2 - 8 * dp, H / 2 - fs * .9, tw + 16 * dp, fs * 1.6); wg.globalAlpha = a; wg.fillStyle = colors.acc || colors.hi; wg.fillText(tx, W / 2 - tw / 2, H / 2 + fs * .35); wg.globalAlpha = 1; }
  wg.fillStyle = colors.hi; wg.fillRect(pos * W - 1, 0, 2, H);
  wave.setAttribute('aria-valuenow', Math.round(pos * 100));
 }
@@ -381,6 +394,7 @@ const playing = actx && !audio.paused; const NB = NBc, ROWS = Math.max(6, Math.f
   for (let b = 0; b < NB; b++) vals[b] = Math.max(0, Math.min(1, (db[b] - (top - range)) / range)) ** 1.5; }
  window.__specStat = vals; window.__specDbg = () => ({san: !!san, agc, ff: ffb && Array.from(ffb.slice(0, 6))});
  if (!playing) { idle += .03; vals = vals.map((v, b) => Math.max(v * .9, .04 + .03 * Math.sin(idle + b * .4))); }
+ if (isBuf()) { const c = (performance.now() / 1400 % 1) * (NB + 10) - 5; vals = vals.map((v, b) => Math.max(v * .5, .7 * Math.exp(-((b - c) ** 2) / 6), .05)); } // slow scanning sweep while buffering
  // spectrum
  let s = '';
  for (let b = 0; b < NB; b++) { peaks[b] = Math.max((peaks[b] || 0) - .012, vals[b]); }
