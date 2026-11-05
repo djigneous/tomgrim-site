@@ -202,7 +202,7 @@ audio.addEventListener('play', updateNP); audio.addEventListener('pause', update
 audio.addEventListener('loadedmetadata', updateNP);
 audio.addEventListener('error', () => { switching = 0; msState(); }); audio.addEventListener('error', () => say('error: cannot load ' + (curT()?.file || '')));
 audio.addEventListener('timeupdate', () => { $('#tcur').textContent = fmt(audio.currentTime); });
-const COVERS = ['ember-hours', 'elements', 'mixes-sets', 'night-signals', 'phosphor-cache', 'get-out', 'lost-together', 'soundtracks', 'remixes'];
+const COVERS = ['ember-hours', 'elements', 'mixes-sets', 'night-signals', 'phosphor-cache', 'get-out', 'lost-together', 'time-slows', 'soundtracks', 'remixes'];
 let lastMeta = '';
 function artFor(t) { const id = t && COVERS.includes(t.al.id) ? t.al.id : 'tomgrim-default', base = new URL('assets/covers/', location.href).href;
  return [96, 192, 256, 512].map(s => ({src: `${base}${id}-${s}.png`, sizes: `${s}x${s}`, type: 'image/png'})); }

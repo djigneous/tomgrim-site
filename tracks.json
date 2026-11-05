@@ -854,6 +854,23 @@
       ]
     },
     {
+      "id": "time-slows",
+      "title": "Time Slows (Robs Song)",
+      "type": "single",
+      "year": 2014,
+      "blurb": "A tomGRIM single from 2014.",
+      "cover": "assets/covers/time-slows.jpg",
+      "tracks": [
+        {
+          "title": "Time Slows (Robs Song)",
+          "file": "assets/audio/singles/time-slows.mp3",
+          "duration_sec": 170.0,
+          "bpm": 113,
+          "original": "robs song arrange.mp3 (Google Drive; embedded title 'the universe inside you'), -1.2 dB gain only"
+        }
+      ]
+    },
+    {
       "id": "soundtracks",
       "title": "Soundtracks",
       "type": "soundtrack",
