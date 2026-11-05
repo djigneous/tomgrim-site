@@ -3,6 +3,13 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.7 — 2026-11-04
+- /stats: "what changed" dialog since the last review, with highlighted changes and a clear-highlights button (saved across devices).
+- /stats: line charts of total and daily visits since tracking began (humans vs bots).
+- /stats: visitors grouped into named visitors (e.g. "Neon Fox 42"), known bots named (Googlebot, Bingbot…), city/region, browser/OS/device.
+- /stats: Spotify card now uses the Spotify for Artists snapshot; the 6-hourly collector no longer writes blank Spotify rows.
+- Privacy: anonymous analytics note in help and the feedback board.
+
 ## 1.3.6 — 2026-11-02
 - SEO: clearer page title and description (tomGRIM / Tom Grim, downtempo, breakbeat, electro); name variants, genres and keywords added to the artist data; genres on each Spotify track.
 

@@ -34,10 +34,13 @@ async function spotify() {
 
 Deno.serve(async () => {
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { db: { schema: "public" } });
-  const { data: last } = await sb.from("social_stats").select("at").order("at", { ascending: false }).limit(1);
+  // throttle only on this collector's own rows (weekly Spotify for Artists rows use source "spotify_artists")
+  const { data: last } = await sb.from("social_stats").select("at").in("source", ["youtube", "tiktok"]).order("at", { ascending: false }).limit(1);
   if (last && last[0] && Date.now() - new Date(last[0].at).getTime() < 50 * 60 * 1000) return new Response(JSON.stringify({ skipped: "recent snapshot" }), { headers: { "content-type": "application/json" } });
   const res: any = {};
   for (const [k, f] of [["youtube", youtube], ["tiktok", tiktok], ["spotify", spotify]] as const) { try { res[k] = await f(); } catch (e) { res[k] = { error: String(e) }; } }
+  // never write blank Spotify rows: the public page has no numbers, so only store it if it returned real data
+  const sp = res.spotify; if (!sp || sp.error || !(sp.monthly_listeners > 0 || sp.followers > 0)) delete res.spotify;
   const rows = Object.entries(res).map(([source, data]) => ({ source, data }));
   const { error } = await sb.from("social_stats").insert(rows);
   return new Response(JSON.stringify({ ok: !error, error: error?.message, summary: { yt: res.youtube?.subscribers, yt_items: res.youtube?.items?.length, tt: res.tiktok?.followers, sp: res.spotify?.monthly_listeners } }), { headers: { "content-type": "application/json" } });

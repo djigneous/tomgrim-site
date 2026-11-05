@@ -591,3 +591,4 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 @media (hover:hover){#topbar nav button.fsico:hover{border-color:var(--barfg);background:transparent;color:var(--barfg)}}
 #topbar nav button.fsico:active{background:var(--barfg);color:var(--bar)}
 #tools .ddbtn span{font-size:inherit}
+.privnote{font-size:.8em;margin:.6em 0 0;opacity:.8}

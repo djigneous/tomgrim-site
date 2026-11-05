@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.6', SITE_UPDATED = '2026-11-02'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.7', SITE_UPDATED = '2026-11-04'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -485,7 +485,7 @@ function colorHelp(s) { return s.split('\n').map(l => { const m = l.match(/^(\w+
 const HELP = () => [
  ['shell', 'help ls albums pause stop next prev bio links mail changelog clear themes repeat shuffle whoami fetch', [['help', '[section|cmd|-a]', 'this help (? works the same)'], ['share', '', 'copy a link to this track at this moment'], ['play', '<n|name>', 'play a track by number or name'], ['theme', '<' + THEMES.join('|') + '>', 'switch color theme'], ['crt', 'on|off', 'CRT filter'], ['vol', '<0-100>', 'set volume'], ['man', '<cmd>', 'manual page for a command']]],
  ['get', '', [['get', '<n|name>', 'download a track'], ['get album', '<name>', 'download a whole album'], ['get', '--list', 'list everything downloadable']], 'aliases: wget, curl -O'],
- ['net', 'mail feedback like install spotify', [], 'mail = contact form · feedback = the BBS · spotify = tomGRIM on Spotify'],
+ ['net', 'mail feedback like install spotify privacy', [], 'mail = contact form · feedback = the BBS · spotify = tomGRIM on Spotify · privacy = what the anonymous stats collect'],
  ['fun', 'random weather matrix glitch fire hack starfield plasma tunnel rain dvd life cube torus donut snow pipes', [['cowsay', '<text>', 'a cow says it']], 'any key or click exits an effect'],
  ['system', 'pwd dir history cls hostname date uptime ifconfig top htop ps neofetch exit', [['cd', '<dir>', 'change directory'], ['ls', '-la [path]', 'list files'], ['cat', '<file>', 'print a file'], ['echo', '<text>', 'print text'], ['uname', '-a', 'system info'], ['ping', '<host>', 'ping a host'], ['ip', 'a', 'network interfaces'], ['df', '-h', 'disk usage'], ['free', '-h', 'memory usage'], ['which', '<cmd>', 'locate a command'], ['ssh', '<host>', 'connect (sort of)'], ['curl', '<url>', 'fetch a url'], ['apt', 'install <pkg>', 'install a package'], ['sudo', '<cmd>', 'try your luck']]],
  ['fx', '', [['fx', '', 'show knob values'], ['fx', 'reset', 'all knobs back to default'], ['fx', '<filter|res|verb|crush> <value>', 'set a knob (or drag it)']]],
@@ -762,6 +762,7 @@ function cowsay(t) { t = (t || 'moo. drop the bass.').slice(0, 200); const w = M
  b += ' ' + '-'.repeat(W + 2) + '\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\  ♪♫  )\\/\\\n                ||----w |\n                ||     ||'; say(b); }
 const CMDS = {
  help: a => helpCmd(a), '?': a => helpCmd(a),
+ privacy: () => say('privacy: thomasgrim.com keeps anonymous visit stats for tom only — page, referrer, browser/OS/device (from the user agent), screen size, language, timezone, rough location (country from the edge, city/region via geojs.io), time on page and tracks played. no cookies, no ads, no tracking across other sites. raw IP addresses are never stored: only a salted hash, used to group repeat visits. a random id in localStorage does the same. clear site data to reset it.'),
 
  themes: () => say('themes: ' + THEMES.map(t => t === curTheme() ? '[' + t + ']' : t).join(' ')),
  crt: a => { a = (a || '').trim(); if (a === 'on' || a === 'off') setCrt(a === 'on'); else if (!a) setCrt(document.body.classList.contains('nocrt')); else say('usage: crt on|off'); },
@@ -1452,7 +1453,11 @@ audio.addEventListener('pause', () => { if (document.hidden) bcStop(); }); audio
  const T0 = Date.now(); let v = null, acted = false, sent = 0;
  const p = {vid, path: location.pathname + location.search, ref: document.referrer && !document.referrer.startsWith(location.origin) ? document.referrer : '', scr: screen.width + 'x' + screen.height,
   tz: (Intl.DateTimeFormat().resolvedOptions().timeZone || ''), lang: navigator.language || '', wd: !!navigator.webdriver};
- post('log_visit', {p}).then(r => r.ok ? r.json() : null).then(j => { if (j && j.id) v = j; }).catch(() => {});
+ // coarse location (city/region only, cached per session) — country also comes from the server's edge header
+ const geo = () => { try { const c = sessionStorage.grimGeo; if (c) return Promise.resolve(JSON.parse(c)); } catch (e) {}
+  const ac = new AbortController(); setTimeout(() => ac.abort(), 1500);
+  return fetch('https://get.geojs.io/v1/ip/geo.json', {signal: ac.signal}).then(r => r.json()).then(g => { const o = {city: (g.city || '').slice(0, 60), region: (g.region || '').slice(0, 60)}; try { sessionStorage.grimGeo = JSON.stringify(o); } catch (e) {} return o; }).catch(() => ({})); };
+ geo().then(g => { Object.assign(p, g); return post('log_visit', {p}); }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.id) v = j; }).catch(() => {});
  const upd = (track, keep) => { if (!v) return; post('update_visit', {p_id: v.id, p_token: v.token, p_interacted: acted, p_dwell_ms: Date.now() - T0, p_track: track || null}, keep).catch(() => {}); };
  const act = () => { if (acted) return; acted = true; ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(e => removeEventListener(e, act, true)); setTimeout(() => upd(), 1500); };
  ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(e => addEventListener(e, act, {capture: true, passive: true}));

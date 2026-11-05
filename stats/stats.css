@@ -31,3 +31,23 @@ main .win.wide{grid-column:1/-1}
 .scroll{overflow:auto}
 .sfoot{padding:.4em .8em 1.4em}
 .empty{color:var(--dim)}
+/* 1.3.7: change highlights (a distinct accent per theme), dialog, line charts */
+body{--chg:#ffb000}.theme-green{--chg:#ff4fd8}.theme-amber{--chg:#4fd2ff}.theme-red{--chg:#ffe14d}.theme-fire{--chg:#66f0ff}.theme-ice{--chg:#ff9f43}.theme-silicon{--chg:#7df9ff}.theme-nightshift{--chg:#ffd166}.theme-neon{--chg:#39ff88}.theme-gray{--chg:#ff6b6b}
+.chgc{color:var(--chg);text-shadow:0 0 6px var(--chg)}
+.kpi.chg b,[data-m].chg{color:var(--chg)!important;text-shadow:0 0 8px var(--chg)}
+.kpi.chg span::after{content:" ▲";color:var(--chg)}
+tr.chg td:first-child{box-shadow:inset 3px 0 0 var(--chg)}tr.chg td{color:var(--chg)}tr.chg a{color:var(--chg)}
+.sbtn{font:inherit;background:transparent;color:var(--barfg);border:1px solid currentColor;padding:0 .5ch;cursor:pointer}
+.sbtn[hidden]{display:none}.sbtn.chgb{color:var(--chg);border-color:var(--chg)}
+.sbar .sbtn.chgb{background:var(--bg)}
+@media (hover:hover){.sbtn:hover{background:var(--barfg);color:var(--bar)}.sbtn.chgb:hover{background:var(--chg);color:var(--bg)}}
+.sbtn:focus-visible{outline:1px dotted var(--chg);outline-offset:2px}
+dialog.dlg{background:var(--bg);color:var(--fg);border:2px double var(--br);box-shadow:0 0 24px -6px var(--fg);max-width:min(92vw,36em);padding:1em 1.2em;font:inherit}
+dialog.dlg::backdrop{background:rgba(0,0,0,.65)}
+dialog .sbtn{color:var(--fg)}dialog .dlgb{margin-top:1em;display:flex;gap:1em;flex-wrap:wrap}
+svg.lc{width:100%;height:11em;display:block}
+svg.lc .gl{stroke:var(--dim);stroke-width:.5;stroke-dasharray:2 3;vector-effect:non-scaling-stroke}svg.lc .gt{fill:var(--dim);font-size:10px}
+svg.lc .ln{fill:none;stroke-width:2;vector-effect:non-scaling-stroke}svg.lc .ln.h{stroke:var(--fg);filter:drop-shadow(0 0 3px var(--fg))}svg.lc .ln.b{stroke:var(--dim);stroke-dasharray:5 3}
+svg.lc .pt.h{fill:var(--fg)}svg.lc .pt.b{fill:var(--dim)}
+.axis .lg .h{color:var(--fg)}.axis .lg .b{color:var(--dim)}
+dialog.dlg{padding-top:1.8em;overflow:visible}
