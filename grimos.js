@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.15', SITE_UPDATED = '2026-11-04'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.16', SITE_UPDATED = '2026-11-04'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -155,6 +155,8 @@ function shareTrack(btn) { const s = shareUrl(); if (!s) { if (btn) toast('<span
  const copy = () => navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(s.url).then(() => copied(1), () => copied(0)) : copied(0);
  if (btn && navigator.share && matchMedia('(pointer:coarse)').matches) navigator.share({title, text: title, url: s.url}).catch(e => { if (e && e.name !== 'AbortError') copy(); }); else copy(); }
 const isLoopAlbum = t => t && t.al.type === 'loops';
+// whole sections skipped by shuffle (DJ mixes/sets/freestyles): set "noshuffle": true on the album in tracks.json
+const noShuf = t => !!(t && t.al && (t.al.noshuffle || t.al.type === 'mix'));
 function effRepeat() { const t = flat[cur]; if (t && isLoopAlbum(t)) return loopOverride[t.ai] ?? (repeat === 'off' ? 'one' : repeat); return repeat; }
 window.tgTrack = function (kind, title) { try { const gc = window.goatcounter; if (!gc || typeof gc.count !== 'function') return;
  const slug = String(title || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled';
@@ -192,7 +194,7 @@ setInterval(() => { if (intent !== 'play' || audio.paused || audio.ended || !aud
 function next(d = 1) {
  if (!flat.length) return;
  let i;
- if (shuffle) { const inLoops = isLoopAlbum(flat[cur]), pool = flat.map((t, k) => k).filter(k => k !== cur && (inLoops || !isLoopAlbum(flat[k]))); i = pool.length ? pool[Math.floor(Math.random() * pool.length)] : (cur + 1) % flat.length; }
+ if (shuffle) { const inLoops = isLoopAlbum(flat[cur]), pool = flat.map((t, k) => k).filter(k => k !== cur && !noShuf(flat[k]) && (inLoops || !isLoopAlbum(flat[k]))); i = pool.length ? pool[Math.floor(Math.random() * pool.length)] : (cur + 1) % flat.length; }
  else i = ((cur < 0 ? sel : cur) + d + flat.length) % flat.length;
  play(i);
 }

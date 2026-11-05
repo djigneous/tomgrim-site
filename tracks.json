@@ -278,6 +278,33 @@
           "aliases": [
             "four"
           ]
+        },
+        {
+          "title": "Angles",
+          "file": "assets/audio/elements/12-angles.mp3",
+          "duration_sec": 362.9,
+          "bpm": 127,
+          "year": 2005,
+          "original": "ign3ous - angles.mp3 (Google Drive; no embedded year, 2005 per Tom; BPM 127 from artist tag), -0.8 dB gain only"
+        },
+        {
+          "title": "Face",
+          "file": "assets/audio/elements/13-face.mp3",
+          "duration_sec": 437.5,
+          "bpm": 134,
+          "year": 2005,
+          "original": "ign3ous - face.mp3 (Google Drive; embedded date 2006, 2005 per Tom; BPM 134 from artist tag), -0.9 dB gain only"
+        },
+        {
+          "title": "hmph.",
+          "file": "assets/audio/elements/14-hmph.mp3",
+          "duration_sec": 162.0,
+          "bpm": 123,
+          "year": 2005,
+          "original": "ign3ous-hmph.mp3 (Google Drive; embedded date '3014', artwork XMP 2008-12-20, Drive 2016 — none in range, 2005 by default; BPM 123 from artist tag), -1.1 dB gain only",
+          "aliases": [
+            "hmph"
+          ]
         }
       ]
     },
@@ -314,8 +341,34 @@
             "krocks-pub",
             "set-from-krocks-pub"
           ]
+        },
+        {
+          "title": "DJ iGNEOUS - 90s Hip Hop (2007)",
+          "id3_title": "90s Hip Hop (2007)",
+          "id3_artist": "DJ iGNEOUS",
+          "year": 2007,
+          "file": "assets/audio/mixes-sets/03-90s-hip-hop-2007.mp3",
+          "duration_sec": 3945.5,
+          "original": "dj ign3ous - random mix 8 (04091).mp3 (Google Drive; embedded title 'club mix 040915', comment 'Recorded 4/9/15', date 2015), -2.5 dB gain only, 160k",
+          "aliases": [
+            "90s-hip-hop",
+            "random-mix-8"
+          ]
+        },
+        {
+          "title": "tomGRIM - Jerky Boy Beats",
+          "id3_title": "Jerky Boy Beats",
+          "year": 2017,
+          "file": "assets/audio/mixes-sets/04-jerky-boy-beats.mp3",
+          "duration_sec": 2347.7,
+          "original": "ign3ous_-_jerkstrumental.mp3 (Google Drive), -3.2 dB gain only, 192k",
+          "aliases": [
+            "jerky-boy-beats",
+            "jerkstrumental"
+          ]
         }
-      ]
+      ],
+      "noshuffle": true
     },
     {
       "id": "phosphor-cache",
@@ -831,7 +884,8 @@
           "year": 2025,
           "original": "PROPER-FREESTYLE-02-032025 (attachment 01M6MQ8BHEJBH69MWRGGBMB0E1.wav), 192k->44.1k, -3.0 dB gain only"
         }
-      ]
+      ],
+      "noshuffle": true
     },
     {
       "id": "get-out",

@@ -3,6 +3,11 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.16 — 2026-11-04
+- New on MIXES & SETS: DJ iGNEOUS - 90s Hip Hop (2007) and tomGRIM - Jerky Boy Beats (2017).
+- New on ELEMENTS: Angles, Face and hmph. (2005), tracks 12–14.
+- Shuffle now skips MIXES & SETS and PHOSPHOR CACHE entirely (by section, so future mixes are skipped too).
+
 ## 1.3.15 — 2026-11-04
 - New on MIXES & SETS: DJ iGNEOUS - Set From Krocks Pub (2007).
 
