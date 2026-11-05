@@ -21,7 +21,7 @@ for a in albums:
         for k in ('TIT2','TPE1','TPE2','TALB','TRCK','TDRC','COMM','WOAR','WXXX','APIC'): tag.delall(k)
         tag.add(TIT2(encoding=3, text=t['title'])); tag.add(TPE1(encoding=3, text=ARTIST)); tag.add(TPE2(encoding=3, text=ARTIST))
         tag.add(TALB(encoding=3, text=a['title'])); tag.add(TRCK(encoding=3, text=f'{i}/{n}'))
-        if a.get('year'): tag.add(TDRC(encoding=3, text=str(a['year'])))
+        if t.get('year') or a.get('year'): tag.add(TDRC(encoding=3, text=str(t.get('year') or a['year'])))  # per-track year wins
         tag.add(COMM(encoding=3, lang='eng', desc='', text=f'{ARTIST} · {URL}'))
         tag.add(WOAR(url=URL)); tag.add(WXXX(encoding=3, desc='Website', url=URL))
         if t.get('bpm'): tag.delall('TBPM'); tag.add(TBPM(encoding=3, text=str(int(round(t['bpm'])))))
