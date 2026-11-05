@@ -872,6 +872,23 @@
       ]
     },
     {
+      "id": "trouble-girls",
+      "title": "Trouble Girls",
+      "type": "single",
+      "year": 2018,
+      "blurb": "A tomGRIM single from 2018.",
+      "cover": "assets/covers/trouble-girls.jpg",
+      "tracks": [
+        {
+          "title": "Trouble Girls",
+          "file": "assets/audio/singles/trouble-girls.mp3",
+          "duration_sec": 420.0,
+          "bpm": 129,
+          "original": "ign3ous-troublegirls01unfinished.mp3 (Google Drive; embedded title 'trouble girls (01 unfinished)'), -1.7 dB gain only"
+        }
+      ]
+    },
+    {
       "id": "soundtracks",
       "title": "Soundtracks",
       "type": "soundtrack",
