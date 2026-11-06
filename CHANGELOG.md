@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.35 — 2026-11-05
+- Photos: pin `IMG_0001` first, then `26 / 28 / 18 / 19` at the top of the gallery grid (remaining 28 keep relative order; still 33 unique).
+
 ## 1.3.34 — 2026-11-05
 - Playlist order: `MIXES & SETS` now sits directly under `SINGLES` (before Soundtracks / Remixes / Phosphor Cache). Rank map: album → single → mix → soundtrack/remix → loops.
 
