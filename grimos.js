@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.26', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.27', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -400,21 +400,68 @@ function drawWave() {
 }
 function waveSeek(e) { if (!audio.duration) return; const r = wave.getBoundingClientRect(); audio.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * audio.duration; }
 let dragging = false;
-/* mouse: click/drag seeks immediately. touch/pen: tap to arm, then tap or horizontal drag seeks; vertical moves scroll. */
+/* mouse: click/drag seeks immediately. touch/pen: tap to arm, then tap or horizontal drag seeks; vertical moves scroll.
+   1.3.27: triple-tap same half (≤380ms gaps) seeks ±10s from the time before the tap sequence (YouTube-style; 4th tap ±20s…). */
 const waveBox = wave.closest('.vizbox'), waveLbl = waveBox.querySelector('.lbl'), coarse = matchMedia('(pointer:coarse)').matches;
-const WL = {idle: coarse ? 'WAVEFORM · tap to arm' : 'WAVEFORM · click to seek', armed: 'WAVEFORM · armed · tap/drag to seek'};
-waveLbl.textContent = WL.idle; let armed = false, armT = 0, tp = null;
-const arm = on => { armed = on; clearTimeout(armT); waveBox.classList.toggle('armed', on); waveLbl.textContent = on ? WL.armed : WL.idle; if (on) armT = setTimeout(() => arm(false), 4000); };
-wave.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') { dragging = true; wave.setPointerCapture(e.pointerId); waveSeek(e); return; }
- tp = {x: e.clientX, y: e.clientY, id: e.pointerId, mode: null}; if (armed) arm(true); });
-wave.addEventListener('pointermove', e => { if (dragging) return waveSeek(e); if (!tp || e.pointerId !== tp.id) return; const dx = e.clientX - tp.x, dy = e.clientY - tp.y;
- if (!tp.mode && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) { tp.mode = Math.abs(dx) > Math.abs(dy) * 1.2 && armed ? 'drag' : 'scroll'; if (tp.mode === 'drag') { try { wave.setPointerCapture(e.pointerId); } catch {} } }
- if (tp.mode === 'drag') { waveSeek(e); arm(true); } });
-wave.addEventListener('pointerup', e => { if (dragging) { dragging = false; return; } if (!tp || e.pointerId !== tp.id) return; const m = tp.mode; tp = null;
- if (m === 'scroll') return; if (m === 'drag') return arm(false); if (armed) { waveSeek(e); arm(false); } else arm(true); });
-wave.addEventListener('pointercancel', () => { tp = null; dragging = false; });
+const WL = {idle: coarse ? 'WAVEFORM · tap to arm · triple ±10s' : 'WAVEFORM · click to seek · triple-click ±10s', armed: 'WAVEFORM · armed · tap/drag to seek'};
+waveLbl.textContent = WL.idle; waveLbl.title = 'Click/tap to seek. Triple-tap left half −10s, right half +10s (keep tapping for ±20s, ±30s…). Drag to scrub.';
+wave.setAttribute('title', waveLbl.title);
+let armed = false, armT = 0, tp = null, wTap = null, wFlashT = 0;
+const arm = on => { armed = on; clearTimeout(armT); waveBox.classList.toggle('armed', on); if (!wFlashT) waveLbl.textContent = on ? WL.armed : WL.idle; if (on) armT = setTimeout(() => arm(false), 4000); };
+function waveHalf(e) { const r = wave.getBoundingClientRect(), x = e.clientX - r.left; return { half: x < r.width / 2 ? -1 : 1, r, x }; }
+function waveFlashSkip(dir) {
+ const msg = dir < 0 ? '« −10s' : '+10s »';
+ waveLbl.textContent = msg; waveBox.classList.add('wskip');
+ clearTimeout(wFlashT); wFlashT = setTimeout(() => { wFlashT = 0; waveBox.classList.remove('wskip'); waveLbl.textContent = armed ? WL.armed : WL.idle; }, 700);
+}
+/** @returns true if this tap was consumed as a ±10s skip (caller must not position-seek). */
+function waveTripleTap(e) {
+ if (!audio.duration) return false;
+ const { half } = waveHalf(e), now = performance.now();
+ if (!wTap || wTap.half !== half || now - wTap.t > 380) {
+  wTap = { half, t: now, n: 1, pre: audio.currentTime };
+  return false;
+ }
+ wTap.n++; wTap.t = now;
+ if (wTap.n < 3) return false;
+ const step = wTap.n - 2; // 3rd→1, 4th→2, …
+ const target = Math.max(0, Math.min(audio.duration - .05, wTap.pre + half * 10 * step));
+ audio.currentTime = target;
+ waveFlashSkip(half);
+ return true;
+}
+function waveCancelTap() { wTap = null; }
+wave.addEventListener('pointerdown', e => {
+ if (e.pointerType === 'mouse') {
+  // capture pre-seek time inside waveTripleTap before any position jump
+  if (waveTripleTap(e)) { dragging = false; tp = null; return; } // 3rd+ tap: ±10s, no scrub start
+  dragging = true; tp = {x: e.clientX, y: e.clientY, id: e.pointerId, mode: null};
+  wave.setPointerCapture(e.pointerId); waveSeek(e); return;
+ }
+ tp = {x: e.clientX, y: e.clientY, id: e.pointerId, mode: null}; if (armed) arm(true);
+});
+wave.addEventListener('pointermove', e => {
+ if (dragging) {
+  // only cancel the triple-click sequence once the pointer truly scrubs (ignore click jitter)
+  if (tp && (Math.abs(e.clientX - tp.x) > 8 || Math.abs(e.clientY - tp.y) > 8)) waveCancelTap();
+  return waveSeek(e);
+ }
+ if (!tp || e.pointerId !== tp.id) return; const dx = e.clientX - tp.x, dy = e.clientY - tp.y;
+ if (!tp.mode && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) { tp.mode = Math.abs(dx) > Math.abs(dy) * 1.2 && armed ? 'drag' : 'scroll'; if (tp.mode === 'drag') { try { wave.setPointerCapture(e.pointerId); } catch {} waveCancelTap(); } }
+ if (tp.mode === 'drag') { waveSeek(e); arm(true); }
+});
+wave.addEventListener('pointerup', e => {
+ if (dragging) { dragging = false; tp = null; return; }
+ if (!tp || e.pointerId !== tp.id) return; const m = tp.mode; tp = null;
+ if (m === 'scroll') return;
+ if (m === 'drag') { waveCancelTap(); return arm(false); }
+ // short tap (touch/pen): count toward triple-tap before arm/seek
+ if (waveTripleTap(e)) { arm(false); return; }
+ if (armed) { waveSeek(e); arm(false); } else arm(true);
+});
+wave.addEventListener('pointercancel', () => { tp = null; dragging = false; waveCancelTap(); });
 document.addEventListener('pointerdown', e => { if (armed && !waveBox.contains(e.target)) arm(false); }, true);
-window.__wave = () => ({armed, label: waveLbl.textContent, t: audio.currentTime});
+window.__wave = () => ({armed, label: waveLbl.textContent, t: audio.currentTime, tap: wTap && {n: wTap.n, half: wTap.half, pre: wTap.pre}});
 
 /* ---------- visuals loop ---------- */
 const specEl = $('#spec'), ring = $('#ring'), rg = ring.getContext('2d');
@@ -1028,7 +1075,7 @@ const aptCmd = (a, su) => { const m = (a || '').match(/^(install|update|upgrade|
   if (p >= 100) { clearInterval(iv); job = null; say(`Unpacking ${pkg} (${GRIMOS_VERSION}) ...\nSetting up ${pkg} (${GRIMOS_VERSION}) ...\nProcessing triggers for vinyl-spin (1.0) ...\n${pkg}: installed. (it was always there, deep in the mix.)`); } }, 120);
  startJob(() => { clearInterval(iv); say('^C\nE: Sub-process /usr/bin/dpkg received signal 2.'); }, 'apt'); };
 const NEO = ['████████╗ ██████╗ ', '╚══██╔══╝██╔════╝ ', '   ██║   ██║  ███╗', '   ██║   ██║   ██║', '   ██║   ╚██████╔╝', '   ╚═╝    ╚═════╝ ', '  >_ tomGRIM       ', '                  '];
-const MAN = {wrap: 'wrap [on|off] — terminal word wrap. on wraps long lines; off keeps them on one line and the terminal scrolls sideways. same as DISPLAY > TERMINAL WRAP; saved between visits.', smoke: 'smoke [on|off] — soft ambient smoke overlay. same as DISPLAY > SMOKE; saved between visits. off clears ambient smoke (track moods can still briefly enable it while they play).', grimamp: 'grimamp — GRIMAMP v1, the ascii audio terminal player: record + round scope, waveform (click to seek), spectrum, FX knobs (filter/res/verb/crush), rep / shuf / 👁 auto-visuals toggles. keys: space play, n/p next/prev, r repeat, s shuffle, ←→ seek, +- volume. see also: play, ls, albums, get.', links: 'links — where to find tomGRIM: streaming, socials and downloads. type links to list them. see also: mail, feedback.', contact: 'contact — send tom a message with the mail form, or leave a note on the BBS. see also: mail, feedback.', weather: 'weather — GRIM/WX: a 90s "local on the 8s" weather screen for Allentown, Bethlehem and Easton with live data from open-meteo.com (current conditions, latest observations, extended and local forecast). It also takes over the screensaver while any Walking Green version plays. Any key or click exits. Alias: wx.', share: 'share — copies a link to the current track at the current time (thomasgrim.com/?t=<track>&at=<seconds>). Opening it selects the track; press play and it starts at that moment.', help: 'help [section|cmd|-a] — list commands grouped by section. Commands with flags or args get their own line (args colored, dim description); simple commands flow together separated by •. help <section> shows one section (shell get net fun system fx look idle), help <cmd> opens its man page, help -a shows everything. ? is identical to help in every form: ?, ? fx, ? -a, ? <cmd>. Outside the prompt the ? key opens the keyboard help.', '?': 'see help — ? is an alias of help.', ls: 'ls [-la] [path] — without args lists every track; with a path lists the fake filesystem.', play: 'play <n|name> — play a track by number (see ls) or name.', get: 'get <n|name> — download a track. get album <name>, get --list.', cd: 'cd [dir] — change directory. try ~/albums, /etc, /var/log.', cat: 'cat <file> — print a file. try /etc/motd or readme.txt.', ping: 'ping <host> — send 4 ICMP echo requests (Ctrl+C stops).', top: 'top — live process list. q to quit.', theme: 'theme <name> — switch color theme: ' + THEMES.join(' ') + ' (cyan is the default). silicon, nightshift and neon are full-color palettes; Tab completes names.', screensaver: 'screensaver on|off|<seconds>|<effect>|random', apt: 'apt install <pkg> — needs sudo. you know how this ends.'};
+const MAN = {wrap: 'wrap [on|off] — terminal word wrap. on wraps long lines; off keeps them on one line and the terminal scrolls sideways. same as DISPLAY > TERMINAL WRAP; saved between visits.', smoke: 'smoke [on|off] — soft ambient smoke overlay. same as DISPLAY > SMOKE; saved between visits. off clears ambient smoke (track moods can still briefly enable it while they play).', grimamp: 'grimamp — GRIMAMP v1, the ascii audio terminal player: record + round scope, waveform (click/drag to seek; triple-tap left −10s / right +10s), spectrum, FX knobs (filter/res/verb/crush), rep / shuf / 👁 auto-visuals toggles. keys: space play, n/p next/prev, r repeat, s shuffle, ←→ seek, +- volume. see also: play, ls, albums, get.', links: 'links — where to find tomGRIM: streaming, socials and downloads. type links to list them. see also: mail, feedback.', contact: 'contact — send tom a message with the mail form, or leave a note on the BBS. see also: mail, feedback.', weather: 'weather — GRIM/WX: a 90s "local on the 8s" weather screen for Allentown, Bethlehem and Easton with live data from open-meteo.com (current conditions, latest observations, extended and local forecast). It also takes over the screensaver while any Walking Green version plays. Any key or click exits. Alias: wx.', share: 'share — copies a link to the current track at the current time (thomasgrim.com/?t=<track>&at=<seconds>). Opening it selects the track; press play and it starts at that moment.', help: 'help [section|cmd|-a] — list commands grouped by section. Commands with flags or args get their own line (args colored, dim description); simple commands flow together separated by •. help <section> shows one section (shell get net fun system fx look idle), help <cmd> opens its man page, help -a shows everything. ? is identical to help in every form: ?, ? fx, ? -a, ? <cmd>. Outside the prompt the ? key opens the keyboard help.', '?': 'see help — ? is an alias of help.', ls: 'ls [-la] [path] — without args lists every track; with a path lists the fake filesystem.', play: 'play <n|name> — play a track by number (see ls) or name.', get: 'get <n|name> — download a track. get album <name>, get --list.', cd: 'cd [dir] — change directory. try ~/albums, /etc, /var/log.', cat: 'cat <file> — print a file. try /etc/motd or readme.txt.', ping: 'ping <host> — send 4 ICMP echo requests (Ctrl+C stops).', top: 'top — live process list. q to quit.', theme: 'theme <name> — switch color theme: ' + THEMES.join(' ') + ' (cyan is the default). silicon, nightshift and neon are full-color palettes; Tab completes names.', screensaver: 'screensaver on|off|<seconds>|<effect>|random', apt: 'apt install <pkg> — needs sudo. you know how this ends.'};
 Object.assign(CMDS, {
  ls: a => { a = (a || '').trim(); if (!a) return flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}${t.special ? ' ★' : ''}  [${t.single ? 'single' : t.al.title}]`)); lsPath(a); },
  ll: a => lsPath('-la ' + (a || '')), pwd: () => say(cwd),

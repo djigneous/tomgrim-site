@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.27 — 2026-11-05
+- Waveform: triple-tap (or triple-click) left half seeks −10s, right half +10s from the time before the tap sequence (keep tapping for ±20s, ±30s…). Single click/tap and drag-to-scrub unchanged; brief `« −10s` / `+10s »` flash on the waveform label.
+
 ## 1.3.26 — 2026-11-05
 - Shuffle: Previous (#bprev / p / prev / MediaSession) walks back through played tracks instead of picking a new random one (restarts current if >3s in).
 - Top-bar jumps scroll so each window's top border and title sit fully below the sticky header (dynamic offset for mobile wrap).

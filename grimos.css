@@ -608,3 +608,6 @@ a.tlink:focus-visible{color:var(--hi);outline:1px dotted var(--hi)}
 .discface{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;pointer-events:none;width:37ch;height:209px;max-width:calc(100% - 12px)}
 .ringwrap.has-disc .cover{visibility:hidden}
 @media (max-width:760px){.discface{height:152px}}
+
+/* 1.3.27 waveform triple-tap ±10s flash */
+.vb-wave.wskip .lbl{background:var(--br);color:var(--bg);letter-spacing:.04em}
