@@ -186,7 +186,7 @@
       "title": "ELEMENTS",
       "type": "album",
       "year": 2009,
-      "blurb": "ign3ous-era cuts from 2004\u20132009, the original elements before 2023's Elements II.",
+      "blurb": "ign3ous-era cuts from 2004–2009, the original elements before 2023's Elements II.",
       "cover": "assets/covers/elements.jpg",
       "tracks": [
         {
@@ -301,118 +301,12 @@
           "duration_sec": 162.0,
           "bpm": 123,
           "year": 2005,
-          "original": "ign3ous-hmph.mp3 (Google Drive; embedded date '3014', artwork XMP 2008-12-20, Drive 2016 \u2014 none in range, 2005 by default; BPM 123 from artist tag), -1.1 dB gain only",
+          "original": "ign3ous-hmph.mp3 (Google Drive; embedded date '3014', artwork XMP 2008-12-20, Drive 2016 — none in range, 2005 by default; BPM 123 from artist tag), -1.1 dB gain only",
           "aliases": [
             "hmph"
           ]
         }
       ]
-    },
-    {
-      "id": "mixes-sets",
-      "title": "MIXES & SETS",
-      "type": "mix",
-      "year": 2009,
-      "blurb": "Continuous mixes and DJ sets by DJ iGNEOUS / tomGRIM \u2014 promos, club sets, and the ELEMENTS continuous play mix.",
-      "cover": "assets/covers/mixes-sets.jpg",
-      "tracks": [
-        {
-          "title": "DJ iGNEOUS - Summer Promo (2010)",
-          "id3_title": "Summer Promo (2010)",
-          "id3_artist": "DJ iGNEOUS",
-          "year": 2010,
-          "file": "assets/audio/mixes-sets/summer-promo-2010.mp3",
-          "duration_sec": 2552.1,
-          "original": "iGN3OUS - 2010 Summer Promo (cut).mp3 (Google Drive), -0.6 dB gain only, 192k",
-          "aliases": [
-            "summer-promo-2010",
-            "summer-promo",
-            "2010-summer-promo"
-          ]
-        },
-        {
-          "title": "DJ iGNEOUS - Open Format Set (2011)",
-          "id3_title": "Open Format Set (2011)",
-          "id3_artist": "DJ iGNEOUS",
-          "year": 2011,
-          "file": "assets/audio/mixes-sets/open-format-set-2011.mp3",
-          "duration_sec": 4989.4,
-          "original": "0313200iGN3OUS Summer Promo Rough Draft(cut).mp3 (Google Drive), -0.9 dB gain only, 128k",
-          "aliases": [
-            "open-format-set",
-            "open-format-set-2011",
-            "open-format"
-          ]
-        },
-        {
-          "title": "DJ iGNEOUS - Florida Breaks (2016)",
-          "id3_title": "Florida Breaks (2016)",
-          "id3_artist": "DJ iGNEOUS",
-          "year": 2016,
-          "file": "assets/audio/mixes-sets/florida-breaks-2016.mp3",
-          "duration_sec": 3092.0,
-          "original": "dj ign3ous - floridaforrob.mp3 (Google Drive), -2.6 dB gain only, 192k",
-          "aliases": [
-            "florida-breaks-2016",
-            "florida-breaks",
-            "floridaforrob",
-            "florida breaks"
-          ]
-        },
-        {
-          "title": "ELEMENTS - Continuous Play Mix",
-          "file": "assets/audio/mixes-sets/01-elements-continuous-play-mix.mp3",
-          "duration_sec": 2919.9,
-          "bpm": 129,
-          "original": "Ign3ous - Old Element Mix.mp3",
-          "special": true,
-          "aliases": [
-            "old-element-mix-original-dj-mix",
-            "old-element-mix"
-          ]
-        },
-        {
-          "title": "DJ iGNEOUS - Set From Krocks Pub",
-          "id3_title": "Set From Krocks Pub",
-          "id3_artist": "DJ iGNEOUS",
-          "year": 2007,
-          "file": "assets/audio/mixes-sets/02-set-from-krocks-pub.mp3",
-          "duration_sec": 2014.9,
-          "bpm": 99,
-          "original": "djigneous - Serato Rec10b (Krocks Pub).mp3 (Google Drive; embedded title 'Serato Recording 10b'), -0.3 dB gain only, 192k",
-          "aliases": [
-            "krocks-pub",
-            "set-from-krocks-pub"
-          ]
-        },
-        {
-          "title": "DJ iGNEOUS - '00 & '90s Hip Hop (2017)",
-          "id3_title": "'00 & '90s Hip Hop (2017)",
-          "id3_artist": "DJ iGNEOUS",
-          "year": 2017,
-          "file": "assets/audio/mixes-sets/03-90s-hip-hop-2017.mp3",
-          "duration_sec": 3945.5,
-          "original": "dj ign3ous - random mix 8 (04091).mp3 (Google Drive; embedded title 'club mix 040915', comment 'Recorded 4/9/15', date 2015; 2017 per Tom), -2.5 dB gain only, 160k",
-          "aliases": [
-            "90s-hip-hop",
-            "random-mix-8",
-            "90s hip hop"
-          ]
-        },
-        {
-          "title": "tomGRIM - Jerky Boy Beats",
-          "id3_title": "Jerky Boy Beats",
-          "year": 2017,
-          "file": "assets/audio/mixes-sets/04-jerky-boy-beats.mp3",
-          "duration_sec": 2347.7,
-          "original": "ign3ous_-_jerkstrumental.mp3 (Google Drive), -3.2 dB gain only, 192k",
-          "aliases": [
-            "jerky-boy-beats",
-            "jerkstrumental"
-          ]
-        }
-      ],
-      "noshuffle": true
     },
     {
       "id": "phosphor-cache",
@@ -1047,6 +941,112 @@
           ]
         }
       ]
+    },
+    {
+      "id": "mixes-sets",
+      "title": "MIXES & SETS",
+      "type": "mix",
+      "year": 2009,
+      "blurb": "Continuous mixes and DJ sets by DJ iGNEOUS / tomGRIM — promos, club sets, and the ELEMENTS continuous play mix.",
+      "cover": "assets/covers/mixes-sets.jpg",
+      "tracks": [
+        {
+          "title": "DJ iGNEOUS - Summer Promo (2010)",
+          "id3_title": "Summer Promo (2010)",
+          "id3_artist": "DJ iGNEOUS",
+          "year": 2010,
+          "file": "assets/audio/mixes-sets/summer-promo-2010.mp3",
+          "duration_sec": 2552.1,
+          "original": "iGN3OUS - 2010 Summer Promo (cut).mp3 (Google Drive), -0.6 dB gain only, 192k",
+          "aliases": [
+            "summer-promo-2010",
+            "summer-promo",
+            "2010-summer-promo"
+          ]
+        },
+        {
+          "title": "DJ iGNEOUS - Open Format Set (2011)",
+          "id3_title": "Open Format Set (2011)",
+          "id3_artist": "DJ iGNEOUS",
+          "year": 2011,
+          "file": "assets/audio/mixes-sets/open-format-set-2011.mp3",
+          "duration_sec": 4989.4,
+          "original": "0313200iGN3OUS Summer Promo Rough Draft(cut).mp3 (Google Drive), -0.9 dB gain only, 128k",
+          "aliases": [
+            "open-format-set",
+            "open-format-set-2011",
+            "open-format"
+          ]
+        },
+        {
+          "title": "DJ iGNEOUS - Florida Breaks (2016)",
+          "id3_title": "Florida Breaks (2016)",
+          "id3_artist": "DJ iGNEOUS",
+          "year": 2016,
+          "file": "assets/audio/mixes-sets/florida-breaks-2016.mp3",
+          "duration_sec": 3092.0,
+          "original": "dj ign3ous - floridaforrob.mp3 (Google Drive), -2.6 dB gain only, 192k",
+          "aliases": [
+            "florida-breaks-2016",
+            "florida-breaks",
+            "floridaforrob",
+            "florida breaks"
+          ]
+        },
+        {
+          "title": "ELEMENTS - Continuous Play Mix",
+          "file": "assets/audio/mixes-sets/01-elements-continuous-play-mix.mp3",
+          "duration_sec": 2919.9,
+          "bpm": 129,
+          "original": "Ign3ous - Old Element Mix.mp3",
+          "special": true,
+          "aliases": [
+            "old-element-mix-original-dj-mix",
+            "old-element-mix"
+          ]
+        },
+        {
+          "title": "DJ iGNEOUS - Set From Krocks Pub",
+          "id3_title": "Set From Krocks Pub",
+          "id3_artist": "DJ iGNEOUS",
+          "year": 2007,
+          "file": "assets/audio/mixes-sets/02-set-from-krocks-pub.mp3",
+          "duration_sec": 2014.9,
+          "bpm": 99,
+          "original": "djigneous - Serato Rec10b (Krocks Pub).mp3 (Google Drive; embedded title 'Serato Recording 10b'), -0.3 dB gain only, 192k",
+          "aliases": [
+            "krocks-pub",
+            "set-from-krocks-pub"
+          ]
+        },
+        {
+          "title": "DJ iGNEOUS - '00 & '90s Hip Hop (2017)",
+          "id3_title": "'00 & '90s Hip Hop (2017)",
+          "id3_artist": "DJ iGNEOUS",
+          "year": 2017,
+          "file": "assets/audio/mixes-sets/03-90s-hip-hop-2017.mp3",
+          "duration_sec": 3945.5,
+          "original": "dj ign3ous - random mix 8 (04091).mp3 (Google Drive; embedded title 'club mix 040915', comment 'Recorded 4/9/15', date 2015; 2017 per Tom), -2.5 dB gain only, 160k",
+          "aliases": [
+            "90s-hip-hop",
+            "random-mix-8",
+            "90s hip hop"
+          ]
+        },
+        {
+          "title": "tomGRIM - Jerky Boy Beats",
+          "id3_title": "Jerky Boy Beats",
+          "year": 2017,
+          "file": "assets/audio/mixes-sets/04-jerky-boy-beats.mp3",
+          "duration_sec": 2347.7,
+          "original": "ign3ous_-_jerkstrumental.mp3 (Google Drive), -3.2 dB gain only, 192k",
+          "aliases": [
+            "jerky-boy-beats",
+            "jerkstrumental"
+          ]
+        }
+      ],
+      "noshuffle": true
     },
     {
       "id": "soundtracks",

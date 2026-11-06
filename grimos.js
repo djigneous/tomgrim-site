@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.33', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.34', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -51,7 +51,7 @@ async function load() {
   data.albums.forEach(a => { if (a.id === 'ember-hours' && !(a.tracks || []).length) a.tracks = FALLBACK.albums[0].tracks; });
   if (!data.albums.some(a => (a.tracks || []).length)) throw 0;
   data.albums.forEach(a => { if (a.id === 'elements' && (!a.year || a.year > 2009)) a.year = 2009; });
-  const rank = a => ({album: 0, ep: 0, single: 1, loops: 2})[a.type || 'album'] ?? 1;
+  const rank = a => ({album: 0, ep: 0, single: 1, mix: 2, soundtrack: 3, remix: 3, loops: 4})[a.type || 'album'] ?? 2;
   data.albums = data.albums.map((a, i) => [a, i]).sort((x, y) => rank(x[0]) - rank(y[0]) || x[1] - y[1]).map(x => x[0]); }
  catch { data = FALLBACK; }
  flat = [];
@@ -253,7 +253,7 @@ audio.addEventListener('play', updateNP); audio.addEventListener('pause', update
 audio.addEventListener('loadedmetadata', updateNP);
 audio.addEventListener('error', () => { switching = 0; msState(); }); audio.addEventListener('error', () => say('error: cannot load ' + (curT()?.file || '')));
 audio.addEventListener('timeupdate', () => { $('#tcur').textContent = fmt(audio.currentTime); });
-const COVERS = ['ember-hours', 'elements', 'mixes-sets', 'night-signals', 'phosphor-cache', 'get-out', 'lost-together', 'time-slows', 'trouble-girls', 'haywire', 'soundtracks', 'remixes'];
+const COVERS = ['ember-hours', 'night-signals', 'elements', 'get-out', 'lost-together', 'time-slows', 'trouble-girls', 'haywire', 'mixes-sets', 'soundtracks', 'remixes', 'phosphor-cache'];
 let lastMeta = '';
 function artFor(t) { const id = t && COVERS.includes(t.al.id) ? t.al.id : 'tomgrim-default', base = new URL('assets/covers/', location.href).href;
  return [96, 192, 256, 512].map(s => ({src: `${base}${id}-${s}.png`, sizes: `${s}x${s}`, type: 'image/png'})); }
@@ -556,7 +556,7 @@ function scopeStroke(ctx, x0, y0, x1, y1, conic) {
  scopeGrad = g; return g;
 }
 
-/* ---------- 1.3.33 Grimamp VIZ modes (4 modes; themed waterfall / VU / terrain; tuned SUB + terrain) ---------- */
+/* ---------- 1.3.34 Grimamp VIZ modes (4 modes; themed waterfall / VU / terrain; tuned SUB + terrain) ---------- */
 const VIZ_MODES = [
  { id: 'spec', label: 'SPECTRUM · log', title: 'Classic log spectrum bars' },
  { id: 'waterfall', label: 'WATERFALL · log', title: 'Scrolling frequency-over-time spectrogram' },

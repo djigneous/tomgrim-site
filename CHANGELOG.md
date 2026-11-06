@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.34 — 2026-11-05
+- Playlist order: `MIXES & SETS` now sits directly under `SINGLES` (before Soundtracks / Remixes / Phosphor Cache). Rank map: album → single → mix → soundtrack/remix → loops.
+
 ## 1.3.33 — 2026-11-05
 - VU + Peak `SUB`: measure true 25–110 Hz energy from the FFT (no AGC × 2.8 redline). Groove sits ~`-10` to `-2` dB; only loudest sub drops kiss the clip lamp.
 - 3D Terrain: ~3.5× slower `dt`-paced ridge scroll (~17 rows/sec, ~1.25s horizon), fixed inverted front scale, punchy transient relief + kick-reactive glow.
