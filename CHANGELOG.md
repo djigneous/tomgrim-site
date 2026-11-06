@@ -5,6 +5,8 @@ Versions before 1.3.0 were assigned retroactively from the git history, so their
 
 ## 1.3.27 — 2026-11-05
 - Waveform: triple-tap (or triple-click) left half seeks −10s, right half +10s from the time before the tap sequence (keep tapping for ±20s, ±30s…). Single click/tap and drag-to-scrub unchanged; brief `« −10s` / `+10s »` flash on the waveform label.
+- Spectrum label restored to `SPECTRUM · log` (log bass→treble bars unchanged).
+- Horizontal scope around the record: left half tracks low+mid (lowpass ~2.5 kHz), right half tracks mid+high (highpass ~280 Hz), each with its own AGC so both sides stay lively.
 
 ## 1.3.26 — 2026-11-05
 - Shuffle: Previous (#bprev / p / prev / MediaSession) walks back through played tracks instead of picking a new random one (restarts current if >3s in).

@@ -114,7 +114,24 @@ function ensureCtx() {
  outG = actx.createGain(); outG.gain.value = NATIVE ? 0 : 1; an.connect(outG); outG.connect(actx.destination);
  // spectrum tap: pre-FX/pre-limiter, float dB, volume-compensated + AGC below (was the output analyser in bytes with maxDecibels -30 → loud masters pegged)
  san = actx.createAnalyser(); san.fftSize = 4096; san.smoothingTimeConstant = .82; san.minDecibels = -100; san.maxDecibels = 0; src.connect(san); const sink = actx.createGain(); sink.gain.value = 0; san.connect(sink); sink.connect(actx.destination);
+ hsTap(src); // horizontal scope: left=low+mid, right=mid+high
  fxInit(src);
+}
+/* hscope band taps: left = lowpass ~2.5 kHz (low+mid), right = highpass ~280 Hz (mid+high); mid shared so both halves stay lively */
+let hsLo = null, hsHi = null, hsLoFilt = null, hsHiFilt = null, hsSink = null, tbufLo = null, tbufHi = null, hsAgcL = .1, hsAgcR = .1;
+function hsTap(src) {
+ if (!actx || !src) return;
+ if (!hsLo) {
+  hsLoFilt = actx.createBiquadFilter(); hsLoFilt.type = 'lowpass'; hsLoFilt.frequency.value = 2500; hsLoFilt.Q.value = .707;
+  hsHiFilt = actx.createBiquadFilter(); hsHiFilt.type = 'highpass'; hsHiFilt.frequency.value = 280; hsHiFilt.Q.value = .707;
+  hsLo = actx.createAnalyser(); hsLo.fftSize = 2048; hsLo.smoothingTimeConstant = .8;
+  hsHi = actx.createAnalyser(); hsHi.fftSize = 2048; hsHi.smoothingTimeConstant = .8;
+  hsSink = actx.createGain(); hsSink.gain.value = 0; hsSink.connect(actx.destination);
+  hsLoFilt.connect(hsLo); hsLo.connect(hsSink);
+  hsHiFilt.connect(hsHi); hsHi.connect(hsSink);
+ }
+ try { src.connect(hsLoFilt); } catch (e) {}
+ try { src.connect(hsHiFilt); } catch (e) {}
 }
 let NATIVE = !!(HTMLMediaElement.prototype.captureStream || HTMLMediaElement.prototype.mozCaptureStream) && !/iP(hone|ad|od)/.test(navigator.userAgent), outG = null, boundTrack = null;
 function streamSrc() { const st = (audio.captureStream || audio.mozCaptureStream).call(audio), tr = st.getAudioTracks()[0]; if (!tr) { boundTrack = null; return actx.createGain(); } // placeholder until 'playing' rebinds
@@ -544,7 +561,7 @@ function frame() {
 }
 
 /* ---------- horizontal scope through the record center (two halves: masked at the disc, drawn behind it) ---------- */
-const hs = $('#hscope'), hg = hs.getContext('2d'), npEl = hs.parentElement, hsG = {cx: 0, cy: 0, R: 0}; let hsAgc = .1;
+const hs = $('#hscope'), hg = hs.getContext('2d'), npEl = hs.parentElement, hsG = {cx: 0, cy: 0, R: 0};
 function measureHS() { const nr = npEl.getBoundingClientRect(), rr = ring.getBoundingClientRect(); if (!nr.width) return;
  hsG.cx = rr.left - nr.left + recGeom.ox; hsG.cy = rr.top - nr.top + recGeom.oy; hsG.R = recGeom.R + 3; hs.style.top = (hsG.cy - hs.clientHeight / 2) + 'px'; }
 new ResizeObserver(() => { measureRec(); measureHS(); }).observe(npEl);
@@ -552,9 +569,18 @@ function drawHScope(live) { fitCanvas(hs, RING_D); const W = hs.width, H = hs.he
  if (!hsG.R) measureHS(); hg.clearRect(0, 0, W, H);
  const cx = hsG.cx * d, cy = H / 2, R = hsG.R * d, amp = H / 2 - 4 * d;
  hg.save(); hg.beginPath(); hg.rect(0, 0, W, H); hg.arc(cx, cy, R, 0, Math.PI * 2); hg.clip('evenodd'); // hide the line over the disc
- let gain = 1; const tb = live && tbuf; if (tb) { let sq = 0; for (let i = 0; i < tb.length; i += 8) { const x = (tb[i] - 128) / 128; sq += x * x; } hsAgc = Math.max(Math.sqrt(sq / (tb.length / 8)), hsAgc * .992, .02); gain = Math.min(8, Math.max(1.2, .45 / hsAgc)); }
+ // 1.3.27: left of the disc = low+mid (LP ~2.5 kHz), right = mid+high (HP ~280 Hz); mid shared so both halves stay lively
+ let tbL = null, tbR = null, gainL = 1, gainR = 1;
+ if (live && hsLo && hsHi) {
+  tbufLo = tbufLo || new Uint8Array(hsLo.fftSize); tbufHi = tbufHi || new Uint8Array(hsHi.fftSize);
+  hsLo.getByteTimeDomainData(tbufLo); hsHi.getByteTimeDomainData(tbufHi); tbL = tbufLo; tbR = tbufHi;
+ } else if (live && tbuf) { tbL = tbR = tbuf; }
+ const rmsOf = tb => { let sq = 0; for (let i = 0; i < tb.length; i += 8) { const x = (tb[i] - 128) / 128; sq += x * x; } return Math.sqrt(sq / (tb.length / 8)); };
+ if (tbL) { hsAgcL = Math.max(rmsOf(tbL), hsAgcL * .992, .02); gainL = Math.min(8, Math.max(1.2, .45 / hsAgcL)); }
+ if (tbR) { hsAgcR = Math.max(rmsOf(tbR), hsAgcR * .992, .02); gainR = Math.min(8, Math.max(1.2, .45 / hsAgcR)); }
  const N = Math.min(420, Math.max(180, W / (1.6 * d) | 0));
- const ys = new Float32Array(N + 1); for (let i = 0; i <= N; i++) { const x = i / N, edge = Math.min(1, x * 8, (1 - x) * 8);
+ const ys = new Float32Array(N + 1); for (let i = 0; i <= N; i++) { const x = i / N, px = x * W, edge = Math.min(1, x * 8, (1 - x) * 8);
+  const left = px < cx, tb = left ? tbL : tbR, gain = left ? gainL : gainR;
   let v; if (tb) { const k = Math.floor(x * (tb.length - 1)); v = Math.tanh(((tb[k] - 128) / 128) * gain); } else v = Math.sin(x * 18 + idle * 1.2) * .04; ys[i] = cy - v * amp * edge; }
  const grad = scopeStroke(hg, 0, cy, W, cy, false); hg.lineJoin = 'round'; hg.lineCap = 'round';
  for (const [col, lw, al] of [[grad, 7, .14], [grad, 2.3, .95], [colors.hi, 1, .85]]) { hg.strokeStyle = col; hg.lineWidth = lw * d; hg.globalAlpha = al; hg.beginPath();
@@ -951,6 +977,7 @@ function fxRouteInner() { const g = fxg; if (!g) return; const c = g.c, now = c.
  if (vOn) { const w = fxv.verb / 100; g.dry.gain.setTargetAtTime(1 - w * .5, now, .02); g.wet.gain.setTargetAtTime(w * .9, now, .02); }
  if (!wire) return;
  [g.src, g.filt, g.fcomp, g.dry, g.wet, g.conv, g.sum, g.lim, g.crush, g.crushFb].forEach(n => { try { n && n.disconnect(); } catch {} }); if (san) g.src.connect(san); // keep the spectrum tap alive across re-routing
+ hsTap(g.src); // keep hscope low/mid + mid/high taps alive
  if (!fOn && !vOn && !cOn) { g.src.connect(an); return; } // true bypass: untouched signal
  let head = g.src;
  if (fOn) { head.connect(g.filt); g.filt.connect(g.fcomp); head = g.fcomp; }
