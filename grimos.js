@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.32', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.33', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -556,7 +556,7 @@ function scopeStroke(ctx, x0, y0, x1, y1, conic) {
  scopeGrad = g; return g;
 }
 
-/* ---------- 1.3.32 Grimamp VIZ modes (4 modes; themed waterfall / VU / terrain) ---------- */
+/* ---------- 1.3.33 Grimamp VIZ modes (4 modes; themed waterfall / VU / terrain; tuned SUB + terrain) ---------- */
 const VIZ_MODES = [
  { id: 'spec', label: 'SPECTRUM · log', title: 'Classic log spectrum bars' },
  { id: 'waterfall', label: 'WATERFALL · log', title: 'Scrolling frequency-over-time spectrogram' },
@@ -571,7 +571,8 @@ try { const s = localStorage.grimViz; const i = VIZ_MODES.findIndex(m => m.id ==
 let wfHist = null, wfW = 0, wfH = 0, wfRow = 0, wfTmp = null;
 let vuPk = { L: 0, R: 0, S: 0 }, vuBall = { L: 0, R: 0, S: 0 };
 let terrainHist = [], tbufL = null, tbufR = null;
-const TERR_ROWS = 18;
+const TERR_ROWS = 22, TERR_STEP = 0.058; // ~17 ridges/sec; ~1.25s horizon travel
+let terrAcc = 0, terrFloor = null;
 function fitSpecViz() {
  if (!specViz || !svgCtx) return { W: 0, H: 0, d: 1 };
  const d = Math.min(devicePixelRatio || 1, 2);
@@ -654,9 +655,33 @@ function drawVU(vals, playing, dt) {
   let s = 0; for (let i = 0; i < tbuf.length; i += 4) { const a = (tbuf[i] - 128) / 128; s += a * a; }
   lRms = rRms = Math.sqrt(s / (tbuf.length / 4));
  }
- sub = vals.slice(0, Math.max(2, (vals.length * .08) | 0)).reduce((a, b) => a + b, 0) / Math.max(1, (vals.length * .08) | 0);
- const ball = (k, v) => { const target = Math.min(1, v * 2.8); vuBall[k] += (target - vuBall[k]) * Math.min(1, dt * (target > vuBall[k] ? 14 : 3)); vuPk[k] = Math.max(vuPk[k] - dt * .35, vuBall[k]); };
- ball('L', lRms); ball('R', rRms); ball('S', sub);
+ // SUB: true 25–110 Hz energy from ffb (no AGC inflation). Never feed AGC vals*2.8 into SUB.
+ if (playing && ffb && actx) {
+  const n = ffb.length, nyq = (actx.sampleRate || 44100) / 2;
+  const vc = !NATIVE && audio.volume > .001 ? -20 * Math.log10(audio.volume) : 0;
+  const lo = Math.max(1, Math.floor(25 / nyq * n)), hiBin = Math.min(n - 1, Math.ceil(110 / nyq * n));
+  let pSum = 0, peak = -200, cnt = 0;
+  for (let k = lo; k <= hiBin; k++) {
+   const db = ffb[k] + vc; if (db > peak) peak = db;
+   pSum += Math.pow(10, db / 10); cnt++;
+  }
+  const rmsDb = 10 * Math.log10(pSum / Math.max(1, cnt));
+  // blend peak (kick punch) + RMS (body); map real-world -72..-30 dBFS → 0..1
+  const blend = peak * .55 + rmsDb * .45;
+  const norm = Math.max(0, Math.min(1, (blend - (-72)) / 44)); // -72 .. -28 dBFS
+  sub = Math.pow(norm, 1.22) * 0.90;
+ } else if (playing) {
+  // fallback: soft-scaled AGC bass (gain=1 below) — never *2.8
+  const nSub = Math.max(2, (vals.length * .08) | 0);
+  sub = vals.slice(0, nSub).reduce((a, b) => a + b, 0) / nSub * 0.55;
+ }
+ const ball = (k, v, gain) => {
+  const target = Math.min(1, v * (gain == null ? 2.8 : gain));
+  vuBall[k] += (target - vuBall[k]) * Math.min(1, dt * (target > vuBall[k] ? 14 : 3));
+  vuPk[k] = Math.max(vuPk[k] - dt * .35, vuBall[k]);
+ };
+ ball('L', lRms, 2.8); ball('R', rRms, 2.8); ball('S', sub, 1.0); // SUB already scaled
+ window.__vuDbg = { L: vuBall.L, R: vuBall.R, S: vuBall.S, pkS: vuPk.S, pkL: vuPk.L, pkR: vuPk.R, subRaw: sub };
  const meters = [['L', vuBall.L, vuPk.L, false], ['R', vuBall.R, vuPk.R, false], ['SUB', vuBall.S, vuPk.S, true]];
  const gap = 8, mw = (cssW - gap * 4) / 3, mh = cssH - 22, top = 4;
  meters.forEach(([lab, v, pk, isSub], i) => {
@@ -665,9 +690,9 @@ function drawVU(vals, playing, dt) {
   svgCtx.strokeStyle = rgbStr(dim); svgCtx.globalAlpha = .55; svgCtx.strokeRect(x + .5, top + .5, mw - 1, mh - 1); svgCtx.globalAlpha = 1;
   // dB ticks (-24,-12,-6,0,+3)
   const tickLabs = [[0,'-24'],[.25,'-12'],[.5,'-6'],[.75,'0'],[1,'+3']];
-  tickLabs.forEach(([t,lab]) => { const y = top + mh - t * mh; svgCtx.strokeStyle = rgbStr(dim); svgCtx.globalAlpha = .28;
+  tickLabs.forEach(([tt,labT]) => { const y = top + mh - tt * mh; svgCtx.strokeStyle = rgbStr(dim); svgCtx.globalAlpha = .28;
    svgCtx.beginPath(); svgCtx.moveTo(x + 2, y); svgCtx.lineTo(x + mw - 2, y); svgCtx.stroke();
-   if (i === 0) { svgCtx.globalAlpha = .55; svgCtx.fillStyle = rgbStr(dim); svgCtx.font = '9px "IBM Plex Mono",monospace'; svgCtx.fillText(lab, 1, y + 3); }
+   if (i === 0) { svgCtx.globalAlpha = .55; svgCtx.fillStyle = rgbStr(dim); svgCtx.font = '9px "IBM Plex Mono",monospace'; svgCtx.fillText(labT, 1, y + 3); }
   });
   svgCtx.globalAlpha = 1;
   const h = Math.max(1, v * mh), y = top + mh - h;
@@ -683,11 +708,11 @@ function drawVU(vals, playing, dt) {
   for (let sx = x + 7; sx < x + mw - 3; sx += 4) svgCtx.fillRect(sx, y, 1, h);
   // peak hold
   const py = top + mh - pk * mh;
-  svgCtx.fillStyle = rgbStr(pk > .82 ? (acc[0]!==fg[0]?acc:hi) : hi);
+  svgCtx.fillStyle = rgbStr(pk > .86 ? (acc[0]!==fg[0]?acc:hi) : hi);
   svgCtx.shadowColor = colors.acc || colors.fg; svgCtx.shadowBlur = pk > .7 ? 6 : 0;
   svgCtx.fillRect(x + 2, py - 1, mw - 4, 2); svgCtx.shadowBlur = 0;
-  // clip lamp
-  const clip = pk > .82;
+  // clip lamp (fires above ~0.86 — rare on SUB after sensitivity fix)
+  const clip = pk > .86;
   svgCtx.beginPath(); svgCtx.arc(x + mw / 2, top - 2, 3.2, 0, Math.PI * 2);
   svgCtx.fillStyle = clip ? rgbStr(hi) : rgbStr(lerpRgb(bg, dim, .5));
   svgCtx.shadowColor = colors.acc || colors.fg; svgCtx.shadowBlur = clip ? 8 : 0; svgCtx.fill(); svgCtx.shadowBlur = 0;
@@ -697,29 +722,64 @@ function drawVU(vals, playing, dt) {
  });
 }
 
+function shapeTerrainRow(vals, dt) {
+ const n = vals.length;
+ if (!terrFloor || terrFloor.length !== n) terrFloor = vals.slice();
+ const raw = new Array(n);
+ for (let i = 0; i < n; i++) {
+  terrFloor[i] += (vals[i] - terrFloor[i]) * Math.min(1, dt * 2.2);
+  const base = Math.pow(vals[i], 1.65);
+  const punch = Math.max(0, vals[i] - terrFloor[i]) * 2.1;
+  raw[i] = Math.min(1.08, base * 0.72 + punch);
+ }
+ // 3-tap spatial smooth → organic mountain peaks
+ const out = new Array(n);
+ for (let i = 0; i < n; i++) {
+  const a = raw[i ? i - 1 : 0], b = raw[i], c = raw[i < n - 1 ? i + 1 : n - 1];
+  out[i] = a * .2 + b * .6 + c * .2;
+ }
+ return out;
+}
 function drawTerrain(vals, dt, playing) {
  const { W, H, d, cssW, cssH } = fitSpecViz(); if (!W) return;
  const depth = TERR_ROWS;
- if (!playing && terrainHist.length === 0) terrainHist = Array.from({ length: depth }, () => vals.map(() => .04));
- if (playing || terrainHist.length < depth) {
-  terrainHist.push(vals.slice());
-  if (terrainHist.length > depth) terrainHist.shift();
- } else {
-  terrainHist.push(vals.map((v, i) => .04 + .03 * Math.sin(idle + i * .4)));
+ const shaped = playing
+  ? shapeTerrainRow(vals, dt)
+  : vals.map((v, i) => .04 + .03 * Math.sin(idle + i * .4));
+ if (!terrainHist.length) terrainHist = Array.from({ length: depth }, () => shaped.slice());
+ // frontmost live row updates every frame (zero-lag hits)
+ terrainHist[terrainHist.length - 1] = shaped;
+ // dt-paced ridge propagation (~17 rows/sec, ~1.25s horizon travel)
+ terrAcc += dt;
+ let pushed = 0;
+ while (terrAcc >= TERR_STEP) {
+  terrAcc -= TERR_STEP; pushed++;
+  terrainHist.push(shaped.slice());
   if (terrainHist.length > depth) terrainHist.shift();
  }
+ const frac = terrAcc / TERR_STEP; // 0..1 glide between steps
+ const frontPeak = shaped.reduce((a, b) => a > b ? a : b, 0);
+ window.__terrDbg = { rows: terrainHist.length, step: TERR_STEP, acc: terrAcc, frac, frontPeak, pushed, scaleFront: .20 + .38 };
  svgCtx.setTransform(d, 0, 0, d, 0, 0);
  const bg = themeRgb.bg || [0,0,0], dim = themeRgb.dim, fg = themeRgb.fg, ring = themeRgb.ring, acc = themeRgb.acc, br = themeRgb.br, hi = themeRgb.hi;
  const sky = svgCtx.createLinearGradient(0, 0, 0, cssH);
  sky.addColorStop(0, rgbStr(lerpRgb([0,0,0], bg, .55))); sky.addColorStop(1, rgbStr(lerpRgb([4,5,7], bg, .85)));
  svgCtx.fillStyle = sky; svgCtx.fillRect(0, 0, cssW, cssH);
- const n = vals.length, occl = rgbStr(lerpRgb([0,0,0], bg, .38));
- for (let z = 0; z < terrainHist.length; z++) {
-  const row = terrainHist[z], depthT = z / (terrainHist.length - 1 || 1);
-  const yBase = cssH * (.22 + .72 * depthT), scaleY = cssH * (.35 - .22 * depthT);
+ const n = shaped.length, occl = rgbStr(lerpRgb([0,0,0], bg, .38));
+ const len = terrainHist.length;
+ for (let z = 0; z < len; z++) {
+  const row = terrainHist[z];
+  // fractional depth so ridges glide smoothly at 60/120fps
+  const depthT = Math.max(0, Math.min(1, (z + 1 - frac) / len));
+  // front ridges get strong vertical relief (fixed inverted scaleY bug)
+  const yBase = cssH * (.30 + .64 * depthT);
+  const scaleY = cssH * (.20 + .38 * depthT);
   // occlusion fill
   svgCtx.beginPath();
-  for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * cssW, y = yBase - row[i] * scaleY; i ? svgCtx.lineTo(x, y) : svgCtx.moveTo(x, y); }
+  for (let i = 0; i < n; i++) {
+   const x = (i / (n - 1)) * cssW, y = Math.max(3, yBase - row[i] * scaleY);
+   i ? svgCtx.lineTo(x, y) : svgCtx.moveTo(x, y);
+  }
   svgCtx.lineTo(cssW, cssH + 2); svgCtx.lineTo(0, cssH + 2); svgCtx.closePath();
   svgCtx.fillStyle = occl; svgCtx.globalAlpha = .9; svgCtx.fill();
   // stroke color by depth
@@ -735,16 +795,20 @@ function drawTerrain(vals, dt, playing) {
   } else {
    const g = svgCtx.createLinearGradient(0, 0, cssW, 0);
    g.addColorStop(0, rgbStr(fg)); g.addColorStop(.4, rgbStr(acc[0]!==fg[0]?acc:br)); g.addColorStop(.7, rgbStr(br[0]!==fg[0]?br:hi)); g.addColorStop(1, rgbStr(fg));
-   stroke = g; svgCtx.globalAlpha = .85 + depthT * .15; svgCtx.lineWidth = 1.35;
-   svgCtx.shadowColor = colors.acc || colors.fg; svgCtx.shadowBlur = depthT > .9 ? 8 : 4;
+   stroke = g; svgCtx.globalAlpha = .85 + depthT * .15; svgCtx.lineWidth = 1.35 + frontPeak * .4;
+   // kick-reactive phosphor glow on front ridges
+   svgCtx.shadowColor = colors.acc || colors.fg;
+   svgCtx.shadowBlur = (depthT > .9 ? 8 : 4) + frontPeak * 10;
   }
   svgCtx.strokeStyle = stroke; svgCtx.beginPath();
-  for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * cssW, y = yBase - row[i] * scaleY; i ? svgCtx.lineTo(x, y) : svgCtx.moveTo(x, y); }
+  for (let i = 0; i < n; i++) {
+   const x = (i / (n - 1)) * cssW, y = Math.max(3, yBase - row[i] * scaleY);
+   i ? svgCtx.lineTo(x, y) : svgCtx.moveTo(x, y);
+  }
   svgCtx.stroke(); svgCtx.shadowBlur = 0;
  }
  svgCtx.globalAlpha = 1;
 }
-
 
 let vizLast = 0;
 function frame() {
