@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.30 — 2026-11-05
+- MIXES & SETS: DJ iGNEOUS - Florida Breaks (2016) added as #3 (gain-only master from Drive `floridaforrob.mp3`; after Summer Promo 2010 and Open Format Set 2011).
+
 ## 1.3.29 — 2026-11-05
 - Waveform: Option C recessed `<<` / `>>` rack paddles seek ±10s; Option B instructional header (`WAVEFORM · click to seek · << >> ±10s`); triple-tap seek removed — canvas is immediate click/drag position seek only.
 - Top-bar jumps: scroll so each window title sits flush under `#topbar` (~5px clearance) with zero bleed from the panel above (no more double-counted overhang). Hash `scroll-margin` / `--jump-pad` matched. `ls -la ~/links` tab also re-jumps `#man` cleanly.

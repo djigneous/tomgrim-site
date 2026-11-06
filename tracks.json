@@ -186,7 +186,7 @@
       "title": "ELEMENTS",
       "type": "album",
       "year": 2009,
-      "blurb": "ign3ous-era cuts from 2004–2009, the original elements before 2023's Elements II.",
+      "blurb": "ign3ous-era cuts from 2004\u20132009, the original elements before 2023's Elements II.",
       "cover": "assets/covers/elements.jpg",
       "tracks": [
         {
@@ -301,7 +301,7 @@
           "duration_sec": 162.0,
           "bpm": 123,
           "year": 2005,
-          "original": "ign3ous-hmph.mp3 (Google Drive; embedded date '3014', artwork XMP 2008-12-20, Drive 2016 — none in range, 2005 by default; BPM 123 from artist tag), -1.1 dB gain only",
+          "original": "ign3ous-hmph.mp3 (Google Drive; embedded date '3014', artwork XMP 2008-12-20, Drive 2016 \u2014 none in range, 2005 by default; BPM 123 from artist tag), -1.1 dB gain only",
           "aliases": [
             "hmph"
           ]
@@ -313,7 +313,7 @@
       "title": "MIXES & SETS",
       "type": "mix",
       "year": 2009,
-      "blurb": "Continuous mixes and DJ sets by DJ iGNEOUS / tomGRIM — promos, club sets, and the ELEMENTS continuous play mix.",
+      "blurb": "Continuous mixes and DJ sets by DJ iGNEOUS / tomGRIM \u2014 promos, club sets, and the ELEMENTS continuous play mix.",
       "cover": "assets/covers/mixes-sets.jpg",
       "tracks": [
         {
@@ -342,6 +342,21 @@
             "open-format-set",
             "open-format-set-2011",
             "open-format"
+          ]
+        },
+        {
+          "title": "DJ iGNEOUS - Florida Breaks (2016)",
+          "id3_title": "Florida Breaks (2016)",
+          "id3_artist": "DJ iGNEOUS",
+          "year": 2016,
+          "file": "assets/audio/mixes-sets/florida-breaks-2016.mp3",
+          "duration_sec": 3092.0,
+          "original": "dj ign3ous - floridaforrob.mp3 (Google Drive), -2.6 dB gain only, 192k",
+          "aliases": [
+            "florida-breaks-2016",
+            "florida-breaks",
+            "floridaforrob",
+            "florida breaks"
           ]
         },
         {
