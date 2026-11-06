@@ -3,6 +3,11 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.32 — 2026-11-05
+- Grimamp VIZ: removed Radial Burst and Vectorscope — `VIZ` now cycles the 4 modes: `SPECTRUM · log`, `WATERFALL · log`, `VU + PEAK · L/R+SUB`, `3D TERRAIN · ridge` (0px `.vb-spec` layout shift). Stale `localStorage.grimViz` of `vector`/`radial` cleanly falls back to Spectrum.
+- Theme colors on the 3 canvas visualizers across all 10 themes: Waterfall stores intensity history + 256-stop phosphor LUT (re-themes instantly); VU + Peak uses theme gradients / peak-hold / clip lamps (no hardcoded red); 3D Terrain gets CRT sky, occlusion fill, and depth-scaled multi-stop ridge strokes with front phosphor glow.
+- `parseCssColor` replaces brittle 6-digit-only `hexRgb` — handles `#rgb`, `#rrggbb`, `rgb()`/`rgba()`, plus 1×1 canvas fallback; RGB cached in `refreshColors()`.
+
 ## 1.3.31 — 2026-11-05
 - Phosphor Cache: Funky Breaks 3 (2025, 123 bpm) after Funky Breaks 2; Lonely Ghost (2023, 129 bpm) appended.
 - Remixes: The Who - Eminence Front (tomGRIM RMX) (2011, 110 bpm).

@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.31', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.32', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -119,7 +119,7 @@ function ensureCtx() {
 }
 /* hscope: left = HP~42Hz (24dB/oct) → LP~2.5kHz (punchy low+mid, no sub heave); right = HP~280Hz (mid+high) */
 let hsLo = null, hsHi = null, hsLoFilt = null, hsHiFilt = null, hsLoHp1 = null, hsLoHp2 = null, hsSink = null, tbufLo = null, tbufHi = null, hsAgcL = .1, hsAgcR = .1;
-let anL = null, anR = null, stereoSplit = null; // genuine L/R for vectorscope / VU
+let anL = null, anR = null, stereoSplit = null; // genuine L/R for VU meters
 function hsTap(src) {
  if (!actx || !src) return;
  if (!hsLo) {
@@ -133,7 +133,7 @@ function hsTap(src) {
   hsSink = actx.createGain(); hsSink.gain.value = 0; hsSink.connect(actx.destination);
   hsLoHp1.connect(hsLoHp2); hsLoHp2.connect(hsLoFilt); hsLoFilt.connect(hsLo); hsLo.connect(hsSink);
   hsHiFilt.connect(hsHi); hsHi.connect(hsSink);
-  // stereo taps for vectorscope / VU (ChannelSplitter duplicates mono → both)
+  // stereo taps for VU (ChannelSplitter duplicates mono → both)
   stereoSplit = actx.createChannelSplitter(2);
   anL = actx.createAnalyser(); anL.fftSize = 2048; anL.smoothingTimeConstant = .75;
   anR = actx.createAnalyser(); anR.fftSize = 2048; anR.smoothingTimeConstant = .75;
@@ -397,7 +397,47 @@ async function loadWave(t) {
 }
 function css(v) { return getComputedStyle(document.body).getPropertyValue(v).trim(); }
 let colors = {}, scopeGrad = null, scopeGradKey = '';
-function refreshColors() { colors = {fg:css('--fg'), dim:css('--dim'), hi:css('--hi'), acc:css('--acc'), ring:css('--ring') || css('--fg'), br:css('--br') || css('--hi')}; scopeGrad = null; scopeGradKey = ''; }
+let _parseC; // offscreen 1×1 canvas for CSS color → RGB
+function parseCssColor(h) {
+ if (!h) return [100, 240, 255];
+ const s = String(h).trim();
+ let m = /^#([0-9a-f]{3})$/i.exec(s);
+ if (m) { const x = m[1]; return [parseInt(x[0]+x[0],16), parseInt(x[1]+x[1],16), parseInt(x[2]+x[2],16)]; }
+ m = /^#([0-9a-f]{6})$/i.exec(s);
+ if (m) return [parseInt(m[1].slice(0,2),16), parseInt(m[1].slice(2,4),16), parseInt(m[1].slice(4,6),16)];
+ m = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i.exec(s);
+ if (m) return [+m[1]|0, +m[2]|0, +m[3]|0];
+ try {
+  if (!_parseC) { _parseC = document.createElement('canvas'); _parseC.width = _parseC.height = 1; }
+  const g = _parseC.getContext('2d', { willReadFrequently: true });
+  g.clearRect(0,0,1,1); g.fillStyle = '#000'; g.fillStyle = s; g.fillRect(0,0,1,1);
+  const d = g.getImageData(0,0,1,1).data; return [d[0], d[1], d[2]];
+ } catch (e) { return [100, 240, 255]; }
+}
+function lerpRgb(a, b, t) { t = Math.max(0, Math.min(1, t)); return [(a[0]+(b[0]-a[0])*t)|0,(a[1]+(b[1]-a[1])*t)|0,(a[2]+(b[2]-a[2])*t)|0]; }
+function rgbStr(a) { return `rgb(${a[0]},${a[1]},${a[2]})`; }
+let themeRgb = {}, wfLut = null; // cached RGB + waterfall 256×4 LUT
+function buildWfLut() {
+ const bg = themeRgb.bg || [0,0,0], dim = themeRgb.dim, fg = themeRgb.fg, ring = themeRgb.ring, acc = themeRgb.acc, br = themeRgb.br, hi = themeRgb.hi;
+ const deep = lerpRgb([0,0,0], bg, .55);
+ const midAcc = (acc[0]!==fg[0]||acc[1]!==fg[1]||acc[2]!==fg[2]) ? acc : ring;
+ const hot = (br[0]!==fg[0]||br[1]!==fg[1]) ? br : hi;
+ const stops = [[0, deep],[.24, dim],[.52, fg],[.76, lerpRgb(fg, midAcc, .85)],[.90, midAcc],[1, hot]];
+ const lut = new Uint8ClampedArray(256 * 4);
+ for (let i = 0; i < 256; i++) {
+  const t = i / 255; let a = stops[0], b = stops[1];
+  for (let s = 0; s < stops.length - 1; s++) if (t >= stops[s][0]) { a = stops[s]; b = stops[s+1]; }
+  const u = (t - a[0]) / Math.max(1e-6, b[0] - a[0]);
+  const c = lerpRgb(a[1], b[1], u);
+  const o = i * 4; lut[o]=c[0]; lut[o+1]=c[1]; lut[o+2]=c[2]; lut[o+3]=255;
+ }
+ wfLut = lut;
+}
+function refreshColors() {
+ colors = {fg:css('--fg'), dim:css('--dim'), hi:css('--hi'), acc:css('--acc'), ring:css('--ring') || css('--fg'), br:css('--br') || css('--hi'), bg:css('--bg') || '#000', bar:css('--bar') || css('--fg')};
+ themeRgb = {fg:parseCssColor(colors.fg), dim:parseCssColor(colors.dim), hi:parseCssColor(colors.hi), acc:parseCssColor(colors.acc), ring:parseCssColor(colors.ring), br:parseCssColor(colors.br), bg:parseCssColor(colors.bg), bar:parseCssColor(colors.bar)};
+ buildWfLut(); scopeGrad = null; scopeGradKey = '';
+}
 // perf: canvas shadowBlur at phone DPR (2.6x) was the main-thread hotspot (~95% CPU at 6x throttle) → glow faked with a wide translucent stroke, ring canvas capped at 1.5x
 const RING_D = 2; // 1.3.21: render scopes/wave at up to 2× DPR (phones stay capped)
 function fitCanvas(c, maxD) { const dp = Math.min(devicePixelRatio, maxD || 9), w = c.clientWidth * dp | 0, h = c.clientHeight * dp | 0; if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } }
@@ -516,21 +556,22 @@ function scopeStroke(ctx, x0, y0, x1, y1, conic) {
  scopeGrad = g; return g;
 }
 
-/* ---------- 1.3.29 Grimamp VIZ modes (same .vb-spec footprint; 0px layout shift) ---------- */
+/* ---------- 1.3.32 Grimamp VIZ modes (4 modes; themed waterfall / VU / terrain) ---------- */
 const VIZ_MODES = [
  { id: 'spec', label: 'SPECTRUM · log', title: 'Classic log spectrum bars' },
  { id: 'waterfall', label: 'WATERFALL · log', title: 'Scrolling frequency-over-time spectrogram' },
- { id: 'vector', label: 'VECTORSCOPE · x-y', title: 'Stereo L/R Lissajous phase scope' },
  { id: 'vu', label: 'VU + PEAK · L/R+SUB', title: 'Dual analog VU meters with peak hold' },
- { id: 'radial', label: 'RADIAL BURST · ring', title: 'Frequency bars around the record ring' },
- { id: 'terrain', label: '3D TERRAIN · ridge', title: 'Joy Division ridge-plot spectrum terrain' },
+ { id: 'terrain', label: '3D TERRAIN · ridge', title: '3D wireframe frequency terrain' },
 ];
-const specBox = $('.vb-spec'), specLbl = $('#spec-lbl') || specBox.querySelector('.lbl'), specViz = $('#spec-viz'), bviz = $('#bviz');
+const VIZ_ALIASES = { spectrum: 'spec', spec: 'spec', log: 'spec', waterfall: 'waterfall', wf: 'waterfall', vu: 'vu', meter: 'vu', meters: 'vu', terrain: 'terrain', ridge: 'terrain', '3d': 'terrain', '3d-terrain': 'terrain' };
+const specBox = $('.vb-spec'), specLbl = $('#spec-lbl') || (specBox && specBox.querySelector('.lbl')), specViz = $('#spec-viz'), bviz = $('#bviz');
 const svgCtx = specViz ? specViz.getContext('2d') : null;
 let vizMode = 0;
-try { const s = localStorage.grimViz; const i = VIZ_MODES.findIndex(m => m.id === s); if (i >= 0) vizMode = i; } catch (e) {}
-let wfImg = null, wfRow = 0, vuPk = { L: 0, R: 0, S: 0 }, vuBall = { L: 0, R: 0, S: 0 };
-let terrainHist = [], tbufL = null, tbufR = null, vecPersist = null;
+try { const s = localStorage.grimViz; const i = VIZ_MODES.findIndex(m => m.id === s); vizMode = i >= 0 ? i : 0; } catch (e) {}
+let wfHist = null, wfW = 0, wfH = 0, wfRow = 0, wfTmp = null;
+let vuPk = { L: 0, R: 0, S: 0 }, vuBall = { L: 0, R: 0, S: 0 };
+let terrainHist = [], tbufL = null, tbufR = null;
+const TERR_ROWS = 18;
 function fitSpecViz() {
  if (!specViz || !svgCtx) return { W: 0, H: 0, d: 1 };
  const d = Math.min(devicePixelRatio || 1, 2);
@@ -544,10 +585,12 @@ function setVizMode(i, quiet) {
  const m = VIZ_MODES[vizMode];
  try { localStorage.grimViz = m.id; } catch (e) {}
  if (specLbl) { specLbl.textContent = m.label; specLbl.title = m.title; }
- if (bviz) { bviz.title = 'Visualizer: ' + m.label + ' — click to cycle'; bviz.setAttribute('aria-label', 'Cycle visualizer, current ' + m.label); }
- if (specBox) specBox.classList.toggle('viz-canvas', m.id !== 'spec' && m.id !== 'radial');
- // radial keeps ascii spectrum in vb-spec; canvas modes hide #spec
- if (m.id === 'spec' || m.id === 'radial') { if (specEl) specEl.style.visibility = ''; if (specViz) specViz.style.visibility = 'hidden'; }
+ if (bviz) {
+  bviz.title = 'Cycle visualizer (Spectrum · Waterfall · VU · Terrain) — now: ' + m.label;
+  bviz.setAttribute('aria-label', 'Cycle Grimamp visualizer, currently ' + m.label);
+ }
+ if (specBox) specBox.classList.toggle('viz-canvas', m.id !== 'spec');
+ if (m.id === 'spec') { if (specEl) specEl.style.visibility = ''; if (specViz) specViz.style.visibility = 'hidden'; }
  else { if (specEl) specEl.style.visibility = 'hidden'; if (specViz) specViz.style.visibility = 'visible'; }
  if (!quiet) try { say('viz → ' + V(m.label), true); } catch (e) {}
 }
@@ -556,96 +599,51 @@ if (bviz) bviz.addEventListener('click', e => { e.preventDefault(); cycleViz(); 
 window.setVizMode = setVizMode; window.cycleViz = cycleViz; window.VIZ_MODES = VIZ_MODES;
 setVizMode(vizMode, true);
 
-function hexRgb(h) { const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h || ''); return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [100, 240, 255]; }
-function lerpCol(a, b, t) { return `rgb(${(a[0]+(b[0]-a[0])*t)|0},${(a[1]+(b[1]-a[1])*t)|0},${(a[2]+(b[2]-a[2])*t)|0})`; }
-
 function drawWaterfall(vals, dt, playing) {
  const { W, H, d, cssW, cssH } = fitSpecViz(); if (!W) return;
- const rows = Math.max(32, (cssH / 2) | 0);
- if (!wfImg || wfImg.width !== (cssW | 0) || wfImg.height !== rows) {
-  wfImg = svgCtx.createImageData(cssW | 0, rows); wfRow = 0;
-  for (let i = 0; i < wfImg.data.length; i += 4) { wfImg.data[i+3] = 255; }
+ const rows = Math.max(32, (cssH / 2) | 0), w = cssW | 0;
+ if (!wfHist || wfW !== w || wfH !== rows) {
+  wfHist = new Float32Array(w * rows); wfW = w; wfH = rows; wfRow = 0;
  }
- const fg = hexRgb(colors.fg), dim = hexRgb(colors.dim), hi = hexRgb(colors.hi);
- const n = vals.length, w = wfImg.width, row = wfRow % wfImg.height;
+ if (!wfLut) buildWfLut();
+ const n = vals.length, row = wfRow % wfH;
  for (let x = 0; x < w; x++) {
   const v = vals[Math.min(n - 1, (x / w * n) | 0)];
-  const t = Math.pow(Math.max(0, Math.min(1, v)), .85);
-  const c = t > .7 ? lerpCol(fg, hi, (t - .7) / .3) : lerpCol(dim, fg, t / .7);
-  const m = /^rgb\((\d+),(\d+),(\d+)\)$/.exec(c), r = +m[1], g = +m[2], b = +m[3];
-  const o = (row * w + x) * 4;
-  wfImg.data[o] = r; wfImg.data[o+1] = g; wfImg.data[o+2] = b; wfImg.data[o+3] = 255;
+  wfHist[row * w + x] = Math.pow(Math.max(0, Math.min(1, v)), .85);
  }
  if (playing || !RM) wfRow++;
- // blit with newest row at bottom
+ // paint ImageData from ring buffer via theme LUT (re-themes instantly on theme change)
+ const img = svgCtx.createImageData(w, rows);
+ const data = img.data, lut = wfLut;
+ for (let y = 0; y < rows; y++) {
+  const srcRow = (wfRow + y) % wfH; // oldest at top
+  for (let x = 0; x < w; x++) {
+   const v = wfHist[srcRow * w + x];
+   const li = (Math.max(0, Math.min(255, (v * 255) | 0))) * 4;
+   const o = (y * w + x) * 4;
+   data[o] = lut[li]; data[o+1] = lut[li+1]; data[o+2] = lut[li+2]; data[o+3] = 255;
+  }
+ }
  svgCtx.setTransform(d, 0, 0, d, 0, 0);
- svgCtx.fillStyle = '#000'; svgCtx.fillRect(0, 0, cssW, cssH);
- const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = wfImg.height;
- tmp.getContext('2d').putImageData(wfImg, 0, 0);
- // draw scrolled so row is at bottom
- const yOff = cssH - ((wfRow % wfImg.height) / wfImg.height) * cssH;
- svgCtx.globalAlpha = .95;
- svgCtx.drawImage(tmp, 0, 0, w, wfImg.height, 0, yOff - cssH, cssW, cssH);
- svgCtx.drawImage(tmp, 0, 0, w, wfImg.height, 0, yOff, cssW, cssH);
+ svgCtx.fillStyle = rgbStr(lerpRgb([0,0,0], themeRgb.bg || [0,0,0], .55));
+ svgCtx.fillRect(0, 0, cssW, cssH);
+ if (!wfTmp || wfTmp.width !== w || wfTmp.height !== rows) { wfTmp = document.createElement('canvas'); wfTmp.width = w; wfTmp.height = rows; }
+ wfTmp.getContext('2d').putImageData(img, 0, 0);
+ svgCtx.globalAlpha = .96;
+ svgCtx.drawImage(wfTmp, 0, 0, w, rows, 0, 0, cssW, cssH);
  svgCtx.globalAlpha = 1;
- if (!playing) { // idle graticule
-  svgCtx.strokeStyle = colors.dim; svgCtx.globalAlpha = .25; svgCtx.lineWidth = 1;
+ if (!playing) {
+  svgCtx.strokeStyle = colors.dim; svgCtx.globalAlpha = .22; svgCtx.lineWidth = 1;
   for (let i = 1; i < 4; i++) { const x = cssW * i / 4; svgCtx.beginPath(); svgCtx.moveTo(x, 0); svgCtx.lineTo(x, cssH); svgCtx.stroke(); }
   svgCtx.globalAlpha = 1;
  }
 }
 
-function drawVectorscope(playing) {
- const { W, H, d, cssW, cssH } = fitSpecViz(); if (!W) return;
- svgCtx.setTransform(d, 0, 0, d, 0, 0);
- // phosphor persistence
- if (!vecPersist || vecPersist.width !== W || vecPersist.height !== H) {
-  vecPersist = document.createElement('canvas'); vecPersist.width = W; vecPersist.height = H;
- }
- const pg = vecPersist.getContext('2d');
- pg.globalCompositeOperation = 'source-over';
- pg.fillStyle = 'rgba(0,0,0,0.12)'; pg.fillRect(0, 0, W, H);
- const cx = cssW / 2, cy = cssH / 2, sc = Math.min(cssW, cssH) * .38;
- // graticule
- svgCtx.fillStyle = '#000'; svgCtx.fillRect(0, 0, cssW, cssH);
- svgCtx.drawImage(vecPersist, 0, 0, W, H, 0, 0, cssW, cssH);
- svgCtx.strokeStyle = colors.dim; svgCtx.globalAlpha = .35; svgCtx.lineWidth = 1;
- svgCtx.beginPath(); svgCtx.arc(cx, cy, sc, 0, Math.PI * 2); svgCtx.stroke();
- svgCtx.beginPath(); svgCtx.moveTo(cx - sc, cy); svgCtx.lineTo(cx + sc, cy); svgCtx.moveTo(cx, cy - sc); svgCtx.lineTo(cx, cy + sc); svgCtx.stroke();
- // 45° M/S axes
- svgCtx.beginPath(); svgCtx.moveTo(cx - sc * .7, cy - sc * .7); svgCtx.lineTo(cx + sc * .7, cy + sc * .7);
- svgCtx.moveTo(cx - sc * .7, cy + sc * .7); svgCtx.lineTo(cx + sc * .7, cy - sc * .7); svgCtx.stroke();
- svgCtx.globalAlpha = 1;
- const live = playing && anL && anR;
- if (live) {
-  tbufL = tbufL || new Uint8Array(anL.fftSize); tbufR = tbufR || new Uint8Array(anR.fftSize);
-  anL.getByteTimeDomainData(tbufL); anR.getByteTimeDomainData(tbufR);
- } else if (playing && tbuf) { tbufL = tbufR = tbuf; }
- pg.strokeStyle = colors.fg; pg.globalAlpha = .55; pg.lineWidth = d; pg.beginPath();
- const N = live || tbufL ? Math.min(600, (tbufL || tbuf).length) : 120;
- for (let i = 0; i < N; i++) {
-  let L, R;
-  if (tbufL) { L = ((tbufL[i] - 128) / 128); R = ((tbufR[i] - 128) / 128); }
-  else { const a = idle * 1.1 + i * .05; L = Math.sin(a) * .08; R = Math.cos(a * 1.03) * .08; }
-  // rotate 45° into Mid/Side view: x = (L-R)/√2, y = (L+R)/√2
-  const x = cx + (L - R) * sc * .707, y = cy - (L + R) * sc * .707;
-  const px = x * d, py = y * d;
-  i ? pg.lineTo(px, py) : pg.moveTo(px, py);
- }
- pg.stroke(); pg.globalAlpha = 1;
- svgCtx.globalAlpha = .9; svgCtx.drawImage(vecPersist, 0, 0, W, H, 0, 0, cssW, cssH); svgCtx.globalAlpha = 1;
- // bright tip
- svgCtx.fillStyle = colors.hi; svgCtx.globalAlpha = .8;
- if (tbufL) { const i = N - 1; const L = (tbufL[i] - 128) / 128, R = (tbufR[i] - 128) / 128;
-  svgCtx.beginPath(); svgCtx.arc(cx + (L - R) * sc * .707, cy - (L + R) * sc * .707, 2, 0, Math.PI * 2); svgCtx.fill(); }
- svgCtx.globalAlpha = 1;
-}
-
 function drawVU(vals, playing, dt) {
  const { W, H, d, cssW, cssH } = fitSpecViz(); if (!W) return;
  svgCtx.setTransform(d, 0, 0, d, 0, 0);
- svgCtx.fillStyle = '#000'; svgCtx.fillRect(0, 0, cssW, cssH);
- // levels from stereo analysers + sub from low spectrum bins
+ const bg = themeRgb.bg || [0,0,0], dim = themeRgb.dim, fg = themeRgb.fg, ring = themeRgb.ring, acc = themeRgb.acc, br = themeRgb.br, hi = themeRgb.hi, bar = themeRgb.bar;
+ svgCtx.fillStyle = rgbStr(lerpRgb([0,0,0], bg, .65)); svgCtx.fillRect(0, 0, cssW, cssH);
  let lRms = 0, rRms = 0, sub = 0;
  if (playing && anL && anR) {
   tbufL = tbufL || new Uint8Array(anL.fftSize); tbufR = tbufR || new Uint8Array(anR.fftSize);
@@ -659,96 +657,92 @@ function drawVU(vals, playing, dt) {
  sub = vals.slice(0, Math.max(2, (vals.length * .08) | 0)).reduce((a, b) => a + b, 0) / Math.max(1, (vals.length * .08) | 0);
  const ball = (k, v) => { const target = Math.min(1, v * 2.8); vuBall[k] += (target - vuBall[k]) * Math.min(1, dt * (target > vuBall[k] ? 14 : 3)); vuPk[k] = Math.max(vuPk[k] - dt * .35, vuBall[k]); };
  ball('L', lRms); ball('R', rRms); ball('S', sub);
- const meters = [['L', vuBall.L, vuPk.L], ['R', vuBall.R, vuPk.R], ['SUB', vuBall.S, vuPk.S]];
+ const meters = [['L', vuBall.L, vuPk.L, false], ['R', vuBall.R, vuPk.R, false], ['SUB', vuBall.S, vuPk.S, true]];
  const gap = 8, mw = (cssW - gap * 4) / 3, mh = cssH - 22, top = 4;
- meters.forEach(([lab, v, pk], i) => {
+ meters.forEach(([lab, v, pk, isSub], i) => {
   const x = gap + i * (mw + gap);
-  // trough
-  svgCtx.fillStyle = 'rgba(0,0,0,.55)'; svgCtx.fillRect(x, top, mw, mh);
-  svgCtx.strokeStyle = colors.dim; svgCtx.globalAlpha = .5; svgCtx.strokeRect(x + .5, top + .5, mw - 1, mh - 1); svgCtx.globalAlpha = 1;
-  // scale ticks
-  for (let t = 0; t <= 1.001; t += .2) {
-   const y = top + mh - t * mh; svgCtx.strokeStyle = colors.dim; svgCtx.globalAlpha = .3;
+  svgCtx.fillStyle = rgbStr(lerpRgb([0,0,0], bg, .55)); svgCtx.fillRect(x, top, mw, mh);
+  svgCtx.strokeStyle = rgbStr(dim); svgCtx.globalAlpha = .55; svgCtx.strokeRect(x + .5, top + .5, mw - 1, mh - 1); svgCtx.globalAlpha = 1;
+  // dB ticks (-24,-12,-6,0,+3)
+  const tickLabs = [[0,'-24'],[.25,'-12'],[.5,'-6'],[.75,'0'],[1,'+3']];
+  tickLabs.forEach(([t,lab]) => { const y = top + mh - t * mh; svgCtx.strokeStyle = rgbStr(dim); svgCtx.globalAlpha = .28;
    svgCtx.beginPath(); svgCtx.moveTo(x + 2, y); svgCtx.lineTo(x + mw - 2, y); svgCtx.stroke();
-  }
+   if (i === 0) { svgCtx.globalAlpha = .55; svgCtx.fillStyle = rgbStr(dim); svgCtx.font = '9px "IBM Plex Mono",monospace'; svgCtx.fillText(lab, 1, y + 3); }
+  });
   svgCtx.globalAlpha = 1;
   const h = Math.max(1, v * mh), y = top + mh - h;
   const g = svgCtx.createLinearGradient(0, top + mh, 0, top);
-  g.addColorStop(0, colors.dim); g.addColorStop(.55, colors.fg); g.addColorStop(.82, colors.acc || colors.fg); g.addColorStop(1, '#ff3a2a');
+  if (isSub) {
+   g.addColorStop(0, rgbStr(dim)); g.addColorStop(.45, rgbStr(ring)); g.addColorStop(.78, rgbStr(acc)); g.addColorStop(1, rgbStr(hi));
+  } else {
+   g.addColorStop(0, rgbStr(dim)); g.addColorStop(.45, rgbStr(fg)); g.addColorStop(.70, rgbStr(ring[0]!==fg[0]?ring:bar)); g.addColorStop(.88, rgbStr(acc)); g.addColorStop(1, rgbStr(br[0]!==fg[0]?br:hi));
+  }
   svgCtx.fillStyle = g; svgCtx.fillRect(x + 3, y, mw - 6, h);
+  // bargraph segment dividers
+  svgCtx.fillStyle = 'rgba(0,0,0,.35)';
+  for (let sx = x + 7; sx < x + mw - 3; sx += 4) svgCtx.fillRect(sx, y, 1, h);
   // peak hold
   const py = top + mh - pk * mh;
-  svgCtx.fillStyle = pk > .92 ? '#ff3a2a' : colors.hi;
-  svgCtx.fillRect(x + 2, py - 1, mw - 4, 2);
+  svgCtx.fillStyle = rgbStr(pk > .82 ? (acc[0]!==fg[0]?acc:hi) : hi);
+  svgCtx.shadowColor = colors.acc || colors.fg; svgCtx.shadowBlur = pk > .7 ? 6 : 0;
+  svgCtx.fillRect(x + 2, py - 1, mw - 4, 2); svgCtx.shadowBlur = 0;
   // clip lamp
-  svgCtx.fillStyle = pk > .95 ? '#ff3a2a' : colors.dim;
-  svgCtx.globalAlpha = pk > .95 ? 1 : .35;
-  svgCtx.fillRect(x + mw / 2 - 4, top - 1, 8, 3); svgCtx.globalAlpha = 1;
-  svgCtx.fillStyle = colors.fg; svgCtx.font = '700 10px "IBM Plex Mono",monospace';
+  const clip = pk > .82;
+  svgCtx.beginPath(); svgCtx.arc(x + mw / 2, top - 2, 3.2, 0, Math.PI * 2);
+  svgCtx.fillStyle = clip ? rgbStr(hi) : rgbStr(lerpRgb(bg, dim, .5));
+  svgCtx.shadowColor = colors.acc || colors.fg; svgCtx.shadowBlur = clip ? 8 : 0; svgCtx.fill(); svgCtx.shadowBlur = 0;
+  svgCtx.fillStyle = isSub ? rgbStr(acc[0]!==fg[0]?acc:ring) : rgbStr(br[0]!==fg[0]?br:fg);
+  svgCtx.font = '700 10px "IBM Plex Mono",monospace';
   svgCtx.fillText(lab, x + mw / 2 - svgCtx.measureText(lab).width / 2, cssH - 4);
  });
 }
 
 function drawTerrain(vals, dt, playing) {
  const { W, H, d, cssW, cssH } = fitSpecViz(); if (!W) return;
- const depth = 18;
+ const depth = TERR_ROWS;
  if (!playing && terrainHist.length === 0) terrainHist = Array.from({ length: depth }, () => vals.map(() => .04));
  if (playing || terrainHist.length < depth) {
   terrainHist.push(vals.slice());
   if (terrainHist.length > depth) terrainHist.shift();
  } else {
-  // idle drift
   terrainHist.push(vals.map((v, i) => .04 + .03 * Math.sin(idle + i * .4)));
   if (terrainHist.length > depth) terrainHist.shift();
  }
  svgCtx.setTransform(d, 0, 0, d, 0, 0);
- svgCtx.fillStyle = '#000'; svgCtx.fillRect(0, 0, cssW, cssH);
- const n = vals.length;
+ const bg = themeRgb.bg || [0,0,0], dim = themeRgb.dim, fg = themeRgb.fg, ring = themeRgb.ring, acc = themeRgb.acc, br = themeRgb.br, hi = themeRgb.hi;
+ const sky = svgCtx.createLinearGradient(0, 0, 0, cssH);
+ sky.addColorStop(0, rgbStr(lerpRgb([0,0,0], bg, .55))); sky.addColorStop(1, rgbStr(lerpRgb([4,5,7], bg, .85)));
+ svgCtx.fillStyle = sky; svgCtx.fillRect(0, 0, cssW, cssH);
+ const n = vals.length, occl = rgbStr(lerpRgb([0,0,0], bg, .38));
  for (let z = 0; z < terrainHist.length; z++) {
   const row = terrainHist[z], depthT = z / (terrainHist.length - 1 || 1);
-  const yBase = cssH * (.22 + .72 * depthT), scaleY = cssH * (.35 - .22 * depthT), fade = .25 + .75 * depthT;
+  const yBase = cssH * (.22 + .72 * depthT), scaleY = cssH * (.35 - .22 * depthT);
+  // occlusion fill
   svgCtx.beginPath();
-  for (let i = 0; i < n; i++) {
-   const x = (i / (n - 1)) * cssW;
-   const y = yBase - row[i] * scaleY;
-   i ? svgCtx.lineTo(x, y) : svgCtx.moveTo(x, y);
-  }
-  // fill down for occlusion
+  for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * cssW, y = yBase - row[i] * scaleY; i ? svgCtx.lineTo(x, y) : svgCtx.moveTo(x, y); }
   svgCtx.lineTo(cssW, cssH + 2); svgCtx.lineTo(0, cssH + 2); svgCtx.closePath();
-  svgCtx.fillStyle = '#000'; svgCtx.globalAlpha = .85; svgCtx.fill();
-  svgCtx.strokeStyle = colors.fg; svgCtx.globalAlpha = fade; svgCtx.lineWidth = 1.2;
-  svgCtx.beginPath();
-  for (let i = 0; i < n; i++) {
-   const x = (i / (n - 1)) * cssW, y = yBase - row[i] * scaleY;
-   i ? svgCtx.lineTo(x, y) : svgCtx.moveTo(x, y);
+  svgCtx.fillStyle = occl; svgCtx.globalAlpha = .9; svgCtx.fill();
+  // stroke color by depth
+  let stroke;
+  if (depthT < .35) {
+   stroke = rgbStr(lerpRgb(bg, dim, .35 + depthT));
+   svgCtx.globalAlpha = .35 + depthT * .5; svgCtx.lineWidth = 1; svgCtx.shadowBlur = 0;
+  } else if (depthT < .78) {
+   const g = svgCtx.createLinearGradient(0, 0, cssW, 0);
+   const mid = lerpRgb(dim, fg, (depthT - .35) / .43);
+   g.addColorStop(0, rgbStr(mid)); g.addColorStop(.33, rgbStr(ring[0]!==fg[0]?ring:fg)); g.addColorStop(.66, rgbStr(acc[0]!==fg[0]?acc:br)); g.addColorStop(1, rgbStr(mid));
+   stroke = g; svgCtx.globalAlpha = .55 + depthT * .4; svgCtx.lineWidth = 1.15; svgCtx.shadowBlur = 0;
+  } else {
+   const g = svgCtx.createLinearGradient(0, 0, cssW, 0);
+   g.addColorStop(0, rgbStr(fg)); g.addColorStop(.4, rgbStr(acc[0]!==fg[0]?acc:br)); g.addColorStop(.7, rgbStr(br[0]!==fg[0]?br:hi)); g.addColorStop(1, rgbStr(fg));
+   stroke = g; svgCtx.globalAlpha = .85 + depthT * .15; svgCtx.lineWidth = 1.35;
+   svgCtx.shadowColor = colors.acc || colors.fg; svgCtx.shadowBlur = depthT > .9 ? 8 : 4;
   }
-  svgCtx.stroke();
+  svgCtx.strokeStyle = stroke; svgCtx.beginPath();
+  for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * cssW, y = yBase - row[i] * scaleY; i ? svgCtx.lineTo(x, y) : svgCtx.moveTo(x, y); }
+  svgCtx.stroke(); svgCtx.shadowBlur = 0;
  }
  svgCtx.globalAlpha = 1;
-}
-
-function drawRadialBurst(cx, cy, rx, ry, amp, d, vals, live) {
- // bass at bottom, highs at top, mirrored L/R
- const n = vals.length, half = Math.ceil(n / 2);
- rg.strokeStyle = colors.dim; rg.globalAlpha = .3; rg.lineWidth = d;
- rg.beginPath(); rg.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); rg.stroke(); rg.globalAlpha = 1;
- const grad = scopeStroke(rg, cx, cy, cx + rx, cy, true);
- for (let side = -1; side <= 1; side += 2) {
-  for (let i = 0; i < half; i++) {
-   // i=0 bass at bottom (π/2), i=half-1 highs at top (-π/2)
-   const t = i / (half - 1 || 1);
-   const ang = Math.PI / 2 - t * Math.PI; // bottom → top
-   const a = side < 0 ? Math.PI - ang : ang; // mirror
-   const v = vals[i] || (live ? 0 : .04 + .03 * Math.sin(idle + i * .3));
-   const len = (0.08 + v * 0.92) * amp * 1.35;
-   const x0 = cx + Math.cos(a) * rx, y0 = cy + Math.sin(a) * ry;
-   const x1 = cx + Math.cos(a) * (rx + len), y1 = cy + Math.sin(a) * (ry + len);
-   rg.strokeStyle = grad; rg.globalAlpha = .15 + v * .85; rg.lineWidth = Math.max(1, 2.2 * d * (1 - t * .4));
-   rg.beginPath(); rg.moveTo(x0, y0); rg.lineTo(x1, y1); rg.stroke();
-   if (v > .55) { rg.strokeStyle = colors.hi; rg.globalAlpha = .7; rg.lineWidth = d; rg.beginPath(); rg.moveTo(x1 - Math.cos(a) * 3 * d, y1 - Math.sin(a) * 3 * d); rg.lineTo(x1, y1); rg.stroke(); }
-  }
- }
- rg.globalAlpha = 1;
 }
 
 
@@ -781,8 +775,8 @@ function frame() {
  const peakFall = dt * 0.45;
  for (let b = 0; b < NB; b++) { peaks[b] = Math.max((peaks[b] || 0) - peakFall, vals[b]); }
  const mode = VIZ_MODES[vizMode].id;
- // vb-spec: ascii spectrum (spec + radial) OR canvas visualizer
- if (mode === 'spec' || mode === 'radial') {
+ // vb-spec: ascii spectrum OR canvas visualizer (waterfall / vu / terrain)
+ if (mode === 'spec') {
   let s = ''; s += '─'.repeat(NB) + '\n'; const TOP = '▔▔▀▀▀██';
   for (let r = 0; r < ROWS; r++) { let line = '';
    for (let b = 0; b < NB; b++) { const v = vals[b] * ROWS - r, pk = Math.floor(peaks[b] * ROWS - .001);
@@ -792,10 +786,9 @@ function frame() {
    s += line + (r < ROWS - 1 ? '\n' : ''); }
   specEl.innerHTML = s;
  } else if (mode === 'waterfall') drawWaterfall(vals, dt, playing);
- else if (mode === 'vector') drawVectorscope(playing);
  else if (mode === 'vu') drawVU(vals, playing, dt);
  else if (mode === 'terrain') drawTerrain(vals, dt, playing);
- // ring around record: classic scope OR radial burst
+ // ring around record: always classic smooth circular scope
  fitCanvas(ring, RING_D); { const W = ring.width, H = ring.height, d = Math.min(devicePixelRatio, RING_D), pad = parseFloat(getComputedStyle(ring.parentElement).paddingLeft) * d || 22 * d;
   const sx = W / (ring.clientWidth || 1), sy = H / (ring.clientHeight || 1);
   const cx = recGeom.ox * sx, cy = recGeom.oy * sy, amp = pad / 2 - 2 * d;
@@ -803,16 +796,12 @@ function frame() {
   const live = an && playing; let gain = 1;
   if (live) { tbuf = tbuf || new Uint8Array(an.fftSize); an.getByteTimeDomainData(tbuf); let sq = 0; for (let i = 0; i < tbuf.length; i += 4) { const x = (tbuf[i] - 128) / 128; sq += x * x; }
    const rms = Math.sqrt(sq / (tbuf.length / 4)); ringAgc = Math.max(rms, ringAgc * .992, .02); gain = Math.min(9, Math.max(1.5, .55 / ringAgc)); }
-  if (mode === 'radial') {
-   drawRadialBurst(cx, cy, rx, ry, amp, d, vals, live);
-  } else {
-   rg.strokeStyle = colors.dim; rg.globalAlpha = .35; rg.lineWidth = d; rg.beginPath(); rg.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); rg.stroke(); rg.globalAlpha = 1;
-   const N = 512; rg.lineJoin = 'round'; rg.lineCap = 'round';
-   const grad = scopeStroke(rg, cx, cy, cx + rx, cy + ry, true);
-   for (const [col, lw, al] of [[grad, 9, .16], [grad, 2.8, 1], [colors.hi, 1.05, .95]]) { rg.strokeStyle = col; rg.lineWidth = lw * d; rg.globalAlpha = al; rg.beginPath();
-    for (let i = 0; i <= N; i++) { const t = i % N, a = t / N * Math.PI * 2 - Math.PI / 2; let v; if (live) { const k = Math.floor(t / N * (tbuf.length - 1)), raw = (tbuf[k] - 128) / 128; let lp = 0; for (let q = -8; q <= 8; q += 2) lp += (tbuf[(k + q + tbuf.length) % tbuf.length] - 128) / 128; v = Math.tanh((raw + lp / 9 * .85) * gain); } else v = Math.sin(t / 6 + idle * 1.2) * .05; const o = Math.max(-.35, Math.min(1, v)) * amp, x = cx + Math.cos(a) * (rx + o), y = cy + Math.sin(a) * (ry + o); i ? rg.lineTo(x, y) : rg.moveTo(x, y); }
-    rg.closePath(); rg.stroke(); } rg.globalAlpha = 1;
-  } }
+  rg.strokeStyle = colors.dim; rg.globalAlpha = .35; rg.lineWidth = d; rg.beginPath(); rg.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); rg.stroke(); rg.globalAlpha = 1;
+  const N = 512; rg.lineJoin = 'round'; rg.lineCap = 'round';
+  const grad = scopeStroke(rg, cx, cy, cx + rx, cy + ry, true);
+  for (const [col, lw, al] of [[grad, 9, .16], [grad, 2.8, 1], [colors.hi, 1.05, .95]]) { rg.strokeStyle = col; rg.lineWidth = lw * d; rg.globalAlpha = al; rg.beginPath();
+   for (let i = 0; i <= N; i++) { const t = i % N, a = t / N * Math.PI * 2 - Math.PI / 2; let v; if (live) { const k = Math.floor(t / N * (tbuf.length - 1)), raw = (tbuf[k] - 128) / 128; let lp = 0; for (let q = -8; q <= 8; q += 2) lp += (tbuf[(k + q + tbuf.length) % tbuf.length] - 128) / 128; v = Math.tanh((raw + lp / 9 * .85) * gain); } else v = Math.sin(t / 6 + idle * 1.2) * .05; const o = Math.max(-.35, Math.min(1, v)) * amp, x = cx + Math.cos(a) * (rx + o), y = cy + Math.sin(a) * (ry + o); i ? rg.lineTo(x, y) : rg.moveTo(x, y); }
+   rg.closePath(); rg.stroke(); } rg.globalAlpha = 1; }
  drawHScope(an && playing);
  drawWave(); spinRecord(performance.now());
  requestAnimationFrame(frame);
@@ -912,7 +901,7 @@ const HELP = () => [
  ['fun', 'random weather matrix glitch fire hack starfield plasma tunnel rain dvd life cube torus donut snow pipes', [['cowsay', '<text>', 'a cow says it']], 'any key or click exits an effect'],
  ['system', 'pwd dir history cls hostname date uptime ifconfig top htop ps neofetch exit', [['cd', '<dir>', 'change directory'], ['ls', '-la [path]', 'list files'], ['cat', '<file>', 'print a file'], ['echo', '<text>', 'print text'], ['uname', '-a', 'system info'], ['ping', '<host>', 'ping a host'], ['ip', 'a', 'network interfaces'], ['df', '-h', 'disk usage'], ['free', '-h', 'memory usage'], ['which', '<cmd>', 'locate a command'], ['ssh', '<host>', 'connect (sort of)'], ['curl', '<url>', 'fetch a url'], ['apt', 'install <pkg>', 'install a package'], ['sudo', '<cmd>', 'try your luck']]],
  ['fx', '', [['fx', '', 'show knob values'], ['fx', 'reset', 'all knobs back to default'], ['fx', '<filter|res|verb|crush> <value>', 'set a knob (or drag it)']]],
- ['look', '', [['colors', 'on|off', 'ANSI colors in the terminal']]],
+ ['look', 'viz', [['colors', 'on|off', 'ANSI colors in the terminal'], ['viz', '[spec|waterfall|vu|terrain|next]', 'cycle / set Grimamp visualizer']]],
  ['idle', '', [['screensaver', 'on|off|<seconds>|<effect>|random', 'default on, 60s']]]];
 function hlHelp(c, ar) { const w = c.split(' '); return `<span class="sx-cmd">${escH(w[0])}</span>` + w.slice(1).map(x => ' <span class="sx-arg">' + escH(x) + '</span>').join('') + (ar ? ' ' + ar.split(' ').map(t => t.split(/(\|)/).map(x => x === '|' ? '<span class="sx-op">|</span>' : `<span class="${/^-/.test(x) ? 'sx-flag' : /^</.test(x) || /^\[/.test(x) ? 'sx-var' : /^\d/.test(x) ? 'sx-num' : 'sx-arg'}">${escH(x)}</span>`).join('')).join(' ') : ''); }
 const RUNNABLE = new Set(['random', 'install', 'feedback', 'like', 'matrix', 'glitch', 'fire', 'hack', 'weather', 'starfield', 'plasma', 'tunnel', 'rain', 'dvd', 'life', 'cube', 'torus', 'donut', 'snow', 'pipes']);
@@ -1200,8 +1189,9 @@ const CMDS = {
  vol: a => { setVol((+a || 0) / 100); say('volume ' + V(Math.round(vol * 100) + '%'), true); },
  bio: () => { say(manBio(), true); showManPage('tomgrim'); jump('man'); },
  man: a => CMDS.bio(), whoami: () => say('tomGRIM — formerly dj ign3ous. Lehigh Valley, PA.'), viz: a => { const arg = (a || '').trim().toLowerCase(); if (!arg || arg === 'next' || arg === 'cycle') return cycleViz();
-   const i = VIZ_MODES.findIndex(m => m.id === arg || m.label.toLowerCase().startsWith(arg) || String(VIZ_MODES.indexOf(m)) === arg);
-   if (i < 0) return say('viz: ' + VIZ_MODES.map((m, i) => i + ':' + m.id).join(' · ') + ' · viz next');
+   const id = VIZ_ALIASES[arg] || arg;
+   const i = VIZ_MODES.findIndex(m => m.id === id || m.id === arg || m.label.toLowerCase().startsWith(arg) || String(VIZ_MODES.indexOf(m)) === arg);
+   if (i < 0) return say('viz: spec · waterfall · vu · terrain · viz next');
    setVizMode(i); },
   fetch: () => jump('fetch'), weather: () => weatherFx(true), wx: () => weatherFx(true), grimfetch: () => jump('fetch'),
  links: () => (showManPage('links', true), LINKS.concat([['mail', 'contact.html']]).forEach(([n, u]) => say(`${n.padEnd(12)} <a href="${u}" target="_blank" rel="noopener">${u}</a>`, true))),
@@ -1364,7 +1354,7 @@ const aptCmd = (a, su) => { const m = (a || '').match(/^(install|update|upgrade|
   if (p >= 100) { clearInterval(iv); job = null; say(`Unpacking ${pkg} (${GRIMOS_VERSION}) ...\nSetting up ${pkg} (${GRIMOS_VERSION}) ...\nProcessing triggers for vinyl-spin (1.0) ...\n${pkg}: installed. (it was always there, deep in the mix.)`); } }, 120);
  startJob(() => { clearInterval(iv); say('^C\nE: Sub-process /usr/bin/dpkg received signal 2.'); }, 'apt'); };
 const NEO = ['████████╗ ██████╗ ', '╚══██╔══╝██╔════╝ ', '   ██║   ██║  ███╗', '   ██║   ██║   ██║', '   ██║   ╚██████╔╝', '   ╚═╝    ╚═════╝ ', '  >_ tomGRIM       ', '                  '];
-const MAN = {wrap: 'wrap [on|off] — terminal word wrap. on wraps long lines; off keeps them on one line and the terminal scrolls sideways. same as DISPLAY > TERMINAL WRAP; saved between visits.', smoke: 'smoke [on|off] — soft ambient smoke overlay. same as DISPLAY > SMOKE; saved between visits. off clears ambient smoke (track moods can still briefly enable it while they play).', grimamp: 'grimamp — GRIMAMP v1, the ascii audio terminal player: record + round scope, waveform (click/drag to seek; << / >> ±10s paddles), VIZ modes (spectrum / waterfall / vectorscope / VU / radial / terrain), FX knobs (filter/res/verb/crush), rep / shuf / 👁 auto-visuals toggles. keys: space play, n/p next/prev, r repeat, s shuffle, ←→ seek, +- volume. see also: play, ls, albums, get.', links: 'links — where to find tomGRIM: streaming, socials and downloads. type links to list them. see also: mail, feedback.', contact: 'contact — send tom a message with the mail form, or leave a note on the BBS. see also: mail, feedback.', weather: 'weather — GRIM/WX: a 90s "local on the 8s" weather screen for Allentown, Bethlehem and Easton with live data from open-meteo.com (current conditions, latest observations, extended and local forecast). It also takes over the screensaver while any Walking Green version plays. Any key or click exits. Alias: wx.', share: 'share — copies a link to the current track at the current time (thomasgrim.com/?t=<track>&at=<seconds>). Opening it selects the track; press play and it starts at that moment.', help: 'help [section|cmd|-a] — list commands grouped by section. Commands with flags or args get their own line (args colored, dim description); simple commands flow together separated by •. help <section> shows one section (shell get net fun system fx look idle), help <cmd> opens its man page, help -a shows everything. ? is identical to help in every form: ?, ? fx, ? -a, ? <cmd>. Outside the prompt the ? key opens the keyboard help.', '?': 'see help — ? is an alias of help.', ls: 'ls [-la] [path] — without args lists every track; with a path lists the fake filesystem.', play: 'play <n|name> — play a track by number (see ls) or name.', get: 'get <n|name> — download a track. get album <name>, get --list.', cd: 'cd [dir] — change directory. try ~/albums, /etc, /var/log.', cat: 'cat <file> — print a file. try /etc/motd or readme.txt.', ping: 'ping <host> — send 4 ICMP echo requests (Ctrl+C stops).', top: 'top — live process list. q to quit.', theme: 'theme <name> — switch color theme: ' + THEMES.join(' ') + ' (cyan is the default). silicon, nightshift and neon are full-color palettes; Tab completes names.', screensaver: 'screensaver on|off|<seconds>|<effect>|random', apt: 'apt install <pkg> — needs sudo. you know how this ends.'};
+const MAN = {wrap: 'wrap [on|off] — terminal word wrap. on wraps long lines; off keeps them on one line and the terminal scrolls sideways. same as DISPLAY > TERMINAL WRAP; saved between visits.', smoke: 'smoke [on|off] — soft ambient smoke overlay. same as DISPLAY > SMOKE; saved between visits. off clears ambient smoke (track moods can still briefly enable it while they play).', grimamp: 'grimamp — GRIMAMP v1, the ascii audio terminal player: record + round scope, waveform (click/drag to seek; << / >> ±10s paddles), VIZ modes (spectrum / waterfall / VU / terrain), FX knobs (filter/res/verb/crush), rep / shuf / 👁 auto-visuals toggles. keys: space play, n/p next/prev, r repeat, s shuffle, ←→ seek, +- volume. see also: play, ls, albums, get.', links: 'links — where to find tomGRIM: streaming, socials and downloads. type links to list them. see also: mail, feedback.', contact: 'contact — send tom a message with the mail form, or leave a note on the BBS. see also: mail, feedback.', weather: 'weather — GRIM/WX: a 90s "local on the 8s" weather screen for Allentown, Bethlehem and Easton with live data from open-meteo.com (current conditions, latest observations, extended and local forecast). It also takes over the screensaver while any Walking Green version plays. Any key or click exits. Alias: wx.', share: 'share — copies a link to the current track at the current time (thomasgrim.com/?t=<track>&at=<seconds>). Opening it selects the track; press play and it starts at that moment.', help: 'help [section|cmd|-a] — list commands grouped by section. Commands with flags or args get their own line (args colored, dim description); simple commands flow together separated by •. help <section> shows one section (shell get net fun system fx look idle), help <cmd> opens its man page, help -a shows everything. ? is identical to help in every form: ?, ? fx, ? -a, ? <cmd>. Outside the prompt the ? key opens the keyboard help.', '?': 'see help — ? is an alias of help.', ls: 'ls [-la] [path] — without args lists every track; with a path lists the fake filesystem.', play: 'play <n|name> — play a track by number (see ls) or name.', get: 'get <n|name> — download a track. get album <name>, get --list.', cd: 'cd [dir] — change directory. try ~/albums, /etc, /var/log.', cat: 'cat <file> — print a file. try /etc/motd or readme.txt.', ping: 'ping <host> — send 4 ICMP echo requests (Ctrl+C stops).', top: 'top — live process list. q to quit.', theme: 'theme <name> — switch color theme: ' + THEMES.join(' ') + ' (cyan is the default). silicon, nightshift and neon are full-color palettes; Tab completes names.', screensaver: 'screensaver on|off|<seconds>|<effect>|random', apt: 'apt install <pkg> — needs sudo. you know how this ends.'};
 Object.assign(CMDS, {
  ls: a => { a = (a || '').trim(); if (!a) return flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}${t.special ? ' ★' : ''}  [${t.single ? 'single' : t.al.title}]`)); lsPath(a); },
  ll: a => lsPath('-la ' + (a || '')), pwd: () => say(cwd),
