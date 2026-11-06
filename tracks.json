@@ -591,6 +591,19 @@
           "original": "funky breaks oct30-2025-3.mp3"
         },
         {
+          "title": "Funky Breaks 3",
+          "file": "assets/audio/loops/funky-breaks-3.mp3",
+          "duration_sec": 63.0,
+          "bpm": 123,
+          "year": 2025,
+          "original": "funky BREAKS11-8-25-001.mp3 (Google Drive), -1.6 dB gain only",
+          "aliases": [
+            "funky-breaks-11-8-25-001",
+            "funky breaks 3",
+            "funky-breaks-3"
+          ]
+        },
+        {
           "title": "Gaia Theory 1",
           "file": "assets/audio/loops/gaia-theory-1.mp3",
           "duration_sec": 34.9,
@@ -927,6 +940,18 @@
           "bpm": 123,
           "year": 2025,
           "original": "PROPER-FREESTYLE-02-032025 (attachment 01M6MQ8BHEJBH69MWRGGBMB0E1.wav), 192k->44.1k, -3.0 dB gain only"
+        },
+        {
+          "title": "Lonely Ghost",
+          "file": "assets/audio/loops/lonely-ghost.mp3",
+          "duration_sec": 90.0,
+          "bpm": 129,
+          "year": 2023,
+          "original": "092823-lonelyghost.wav (Google Drive), -1.1 dB gain only",
+          "aliases": [
+            "lonely-ghost",
+            "092823-lonelyghost"
+          ]
         }
       ],
       "noshuffle": true
@@ -997,6 +1022,29 @@
           "duration_sec": 420.0,
           "bpm": 129,
           "original": "ign3ous-troublegirls01unfinished.mp3 (Google Drive; embedded title 'trouble girls (01 unfinished)'), -1.7 dB gain only"
+        }
+      ]
+    },
+    {
+      "id": "haywire",
+      "title": "Haywire",
+      "type": "single",
+      "year": 2014,
+      "blurb": "",
+      "cover": "assets/covers/haywire.jpg",
+      "tracks": [
+        {
+          "title": "Haywire",
+          "file": "assets/audio/singles/haywire.mp3",
+          "duration_sec": 537.9,
+          "bpm": 137,
+          "original": "Igneous - Force of Impact.mp3 (Google Drive), -1.4 dB gain only",
+          "aliases": [
+            "tomgrim-haywire",
+            "haywire-2014",
+            "force-of-impact",
+            "igneous-force-of-impact"
+          ]
         }
       ]
     },
@@ -1110,6 +1158,21 @@
           "original": "ign3ous-wheredidourlovego2.mp3 (Google Drive), -2.4 dB gain only",
           "id3_title": "Where Did Our Love Go (tomGRIM RMX)",
           "id3_artist": "The Supremes"
+        },
+        {
+          "title": "The Who - Eminence Front (tomGRIM RMX)",
+          "id3_title": "Eminence Front (tomGRIM RMX)",
+          "id3_artist": "The Who",
+          "file": "assets/audio/remixes/04-eminence-front.mp3",
+          "duration_sec": 432.8,
+          "bpm": 110,
+          "year": 2011,
+          "original": "uploadign3ous-eminencefront04 - Copy.mp3 (Google Drive), -1.5 dB gain only",
+          "aliases": [
+            "eminence-front",
+            "the-who-eminence-front",
+            "eminence front"
+          ]
         }
       ]
     }

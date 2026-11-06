@@ -3,6 +3,11 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.31 — 2026-11-05
+- Phosphor Cache: Funky Breaks 3 (2025, 123 bpm) after Funky Breaks 2; Lonely Ghost (2023, 129 bpm) appended.
+- Remixes: The Who - Eminence Front (tomGRIM RMX) (2011, 110 bpm).
+- Singles: Haywire (2014, 137 bpm) — formerly Igneous Force of Impact.
+
 ## 1.3.30 — 2026-11-05
 - MIXES & SETS: DJ iGNEOUS - Florida Breaks (2016) added as #3 (gain-only master from Drive `floridaforrob.mp3`; after Summer Promo 2010 and Open Format Set 2011).
 
