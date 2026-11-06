@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.36', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.37', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -1374,9 +1374,9 @@ function fsTree() { const D = (o) => ({d: 1, c: o}), F = (txt, size) => ({f: 1, 
  data.albums.forEach(a => { const dir = {}; (a.tracks || []).forEach(t => { const fn = t.file.split('/').pop(); const f = F(null, t.size || Math.round((t.duration_sec || 180) * 40000)); f.track = t; dir[fn] = f; music[fn] = f; }); albums[a.id] = D(dir); });
  return D({
   home: D({tom: D({music: D(music), albums: D(albums), photos: D(Object.fromEntries((PHOTOS || []).map((p, i) => ['frame-' + String(i + 1).padStart(2, '0') + '.jpg', F(null, 240000 + i * 7919)]))),
-   'readme.txt': F('tomGRIM :: GRIM/OS\n\ndark, warm machine music after midnight.\n\n  ls            list tracks        play <n>   play a track\n  get <n>       download a track   help       all commands\n  cd ~/albums   browse albums      neofetch   system info\n\nbookings / inquiries: type "mail".'),
+   'readme.txt': F('tomGRIM :: GRIM/OS\n\ndark, warm machine music after midnight.\ntag: #grimbreaks\n\n  ls            list tracks        play <n>   play a track\n  get <n>       download a track   help       all commands\n  cd ~/albums   browse albums      neofetch   system info\n\nbookings / inquiries: type "mail".'),
    '.bashrc': F('export PS1="tom@grimos:\\w$ "\nalias ll="ls -la"\nalias please="sudo"\n# play loud.'), '.bash_history': F(null, 4096)})}),
-  etc: D({motd: F('Welcome to GrimOS ' + GRIMOS_VERSION + ' (Downtempo)\n\n * Every track is free to download: get <track#>\n * Effects: fire, starfield, plasma, donut, pipes\n * Feedback: type bbs\n * Whatever you do, don\'t rm -rf /\n'), 'os-release': F(OSREL), hostname: F('grimos'), passwd: F(null, 1871), shadow: F(null, 1024), hosts: F('127.0.0.1\tlocalhost\n127.0.1.1\tgrimos\n185.199.108.153\tthomasgrim.com'), fstab: F(null, 612)}),
+  etc: D({motd: F('Welcome to GrimOS ' + GRIMOS_VERSION + ' (Downtempo)\n\n * Every track is free to download: get <track#>\n * Tag your clips #grimbreaks\n * Effects: fire, starfield, plasma, donut, pipes\n * Feedback: type bbs\n * Whatever you do, don\'t rm -rf /\n'), 'os-release': F(OSREL), hostname: F('grimos'), passwd: F(null, 1871), shadow: F(null, 1024), hosts: F('127.0.0.1\tlocalhost\n127.0.1.1\tgrimos\n185.199.108.153\tthomasgrim.com'), fstab: F(null, 612)}),
   var: D({log: D({syslog: F(null, 88231), 'scope.log': F(null, 12044), 'vinyl.log': F(null, 3301), 'auth.log': F(null, 5120)})}),
   bin: D({bash: F(null, 1183448), sh: F(null, 125560), ls: F(null, 138208), grimsh: F(null, 66600)}), usr: D({bin: D({grimamp: F(null, 420666), python3: F(null, 5904904)}), lib: D({'libgrimamp.so.2': F(null, 81920)})}),
   sys: D({vinyl: D({'spin.ko': F(null, 16384), needle: F(null, 4096)})}), proc: D({cpuinfo: F(null, 0), uptime: F(null, 0)}), tmp: D({}), dev: D({bass: F(null, 0), kick0: F(null, 0), null: F(null, 0)}), boot: D({'vmlinuz-grim': F(null, 11534336)})}); }
