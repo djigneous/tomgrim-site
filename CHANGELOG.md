@@ -3,6 +3,10 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.28 — 2026-11-05
+- MIXES & SETS: DJ iGNEOUS - Summer Promo (2010) and DJ iGNEOUS - Open Format Set (2011) added as the 1st and 2nd sets (gain-only masters from Drive cuts; existing 01–04 paths kept).
+- Waveform triple-tap fix: single-tap position seek waits ~300ms (cancelled by tap 2+), so a double/triple never jumps to x/width·duration on long mixes. Comfortable ~520ms tap window; exactly one ±10s per triple with ~500ms cooldown (no 4th/5th chaining); pointerdown+click no longer double-count. Drag-to-scrub unchanged.
+
 ## 1.3.27 — 2026-11-05
 - Waveform: triple-tap (or triple-click) left half seeks −10s, right half +10s from the time before the tap sequence (keep tapping for ±20s, ±30s…). Single click/tap and drag-to-scrub unchanged; brief `« −10s` / `+10s »` flash on the waveform label.
 - Spectrum label restored to `SPECTRUM · log` (log bass→treble bars unchanged).

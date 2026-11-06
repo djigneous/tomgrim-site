@@ -313,9 +313,37 @@
       "title": "MIXES & SETS",
       "type": "mix",
       "year": 2009,
-      "blurb": "Continuous mixes and DJ sets by tomGRIM, starting with the original ELEMENTS continuous play mix.",
+      "blurb": "Continuous mixes and DJ sets by DJ iGNEOUS / tomGRIM — promos, club sets, and the ELEMENTS continuous play mix.",
       "cover": "assets/covers/mixes-sets.jpg",
       "tracks": [
+        {
+          "title": "DJ iGNEOUS - Summer Promo (2010)",
+          "id3_title": "Summer Promo (2010)",
+          "id3_artist": "DJ iGNEOUS",
+          "year": 2010,
+          "file": "assets/audio/mixes-sets/summer-promo-2010.mp3",
+          "duration_sec": 2552.1,
+          "original": "iGN3OUS - 2010 Summer Promo (cut).mp3 (Google Drive), -0.6 dB gain only, 192k",
+          "aliases": [
+            "summer-promo-2010",
+            "summer-promo",
+            "2010-summer-promo"
+          ]
+        },
+        {
+          "title": "DJ iGNEOUS - Open Format Set (2011)",
+          "id3_title": "Open Format Set (2011)",
+          "id3_artist": "DJ iGNEOUS",
+          "year": 2011,
+          "file": "assets/audio/mixes-sets/open-format-set-2011.mp3",
+          "duration_sec": 4989.4,
+          "original": "0313200iGN3OUS Summer Promo Rough Draft(cut).mp3 (Google Drive), -0.9 dB gain only, 128k",
+          "aliases": [
+            "open-format-set",
+            "open-format-set-2011",
+            "open-format"
+          ]
+        },
         {
           "title": "ELEMENTS - Continuous Play Mix",
           "file": "assets/audio/mixes-sets/01-elements-continuous-play-mix.mp3",
