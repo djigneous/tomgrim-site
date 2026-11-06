@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.35', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.36', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -256,7 +256,7 @@ audio.addEventListener('timeupdate', () => { $('#tcur').textContent = fmt(audio.
 const COVERS = ['ember-hours', 'night-signals', 'elements', 'get-out', 'lost-together', 'time-slows', 'trouble-girls', 'haywire', 'mixes-sets', 'soundtracks', 'remixes', 'phosphor-cache'];
 let lastMeta = '';
 function artFor(t) { const id = t && COVERS.includes(t.al.id) ? t.al.id : 'tomgrim-default', base = new URL('assets/covers/', location.href).href;
- return [96, 192, 256, 512].map(s => ({src: `${base}${id}-${s}.png`, sizes: `${s}x${s}`, type: 'image/png'})); }
+ return [96, 192, 256, 512].map(s => ({src: `${base}${id}-${s}.png?v=${SITE_VERSION}`, sizes: `${s}x${s}`, type: 'image/png'})); }
 // display helpers: tracks with their own artist (id3_artist / id3_title, e.g. DJ iGNEOUS mixes, remixes) carry the artist in their title already
 const artistOf = t => (t && t.id3_artist) || 'tomGRIM';
 const fullName = t => t.id3_title || /^tomGRIM - /.test(t.title) ? t.title : 'tomGRIM - ' + t.title;

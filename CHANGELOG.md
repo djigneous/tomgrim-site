@@ -3,6 +3,9 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.36 — 2026-11-05
+- MIXES & SETS cover: Amber angled coffin ASCII art (Tom's mockup 3). Wordless `mixes-sets-{96,192,256,512}.png` for Android MediaSession cards; labeled `mixes-sets.jpg` + ID3 APIC on all 7 mix MP3s. `artFor()` cache-busts with `?v=SITE_VERSION`.
+
 ## 1.3.35 — 2026-11-05
 - Photos: pin `IMG_0001` first, then `26 / 28 / 18 / 19` at the top of the gallery grid (remaining 28 keep relative order; still 33 unique).
 
