@@ -9,6 +9,7 @@ Versions before 1.3.0 were assigned retroactively from the git history, so their
 - Grimamp is the 2nd item in the top menu bar ([2], key 2); section keys updated to match.
 - DISPLAY menu: SMOKE: ON/OFF (persisted; also `smoke on|off` in the shell).
 - Grim fetch label: Links: → External Links:.
+- MIXES & SETS: rename DJ iGNEOUS - 90s Hip Hop (2017) → DJ iGNEOUS - '00 & '90s Hip Hop (2017) (aliases `90s-hip-hop` / `90s hip hop` kept).
 
 ## 1.3.25 — 2026-11-05
 - Photos: 19 new framed shots (IMG_0015–IMG_0033), gallery is now 33 frames in a fixed mixed order (no shuffle on open). Added tools/add_photos.py for future adds with a near-duplicate check.
