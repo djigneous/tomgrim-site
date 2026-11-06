@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.28', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.29', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -117,21 +117,32 @@ function ensureCtx() {
  hsTap(src); // horizontal scope: left=low+mid, right=mid+high
  fxInit(src);
 }
-/* hscope band taps: left = lowpass ~2.5 kHz (low+mid), right = highpass ~280 Hz (mid+high); mid shared so both halves stay lively */
-let hsLo = null, hsHi = null, hsLoFilt = null, hsHiFilt = null, hsSink = null, tbufLo = null, tbufHi = null, hsAgcL = .1, hsAgcR = .1;
+/* hscope: left = HP~42Hz (24dB/oct) → LP~2.5kHz (punchy low+mid, no sub heave); right = HP~280Hz (mid+high) */
+let hsLo = null, hsHi = null, hsLoFilt = null, hsHiFilt = null, hsLoHp1 = null, hsLoHp2 = null, hsSink = null, tbufLo = null, tbufHi = null, hsAgcL = .1, hsAgcR = .1;
+let anL = null, anR = null, stereoSplit = null; // genuine L/R for vectorscope / VU
 function hsTap(src) {
  if (!actx || !src) return;
  if (!hsLo) {
+  // two cascaded highpass @ 42 Hz, Q=0.707 ≈ 24 dB/oct Butterworth
+  hsLoHp1 = actx.createBiquadFilter(); hsLoHp1.type = 'highpass'; hsLoHp1.frequency.value = 42; hsLoHp1.Q.value = .707;
+  hsLoHp2 = actx.createBiquadFilter(); hsLoHp2.type = 'highpass'; hsLoHp2.frequency.value = 42; hsLoHp2.Q.value = .707;
   hsLoFilt = actx.createBiquadFilter(); hsLoFilt.type = 'lowpass'; hsLoFilt.frequency.value = 2500; hsLoFilt.Q.value = .707;
   hsHiFilt = actx.createBiquadFilter(); hsHiFilt.type = 'highpass'; hsHiFilt.frequency.value = 280; hsHiFilt.Q.value = .707;
   hsLo = actx.createAnalyser(); hsLo.fftSize = 2048; hsLo.smoothingTimeConstant = .8;
   hsHi = actx.createAnalyser(); hsHi.fftSize = 2048; hsHi.smoothingTimeConstant = .8;
   hsSink = actx.createGain(); hsSink.gain.value = 0; hsSink.connect(actx.destination);
-  hsLoFilt.connect(hsLo); hsLo.connect(hsSink);
+  hsLoHp1.connect(hsLoHp2); hsLoHp2.connect(hsLoFilt); hsLoFilt.connect(hsLo); hsLo.connect(hsSink);
   hsHiFilt.connect(hsHi); hsHi.connect(hsSink);
+  // stereo taps for vectorscope / VU (ChannelSplitter duplicates mono → both)
+  stereoSplit = actx.createChannelSplitter(2);
+  anL = actx.createAnalyser(); anL.fftSize = 2048; anL.smoothingTimeConstant = .75;
+  anR = actx.createAnalyser(); anR.fftSize = 2048; anR.smoothingTimeConstant = .75;
+  stereoSplit.connect(anL, 0); stereoSplit.connect(anR, 1);
+  anL.connect(hsSink); anR.connect(hsSink);
  }
- try { src.connect(hsLoFilt); } catch (e) {}
+ try { src.connect(hsLoHp1); } catch (e) {}
  try { src.connect(hsHiFilt); } catch (e) {}
+ try { src.connect(stereoSplit); } catch (e) {}
 }
 let NATIVE = !!(HTMLMediaElement.prototype.captureStream || HTMLMediaElement.prototype.mozCaptureStream) && !/iP(hone|ad|od)/.test(navigator.userAgent), outG = null, boundTrack = null;
 function streamSrc() { const st = (audio.captureStream || audio.mozCaptureStream).call(audio), tr = st.getAudioTracks()[0]; if (!tr) { boundTrack = null; return actx.createGain(); } // placeholder until 'playing' rebinds
@@ -416,67 +427,32 @@ function drawWave() {
  wave.setAttribute('aria-valuenow', Math.round(pos * 100));
 }
 function waveSeek(e) { if (!audio.duration) return; const r = wave.getBoundingClientRect(); audio.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * audio.duration; }
-/* 1.3.28: single-tap position seek is deferred (~300ms) so multi-taps never jump to x/width*duration.
-   Exactly 3 taps on the same half (≤520ms gaps) → one ±10s from pre-tap time, then ~500ms cooldown (no 4th/5th chaining).
-   Drag >4px scrubs immediately. One physical tap = one pointerup count (no click double-fire). */
+/* 1.3.29: Option C recessed << / >> paddles (±10s); canvas is immediate click/drag seek only (triple-tap removed). */
 const waveBox = wave.closest('.vizbox'), waveLbl = waveBox.querySelector('.lbl'), coarse = matchMedia('(pointer:coarse)').matches;
-const WL = {idle: coarse ? 'WAVEFORM · tap to seek · triple ±10s' : 'WAVEFORM · click to seek · triple-click ±10s'};
-const TAP_GAP = 520, SINGLE_SETTLE = 300, SKIP_COOLDOWN = 500, DRAG_PX = 4;
-waveLbl.textContent = WL.idle; waveLbl.title = 'Click/tap to seek. Triple-tap left −10s / right +10s (one ±10s per triple; wait a beat to skip again). Drag to scrub.';
+const WL = { idle: coarse ? 'WAVEFORM · tap to seek · << >> ±10s' : 'WAVEFORM · click to seek · << >> ±10s' };
+waveLbl.textContent = WL.idle;
+waveLbl.title = 'Click/tap or drag the waveform to seek. Use << / >> for ±10 seconds.';
 wave.setAttribute('title', waveLbl.title);
-let tp = null, wTap = null, wFlashT = 0, wSettleT = 0, wSkipUntil = 0;
-function waveHalf(e) { const r = wave.getBoundingClientRect(), x = e.clientX - r.left; return { half: x < r.width / 2 ? -1 : 1, r, x }; }
+wave.setAttribute('aria-label', 'Seek waveform: click or drag to seek');
+let tp = null, wFlashT = 0;
+const DRAG_PX = 4;
 function waveFlashSkip(dir) {
- const msg = dir < 0 ? '« −10s' : '+10s »';
- waveLbl.textContent = msg; waveBox.classList.add('wskip');
- clearTimeout(wFlashT); wFlashT = setTimeout(() => { wFlashT = 0; waveBox.classList.remove('wskip'); waveLbl.textContent = WL.idle; }, 700);
+ const msg = dir < 0 ? 'WAVEFORM · « −10s' : 'WAVEFORM · +10s »';
+ waveLbl.textContent = msg; waveLbl.classList.add('flash'); waveBox.classList.add('wskip');
+ clearTimeout(wFlashT); wFlashT = setTimeout(() => { wFlashT = 0; waveBox.classList.remove('wskip'); waveLbl.classList.remove('flash'); waveLbl.textContent = WL.idle; }, 550);
 }
-function waveClearSettle() { clearTimeout(wSettleT); wSettleT = 0; }
-function waveCancelTap() { wTap = null; waveClearSettle(); }
-function waveScheduleSingle(clientX) {
- waveClearSettle();
- if (wTap && wTap.noSettle) return; // burst continuing through post-skip cooldown
- const x = clientX;
- wSettleT = setTimeout(() => {
-  wSettleT = 0;
-  if (wTap && wTap.n === 1 && !wTap.noSettle) { waveSeek({ clientX: x }); wTap = null; }
- }, SINGLE_SETTLE);
-}
-/** Count one physical short tap. Never position-seeks on tap 1/2; tap 3 → exactly ±10s once. */
-function waveOnTap(e) {
+function waveSkip(dir) {
  if (!audio.duration) return;
- const now = performance.now();
- const { half } = waveHalf(e);
- // Cooldown after a ±10s step: swallow taps but keep a sentinel so a trailing
- // tap right after cooldown continues the burst (n=2) instead of settling into
- // a position seek at x/width*duration (disastrous on long DJ mixes).
- if (now < wSkipUntil) {
-  waveClearSettle();
-  wTap = { half, t: now, n: 1, pre: audio.currentTime, noSettle: 1 };
-  return;
- }
- if (!wTap || wTap.half !== half || now - wTap.t > TAP_GAP) {
-  wTap = { half, t: now, n: 1, pre: audio.currentTime };
-  waveScheduleSingle(e.clientX);
-  return;
- }
- waveClearSettle(); // tap 2+ cancels pending position seek
- wTap.n++; wTap.t = now;
- if (wTap.n === 2) return; // wait for a possible 3rd
- if (wTap.n >= 3) {
-  // Exactly one ±10s from the time before this gesture; ignore 4th/5th (cooldown).
-  const pre = wTap.pre;
-  const target = Math.max(0, Math.min(audio.duration - .05, pre + half * 10));
-  audio.currentTime = target;
-  waveFlashSkip(half);
-  wSkipUntil = now + SKIP_COOLDOWN;
-  wTap = null;
- }
+ const t = Math.max(0, Math.min(audio.duration - .05, audio.currentTime + dir * 10));
+ audio.currentTime = t; waveFlashSkip(dir);
+ const btn = dir < 0 ? $('#wseek-back') : $('#wseek-fwd');
+ if (btn) { btn.classList.add('active'); setTimeout(() => btn.classList.remove('active'), 180); }
 }
+$('#wseek-back').addEventListener('click', e => { e.preventDefault(); waveSkip(-1); });
+$('#wseek-fwd').addEventListener('click', e => { e.preventDefault(); waveSkip(1); });
 wave.addEventListener('pointerdown', e => {
- // never seek here — wait for drag or settled single tap / triple
- e.preventDefault(); // reduce synthetic mouse click after touch
- tp = { x: e.clientX, y: e.clientY, id: e.pointerId, mode: null, type: e.pointerType };
+ e.preventDefault();
+ tp = { x: e.clientX, y: e.clientY, id: e.pointerId, mode: null };
  try { wave.setPointerCapture(e.pointerId); } catch (err) {}
 });
 wave.addEventListener('pointermove', e => {
@@ -484,19 +460,37 @@ wave.addEventListener('pointermove', e => {
  const dx = e.clientX - tp.x, dy = e.clientY - tp.y;
  if (!tp.mode && (Math.abs(dx) > DRAG_PX || Math.abs(dy) > DRAG_PX)) {
   tp.mode = Math.abs(dx) > Math.abs(dy) * 1.15 ? 'drag' : 'scroll';
-  if (tp.mode === 'drag') { waveCancelTap(); waveSeek(e); }
+  if (tp.mode === 'drag') waveSeek(e);
  }
  if (tp.mode === 'drag') waveSeek(e);
 });
 wave.addEventListener('pointerup', e => {
  if (!tp || e.pointerId !== tp.id) return;
  const m = tp.mode; tp = null;
- if (m === 'scroll' || m === 'drag') return;
- waveOnTap(e); // short tap only
+ if (m === 'scroll') return;
+ if (m === 'drag') return; // already scrubbing
+ waveSeek(e); // short tap → immediate position seek (no settle / no triple)
 });
-wave.addEventListener('pointercancel', () => { tp = null; waveCancelTap(); });
-wave.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); }); // kill leftover click after pointerup
-window.__wave = () => ({ label: waveLbl.textContent, t: audio.currentTime, tap: wTap && { n: wTap.n, half: wTap.half, pre: wTap.pre }, skipUntil: wSkipUntil });
+wave.addEventListener('pointercancel', () => { tp = null; });
+window.__wave = () => ({ label: waveLbl.textContent, t: audio.currentTime });
+window.__viz = () => ({ mode: VIZ_MODES[vizMode].id, label: VIZ_MODES[vizMode].label, box: specBox && specBox.getBoundingClientRect() });
+window.jump = jump;
+window.__jumpMetrics = (id) => {
+  const el = document.getElementById(id), tb = document.getElementById('topbar');
+  if (!el || !tb) return null;
+  const wt = el.querySelector(':scope > .wt');
+  const tbB = tb.getBoundingClientRect().bottom;
+  const wtT = (wt || el).getBoundingClientRect().top;
+  const elTop = el.getBoundingClientRect().top;
+  let best = null;
+  for (const w of document.querySelectorAll('.win')) {
+    if (w === el) continue;
+    const b = w.getBoundingClientRect().bottom;
+    if (b <= elTop + 1 && (best == null || b > best)) best = b;
+  }
+  const maxS = document.documentElement.scrollHeight - window.innerHeight;
+  return { clear: wtT - tbB, prevBleed: best == null ? null : best - tbB, wtTop: wtT, tbBottom: tbB, atMax: Math.abs(window.scrollY - maxS) < 2 };
+};
 
 /* ---------- visuals loop ---------- */
 const specEl = $('#spec'), ring = $('#ring'), rg = ring.getContext('2d');
@@ -521,6 +515,243 @@ function scopeStroke(ctx, x0, y0, x1, y1, conic) {
  }
  scopeGrad = g; return g;
 }
+
+/* ---------- 1.3.29 Grimamp VIZ modes (same .vb-spec footprint; 0px layout shift) ---------- */
+const VIZ_MODES = [
+ { id: 'spec', label: 'SPECTRUM · log', title: 'Classic log spectrum bars' },
+ { id: 'waterfall', label: 'WATERFALL · log', title: 'Scrolling frequency-over-time spectrogram' },
+ { id: 'vector', label: 'VECTORSCOPE · x-y', title: 'Stereo L/R Lissajous phase scope' },
+ { id: 'vu', label: 'VU + PEAK · L/R+SUB', title: 'Dual analog VU meters with peak hold' },
+ { id: 'radial', label: 'RADIAL BURST · ring', title: 'Frequency bars around the record ring' },
+ { id: 'terrain', label: '3D TERRAIN · ridge', title: 'Joy Division ridge-plot spectrum terrain' },
+];
+const specBox = $('.vb-spec'), specLbl = $('#spec-lbl') || specBox.querySelector('.lbl'), specViz = $('#spec-viz'), bviz = $('#bviz');
+const svgCtx = specViz ? specViz.getContext('2d') : null;
+let vizMode = 0;
+try { const s = localStorage.grimViz; const i = VIZ_MODES.findIndex(m => m.id === s); if (i >= 0) vizMode = i; } catch (e) {}
+let wfImg = null, wfRow = 0, vuPk = { L: 0, R: 0, S: 0 }, vuBall = { L: 0, R: 0, S: 0 };
+let terrainHist = [], tbufL = null, tbufR = null, vecPersist = null;
+function fitSpecViz() {
+ if (!specViz || !svgCtx) return { W: 0, H: 0, d: 1 };
+ const d = Math.min(devicePixelRatio || 1, 2);
+ const cssW = specViz.clientWidth || specEl.clientWidth || 300, cssH = specViz.clientHeight || specEl.clientHeight || 110;
+ const W = Math.max(1, Math.round(cssW * d)), H = Math.max(1, Math.round(cssH * d));
+ if (specViz.width !== W || specViz.height !== H) { specViz.width = W; specViz.height = H; }
+ return { W, H, d, cssW, cssH };
+}
+function setVizMode(i, quiet) {
+ vizMode = ((i % VIZ_MODES.length) + VIZ_MODES.length) % VIZ_MODES.length;
+ const m = VIZ_MODES[vizMode];
+ try { localStorage.grimViz = m.id; } catch (e) {}
+ if (specLbl) { specLbl.textContent = m.label; specLbl.title = m.title; }
+ if (bviz) { bviz.title = 'Visualizer: ' + m.label + ' — click to cycle'; bviz.setAttribute('aria-label', 'Cycle visualizer, current ' + m.label); }
+ if (specBox) specBox.classList.toggle('viz-canvas', m.id !== 'spec' && m.id !== 'radial');
+ // radial keeps ascii spectrum in vb-spec; canvas modes hide #spec
+ if (m.id === 'spec' || m.id === 'radial') { if (specEl) specEl.style.visibility = ''; if (specViz) specViz.style.visibility = 'hidden'; }
+ else { if (specEl) specEl.style.visibility = 'hidden'; if (specViz) specViz.style.visibility = 'visible'; }
+ if (!quiet) try { say('viz → ' + V(m.label), true); } catch (e) {}
+}
+function cycleViz() { setVizMode(vizMode + 1); }
+if (bviz) bviz.addEventListener('click', e => { e.preventDefault(); cycleViz(); });
+window.setVizMode = setVizMode; window.cycleViz = cycleViz; window.VIZ_MODES = VIZ_MODES;
+setVizMode(vizMode, true);
+
+function hexRgb(h) { const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h || ''); return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [100, 240, 255]; }
+function lerpCol(a, b, t) { return `rgb(${(a[0]+(b[0]-a[0])*t)|0},${(a[1]+(b[1]-a[1])*t)|0},${(a[2]+(b[2]-a[2])*t)|0})`; }
+
+function drawWaterfall(vals, dt, playing) {
+ const { W, H, d, cssW, cssH } = fitSpecViz(); if (!W) return;
+ const rows = Math.max(32, (cssH / 2) | 0);
+ if (!wfImg || wfImg.width !== (cssW | 0) || wfImg.height !== rows) {
+  wfImg = svgCtx.createImageData(cssW | 0, rows); wfRow = 0;
+  for (let i = 0; i < wfImg.data.length; i += 4) { wfImg.data[i+3] = 255; }
+ }
+ const fg = hexRgb(colors.fg), dim = hexRgb(colors.dim), hi = hexRgb(colors.hi);
+ const n = vals.length, w = wfImg.width, row = wfRow % wfImg.height;
+ for (let x = 0; x < w; x++) {
+  const v = vals[Math.min(n - 1, (x / w * n) | 0)];
+  const t = Math.pow(Math.max(0, Math.min(1, v)), .85);
+  const c = t > .7 ? lerpCol(fg, hi, (t - .7) / .3) : lerpCol(dim, fg, t / .7);
+  const m = /^rgb\((\d+),(\d+),(\d+)\)$/.exec(c), r = +m[1], g = +m[2], b = +m[3];
+  const o = (row * w + x) * 4;
+  wfImg.data[o] = r; wfImg.data[o+1] = g; wfImg.data[o+2] = b; wfImg.data[o+3] = 255;
+ }
+ if (playing || !RM) wfRow++;
+ // blit with newest row at bottom
+ svgCtx.setTransform(d, 0, 0, d, 0, 0);
+ svgCtx.fillStyle = '#000'; svgCtx.fillRect(0, 0, cssW, cssH);
+ const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = wfImg.height;
+ tmp.getContext('2d').putImageData(wfImg, 0, 0);
+ // draw scrolled so row is at bottom
+ const yOff = cssH - ((wfRow % wfImg.height) / wfImg.height) * cssH;
+ svgCtx.globalAlpha = .95;
+ svgCtx.drawImage(tmp, 0, 0, w, wfImg.height, 0, yOff - cssH, cssW, cssH);
+ svgCtx.drawImage(tmp, 0, 0, w, wfImg.height, 0, yOff, cssW, cssH);
+ svgCtx.globalAlpha = 1;
+ if (!playing) { // idle graticule
+  svgCtx.strokeStyle = colors.dim; svgCtx.globalAlpha = .25; svgCtx.lineWidth = 1;
+  for (let i = 1; i < 4; i++) { const x = cssW * i / 4; svgCtx.beginPath(); svgCtx.moveTo(x, 0); svgCtx.lineTo(x, cssH); svgCtx.stroke(); }
+  svgCtx.globalAlpha = 1;
+ }
+}
+
+function drawVectorscope(playing) {
+ const { W, H, d, cssW, cssH } = fitSpecViz(); if (!W) return;
+ svgCtx.setTransform(d, 0, 0, d, 0, 0);
+ // phosphor persistence
+ if (!vecPersist || vecPersist.width !== W || vecPersist.height !== H) {
+  vecPersist = document.createElement('canvas'); vecPersist.width = W; vecPersist.height = H;
+ }
+ const pg = vecPersist.getContext('2d');
+ pg.globalCompositeOperation = 'source-over';
+ pg.fillStyle = 'rgba(0,0,0,0.12)'; pg.fillRect(0, 0, W, H);
+ const cx = cssW / 2, cy = cssH / 2, sc = Math.min(cssW, cssH) * .38;
+ // graticule
+ svgCtx.fillStyle = '#000'; svgCtx.fillRect(0, 0, cssW, cssH);
+ svgCtx.drawImage(vecPersist, 0, 0, W, H, 0, 0, cssW, cssH);
+ svgCtx.strokeStyle = colors.dim; svgCtx.globalAlpha = .35; svgCtx.lineWidth = 1;
+ svgCtx.beginPath(); svgCtx.arc(cx, cy, sc, 0, Math.PI * 2); svgCtx.stroke();
+ svgCtx.beginPath(); svgCtx.moveTo(cx - sc, cy); svgCtx.lineTo(cx + sc, cy); svgCtx.moveTo(cx, cy - sc); svgCtx.lineTo(cx, cy + sc); svgCtx.stroke();
+ // 45° M/S axes
+ svgCtx.beginPath(); svgCtx.moveTo(cx - sc * .7, cy - sc * .7); svgCtx.lineTo(cx + sc * .7, cy + sc * .7);
+ svgCtx.moveTo(cx - sc * .7, cy + sc * .7); svgCtx.lineTo(cx + sc * .7, cy - sc * .7); svgCtx.stroke();
+ svgCtx.globalAlpha = 1;
+ const live = playing && anL && anR;
+ if (live) {
+  tbufL = tbufL || new Uint8Array(anL.fftSize); tbufR = tbufR || new Uint8Array(anR.fftSize);
+  anL.getByteTimeDomainData(tbufL); anR.getByteTimeDomainData(tbufR);
+ } else if (playing && tbuf) { tbufL = tbufR = tbuf; }
+ pg.strokeStyle = colors.fg; pg.globalAlpha = .55; pg.lineWidth = d; pg.beginPath();
+ const N = live || tbufL ? Math.min(600, (tbufL || tbuf).length) : 120;
+ for (let i = 0; i < N; i++) {
+  let L, R;
+  if (tbufL) { L = ((tbufL[i] - 128) / 128); R = ((tbufR[i] - 128) / 128); }
+  else { const a = idle * 1.1 + i * .05; L = Math.sin(a) * .08; R = Math.cos(a * 1.03) * .08; }
+  // rotate 45° into Mid/Side view: x = (L-R)/√2, y = (L+R)/√2
+  const x = cx + (L - R) * sc * .707, y = cy - (L + R) * sc * .707;
+  const px = x * d, py = y * d;
+  i ? pg.lineTo(px, py) : pg.moveTo(px, py);
+ }
+ pg.stroke(); pg.globalAlpha = 1;
+ svgCtx.globalAlpha = .9; svgCtx.drawImage(vecPersist, 0, 0, W, H, 0, 0, cssW, cssH); svgCtx.globalAlpha = 1;
+ // bright tip
+ svgCtx.fillStyle = colors.hi; svgCtx.globalAlpha = .8;
+ if (tbufL) { const i = N - 1; const L = (tbufL[i] - 128) / 128, R = (tbufR[i] - 128) / 128;
+  svgCtx.beginPath(); svgCtx.arc(cx + (L - R) * sc * .707, cy - (L + R) * sc * .707, 2, 0, Math.PI * 2); svgCtx.fill(); }
+ svgCtx.globalAlpha = 1;
+}
+
+function drawVU(vals, playing, dt) {
+ const { W, H, d, cssW, cssH } = fitSpecViz(); if (!W) return;
+ svgCtx.setTransform(d, 0, 0, d, 0, 0);
+ svgCtx.fillStyle = '#000'; svgCtx.fillRect(0, 0, cssW, cssH);
+ // levels from stereo analysers + sub from low spectrum bins
+ let lRms = 0, rRms = 0, sub = 0;
+ if (playing && anL && anR) {
+  tbufL = tbufL || new Uint8Array(anL.fftSize); tbufR = tbufR || new Uint8Array(anR.fftSize);
+  anL.getByteTimeDomainData(tbufL); anR.getByteTimeDomainData(tbufR);
+  let sL = 0, sR = 0; for (let i = 0; i < tbufL.length; i += 4) { const a = (tbufL[i] - 128) / 128, b = (tbufR[i] - 128) / 128; sL += a * a; sR += b * b; }
+  lRms = Math.sqrt(sL / (tbufL.length / 4)); rRms = Math.sqrt(sR / (tbufR.length / 4));
+ } else if (playing && tbuf) {
+  let s = 0; for (let i = 0; i < tbuf.length; i += 4) { const a = (tbuf[i] - 128) / 128; s += a * a; }
+  lRms = rRms = Math.sqrt(s / (tbuf.length / 4));
+ }
+ sub = vals.slice(0, Math.max(2, (vals.length * .08) | 0)).reduce((a, b) => a + b, 0) / Math.max(1, (vals.length * .08) | 0);
+ const ball = (k, v) => { const target = Math.min(1, v * 2.8); vuBall[k] += (target - vuBall[k]) * Math.min(1, dt * (target > vuBall[k] ? 14 : 3)); vuPk[k] = Math.max(vuPk[k] - dt * .35, vuBall[k]); };
+ ball('L', lRms); ball('R', rRms); ball('S', sub);
+ const meters = [['L', vuBall.L, vuPk.L], ['R', vuBall.R, vuPk.R], ['SUB', vuBall.S, vuPk.S]];
+ const gap = 8, mw = (cssW - gap * 4) / 3, mh = cssH - 22, top = 4;
+ meters.forEach(([lab, v, pk], i) => {
+  const x = gap + i * (mw + gap);
+  // trough
+  svgCtx.fillStyle = 'rgba(0,0,0,.55)'; svgCtx.fillRect(x, top, mw, mh);
+  svgCtx.strokeStyle = colors.dim; svgCtx.globalAlpha = .5; svgCtx.strokeRect(x + .5, top + .5, mw - 1, mh - 1); svgCtx.globalAlpha = 1;
+  // scale ticks
+  for (let t = 0; t <= 1.001; t += .2) {
+   const y = top + mh - t * mh; svgCtx.strokeStyle = colors.dim; svgCtx.globalAlpha = .3;
+   svgCtx.beginPath(); svgCtx.moveTo(x + 2, y); svgCtx.lineTo(x + mw - 2, y); svgCtx.stroke();
+  }
+  svgCtx.globalAlpha = 1;
+  const h = Math.max(1, v * mh), y = top + mh - h;
+  const g = svgCtx.createLinearGradient(0, top + mh, 0, top);
+  g.addColorStop(0, colors.dim); g.addColorStop(.55, colors.fg); g.addColorStop(.82, colors.acc || colors.fg); g.addColorStop(1, '#ff3a2a');
+  svgCtx.fillStyle = g; svgCtx.fillRect(x + 3, y, mw - 6, h);
+  // peak hold
+  const py = top + mh - pk * mh;
+  svgCtx.fillStyle = pk > .92 ? '#ff3a2a' : colors.hi;
+  svgCtx.fillRect(x + 2, py - 1, mw - 4, 2);
+  // clip lamp
+  svgCtx.fillStyle = pk > .95 ? '#ff3a2a' : colors.dim;
+  svgCtx.globalAlpha = pk > .95 ? 1 : .35;
+  svgCtx.fillRect(x + mw / 2 - 4, top - 1, 8, 3); svgCtx.globalAlpha = 1;
+  svgCtx.fillStyle = colors.fg; svgCtx.font = '700 10px "IBM Plex Mono",monospace';
+  svgCtx.fillText(lab, x + mw / 2 - svgCtx.measureText(lab).width / 2, cssH - 4);
+ });
+}
+
+function drawTerrain(vals, dt, playing) {
+ const { W, H, d, cssW, cssH } = fitSpecViz(); if (!W) return;
+ const depth = 18;
+ if (!playing && terrainHist.length === 0) terrainHist = Array.from({ length: depth }, () => vals.map(() => .04));
+ if (playing || terrainHist.length < depth) {
+  terrainHist.push(vals.slice());
+  if (terrainHist.length > depth) terrainHist.shift();
+ } else {
+  // idle drift
+  terrainHist.push(vals.map((v, i) => .04 + .03 * Math.sin(idle + i * .4)));
+  if (terrainHist.length > depth) terrainHist.shift();
+ }
+ svgCtx.setTransform(d, 0, 0, d, 0, 0);
+ svgCtx.fillStyle = '#000'; svgCtx.fillRect(0, 0, cssW, cssH);
+ const n = vals.length;
+ for (let z = 0; z < terrainHist.length; z++) {
+  const row = terrainHist[z], depthT = z / (terrainHist.length - 1 || 1);
+  const yBase = cssH * (.22 + .72 * depthT), scaleY = cssH * (.35 - .22 * depthT), fade = .25 + .75 * depthT;
+  svgCtx.beginPath();
+  for (let i = 0; i < n; i++) {
+   const x = (i / (n - 1)) * cssW;
+   const y = yBase - row[i] * scaleY;
+   i ? svgCtx.lineTo(x, y) : svgCtx.moveTo(x, y);
+  }
+  // fill down for occlusion
+  svgCtx.lineTo(cssW, cssH + 2); svgCtx.lineTo(0, cssH + 2); svgCtx.closePath();
+  svgCtx.fillStyle = '#000'; svgCtx.globalAlpha = .85; svgCtx.fill();
+  svgCtx.strokeStyle = colors.fg; svgCtx.globalAlpha = fade; svgCtx.lineWidth = 1.2;
+  svgCtx.beginPath();
+  for (let i = 0; i < n; i++) {
+   const x = (i / (n - 1)) * cssW, y = yBase - row[i] * scaleY;
+   i ? svgCtx.lineTo(x, y) : svgCtx.moveTo(x, y);
+  }
+  svgCtx.stroke();
+ }
+ svgCtx.globalAlpha = 1;
+}
+
+function drawRadialBurst(cx, cy, rx, ry, amp, d, vals, live) {
+ // bass at bottom, highs at top, mirrored L/R
+ const n = vals.length, half = Math.ceil(n / 2);
+ rg.strokeStyle = colors.dim; rg.globalAlpha = .3; rg.lineWidth = d;
+ rg.beginPath(); rg.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); rg.stroke(); rg.globalAlpha = 1;
+ const grad = scopeStroke(rg, cx, cy, cx + rx, cy, true);
+ for (let side = -1; side <= 1; side += 2) {
+  for (let i = 0; i < half; i++) {
+   // i=0 bass at bottom (π/2), i=half-1 highs at top (-π/2)
+   const t = i / (half - 1 || 1);
+   const ang = Math.PI / 2 - t * Math.PI; // bottom → top
+   const a = side < 0 ? Math.PI - ang : ang; // mirror
+   const v = vals[i] || (live ? 0 : .04 + .03 * Math.sin(idle + i * .3));
+   const len = (0.08 + v * 0.92) * amp * 1.35;
+   const x0 = cx + Math.cos(a) * rx, y0 = cy + Math.sin(a) * ry;
+   const x1 = cx + Math.cos(a) * (rx + len), y1 = cy + Math.sin(a) * (ry + len);
+   rg.strokeStyle = grad; rg.globalAlpha = .15 + v * .85; rg.lineWidth = Math.max(1, 2.2 * d * (1 - t * .4));
+   rg.beginPath(); rg.moveTo(x0, y0); rg.lineTo(x1, y1); rg.stroke();
+   if (v > .55) { rg.strokeStyle = colors.hi; rg.globalAlpha = .7; rg.lineWidth = d; rg.beginPath(); rg.moveTo(x1 - Math.cos(a) * 3 * d, y1 - Math.sin(a) * 3 * d); rg.lineTo(x1, y1); rg.stroke(); }
+  }
+ }
+ rg.globalAlpha = 1;
+}
+
+
 let vizLast = 0;
 function frame() {
  if (document.hidden) return requestAnimationFrame(frame); // pause work while the tab is hidden
@@ -546,33 +777,42 @@ function frame() {
  window.__specStat = vals; window.__specDbg = () => ({san: !!san, agc, ff: ffb && Array.from(ffb.slice(0, 6)), f0: 20, f1: 16000, dir: 'bass→treble'});
  if (!playing) { idle += dt * .9; vals = vals.map((v, b) => Math.max(v * Math.exp(-dt * 2.2), .04 + .03 * Math.sin(idle + b * .4))); }
  if (isBuf()) { const c = ((now / 2200) % 1) * (NB + 10) - 5; vals = vals.map((v, b) => Math.max(v * .5, .7 * Math.exp(-((b - c) ** 2) / 6), .05)); } // slower buffering sweep
- // spectrum (bars left→right = low→high)
- let s = '';
- const peakFall = dt * 0.45; // time-based peak hold decay (slower than the old .012/frame)
+ // peak holds shared by ascii + canvas modes
+ const peakFall = dt * 0.45;
  for (let b = 0; b < NB; b++) { peaks[b] = Math.max((peaks[b] || 0) - peakFall, vals[b]); }
- s += '─'.repeat(NB) + '\n'; const TOP = '▔▔▀▀▀██'; // bars hang down from the top edge
- for (let r = 0; r < ROWS; r++) { let line = '';
-  for (let b = 0; b < NB; b++) { const v = vals[b] * ROWS - r, pk = Math.floor(peaks[b] * ROWS - .001);
-   let ch = v >= 1 ? (r < 2 ? '<span class="h">█</span>' : '█') : v > .12 ? TOP[Math.min(6, Math.floor(v * 7))] : ' ';
-   if (ch === ' ' && pk === r && peaks[b] > .06) ch = '<span class="p">▁</span>';
-   line += ch; }
-  s += line + (r < ROWS - 1 ? '\n' : ''); }
- specEl.innerHTML = s;
- // round oscilloscope ring around the record (auto-gain + bass emphasis) (amplitude clamped to the padding gap)
+ const mode = VIZ_MODES[vizMode].id;
+ // vb-spec: ascii spectrum (spec + radial) OR canvas visualizer
+ if (mode === 'spec' || mode === 'radial') {
+  let s = ''; s += '─'.repeat(NB) + '\n'; const TOP = '▔▔▀▀▀██';
+  for (let r = 0; r < ROWS; r++) { let line = '';
+   for (let b = 0; b < NB; b++) { const v = vals[b] * ROWS - r, pk = Math.floor(peaks[b] * ROWS - .001);
+    let ch = v >= 1 ? (r < 2 ? '<span class="h">█</span>' : '█') : v > .12 ? TOP[Math.min(6, Math.floor(v * 7))] : ' ';
+    if (ch === ' ' && pk === r && peaks[b] > .06) ch = '<span class="p">▁</span>';
+    line += ch; }
+   s += line + (r < ROWS - 1 ? '\n' : ''); }
+  specEl.innerHTML = s;
+ } else if (mode === 'waterfall') drawWaterfall(vals, dt, playing);
+ else if (mode === 'vector') drawVectorscope(playing);
+ else if (mode === 'vu') drawVU(vals, playing, dt);
+ else if (mode === 'terrain') drawTerrain(vals, dt, playing);
+ // ring around record: classic scope OR radial burst
  fitCanvas(ring, RING_D); { const W = ring.width, H = ring.height, d = Math.min(devicePixelRatio, RING_D), pad = parseFloat(getComputedStyle(ring.parentElement).paddingLeft) * d || 22 * d;
-  // concentric with the record: same center as the ASCII disc, true circle in device px
-  const sx = W / (ring.clientWidth || 1), sy = H / (ring.clientHeight || 1); // offsets cached on resize (no per-frame getBoundingClientRect → no forced layout)
+  const sx = W / (ring.clientWidth || 1), sy = H / (ring.clientHeight || 1);
   const cx = recGeom.ox * sx, cy = recGeom.oy * sy, amp = pad / 2 - 2 * d;
   const rr = Math.min(recGeom.R * sx + amp + 9 * d, cx - amp - d, cy - amp - d, W - cx - amp - d, H - cy - amp - d), rx = rr, ry = rr; rg.clearRect(0, 0, W, H);
-  rg.strokeStyle = colors.dim; rg.globalAlpha = .35; rg.lineWidth = d; rg.beginPath(); rg.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); rg.stroke(); rg.globalAlpha = 1;
   const live = an && playing; let gain = 1;
   if (live) { tbuf = tbuf || new Uint8Array(an.fftSize); an.getByteTimeDomainData(tbuf); let sq = 0; for (let i = 0; i < tbuf.length; i += 4) { const x = (tbuf[i] - 128) / 128; sq += x * x; }
    const rms = Math.sqrt(sq / (tbuf.length / 4)); ringAgc = Math.max(rms, ringAgc * .992, .02); gain = Math.min(9, Math.max(1.5, .55 / ringAgc)); }
-  const N = 512; rg.lineJoin = 'round'; rg.lineCap = 'round';
-  const grad = scopeStroke(rg, cx, cy, cx + rx, cy + ry, true);
-  for (const [col, lw, al] of [[grad, 9, .16], [grad, 2.8, 1], [colors.hi, 1.05, .95]]) { rg.strokeStyle = col; rg.lineWidth = lw * d; rg.globalAlpha = al; rg.beginPath();
-   for (let i = 0; i <= N; i++) { const t = i % N, a = t / N * Math.PI * 2 - Math.PI / 2; let v; if (live) { const k = Math.floor(t / N * (tbuf.length - 1)), raw = (tbuf[k] - 128) / 128; let lp = 0; for (let q = -8; q <= 8; q += 2) lp += (tbuf[(k + q + tbuf.length) % tbuf.length] - 128) / 128; v = Math.tanh((raw + lp / 9 * .85) * gain); } else v = Math.sin(t / 6 + idle * 1.2) * .05; const o = Math.max(-.35, Math.min(1, v)) * amp, x = cx + Math.cos(a) * (rx + o), y = cy + Math.sin(a) * (ry + o); i ? rg.lineTo(x, y) : rg.moveTo(x, y); }
-   rg.closePath(); rg.stroke(); } rg.globalAlpha = 1; }
+  if (mode === 'radial') {
+   drawRadialBurst(cx, cy, rx, ry, amp, d, vals, live);
+  } else {
+   rg.strokeStyle = colors.dim; rg.globalAlpha = .35; rg.lineWidth = d; rg.beginPath(); rg.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); rg.stroke(); rg.globalAlpha = 1;
+   const N = 512; rg.lineJoin = 'round'; rg.lineCap = 'round';
+   const grad = scopeStroke(rg, cx, cy, cx + rx, cy + ry, true);
+   for (const [col, lw, al] of [[grad, 9, .16], [grad, 2.8, 1], [colors.hi, 1.05, .95]]) { rg.strokeStyle = col; rg.lineWidth = lw * d; rg.globalAlpha = al; rg.beginPath();
+    for (let i = 0; i <= N; i++) { const t = i % N, a = t / N * Math.PI * 2 - Math.PI / 2; let v; if (live) { const k = Math.floor(t / N * (tbuf.length - 1)), raw = (tbuf[k] - 128) / 128; let lp = 0; for (let q = -8; q <= 8; q += 2) lp += (tbuf[(k + q + tbuf.length) % tbuf.length] - 128) / 128; v = Math.tanh((raw + lp / 9 * .85) * gain); } else v = Math.sin(t / 6 + idle * 1.2) * .05; const o = Math.max(-.35, Math.min(1, v)) * amp, x = cx + Math.cos(a) * (rx + o), y = cy + Math.sin(a) * (ry + o); i ? rg.lineTo(x, y) : rg.moveTo(x, y); }
+    rg.closePath(); rg.stroke(); } rg.globalAlpha = 1;
+  } }
  drawHScope(an && playing);
  drawWave(); spinRecord(performance.now());
  requestAnimationFrame(frame);
@@ -587,7 +827,7 @@ function drawHScope(live) { fitCanvas(hs, RING_D); const W = hs.width, H = hs.he
  if (!hsG.R) measureHS(); hg.clearRect(0, 0, W, H);
  const cx = hsG.cx * d, cy = H / 2, R = hsG.R * d, amp = H / 2 - 4 * d;
  hg.save(); hg.beginPath(); hg.rect(0, 0, W, H); hg.arc(cx, cy, R, 0, Math.PI * 2); hg.clip('evenodd'); // hide the line over the disc
- // 1.3.27: left of the disc = low+mid (LP ~2.5 kHz), right = mid+high (HP ~280 Hz); mid shared so both halves stay lively
+ // 1.3.29: left = HP~42Hz→LP~2.5kHz (kick/bass/mid punch); right = HP~280Hz (mid+high)
  let tbL = null, tbR = null, gainL = 1, gainR = 1;
  if (live && hsLo && hsHi) {
   tbufLo = tbufLo || new Uint8Array(hsLo.fftSize); tbufHi = tbufHi || new Uint8Array(hsHi.fftSize);
@@ -959,7 +1199,11 @@ const CMDS = {
  pause: () => outPause(), next: () => next(1), prev: () => next(-1), repeat: cycleRepeat, shuffle: () => { shuffle = !shuffle; updateModes(); say('shuffle: ' + V(shuffle ? 'on' : 'off') + quip(shuffle ? 'shufon' : 'shufoff'), true); },
  vol: a => { setVol((+a || 0) / 100); say('volume ' + V(Math.round(vol * 100) + '%'), true); },
  bio: () => { say(manBio(), true); showManPage('tomgrim'); jump('man'); },
- man: a => CMDS.bio(), whoami: () => say('tomGRIM — formerly dj ign3ous. Lehigh Valley, PA.'), fetch: () => jump('fetch'), weather: () => weatherFx(true), wx: () => weatherFx(true), grimfetch: () => jump('fetch'),
+ man: a => CMDS.bio(), whoami: () => say('tomGRIM — formerly dj ign3ous. Lehigh Valley, PA.'), viz: a => { const arg = (a || '').trim().toLowerCase(); if (!arg || arg === 'next' || arg === 'cycle') return cycleViz();
+   const i = VIZ_MODES.findIndex(m => m.id === arg || m.label.toLowerCase().startsWith(arg) || String(VIZ_MODES.indexOf(m)) === arg);
+   if (i < 0) return say('viz: ' + VIZ_MODES.map((m, i) => i + ':' + m.id).join(' · ') + ' · viz next');
+   setVizMode(i); },
+  fetch: () => jump('fetch'), weather: () => weatherFx(true), wx: () => weatherFx(true), grimfetch: () => jump('fetch'),
  links: () => (showManPage('links', true), LINKS.concat([['mail', 'contact.html']]).forEach(([n, u]) => say(`${n.padEnd(12)} <a href="${u}" target="_blank" rel="noopener">${u}</a>`, true))),
  contact: () => { say('opening mail client…'); openModal('mail'); }, mail: () => CMDS.contact(), ...(IRC_ENABLED ? {irc: () => { say('opening irc #tomgrim on irc.unrealircd.org…'); openModal('irc'); }} : {}), changelog: () => openChangelog(), spotify: () => { say('opening ' + V('tomGRIM on Spotify') + '…', true); window.open('https://open.spotify.com/artist/1tBp2oza76uuM5bC3fx8Vg', '_blank', 'noopener'); }, fullscreen: () => toggleFull(),
  zach: () => zach(), get: a => getCmd(a), wget: a => getCmd(a), curl: a => getCmd((a || '').replace(/(^|\s)(-O|--remote-name|-L|-s)(?=\s|$)/g, ' ').trim()),
@@ -1120,7 +1364,7 @@ const aptCmd = (a, su) => { const m = (a || '').match(/^(install|update|upgrade|
   if (p >= 100) { clearInterval(iv); job = null; say(`Unpacking ${pkg} (${GRIMOS_VERSION}) ...\nSetting up ${pkg} (${GRIMOS_VERSION}) ...\nProcessing triggers for vinyl-spin (1.0) ...\n${pkg}: installed. (it was always there, deep in the mix.)`); } }, 120);
  startJob(() => { clearInterval(iv); say('^C\nE: Sub-process /usr/bin/dpkg received signal 2.'); }, 'apt'); };
 const NEO = ['████████╗ ██████╗ ', '╚══██╔══╝██╔════╝ ', '   ██║   ██║  ███╗', '   ██║   ██║   ██║', '   ██║   ╚██████╔╝', '   ╚═╝    ╚═════╝ ', '  >_ tomGRIM       ', '                  '];
-const MAN = {wrap: 'wrap [on|off] — terminal word wrap. on wraps long lines; off keeps them on one line and the terminal scrolls sideways. same as DISPLAY > TERMINAL WRAP; saved between visits.', smoke: 'smoke [on|off] — soft ambient smoke overlay. same as DISPLAY > SMOKE; saved between visits. off clears ambient smoke (track moods can still briefly enable it while they play).', grimamp: 'grimamp — GRIMAMP v1, the ascii audio terminal player: record + round scope, waveform (click/drag to seek; triple-tap left −10s / right +10s, one step per triple), spectrum, FX knobs (filter/res/verb/crush), rep / shuf / 👁 auto-visuals toggles. keys: space play, n/p next/prev, r repeat, s shuffle, ←→ seek, +- volume. see also: play, ls, albums, get.', links: 'links — where to find tomGRIM: streaming, socials and downloads. type links to list them. see also: mail, feedback.', contact: 'contact — send tom a message with the mail form, or leave a note on the BBS. see also: mail, feedback.', weather: 'weather — GRIM/WX: a 90s "local on the 8s" weather screen for Allentown, Bethlehem and Easton with live data from open-meteo.com (current conditions, latest observations, extended and local forecast). It also takes over the screensaver while any Walking Green version plays. Any key or click exits. Alias: wx.', share: 'share — copies a link to the current track at the current time (thomasgrim.com/?t=<track>&at=<seconds>). Opening it selects the track; press play and it starts at that moment.', help: 'help [section|cmd|-a] — list commands grouped by section. Commands with flags or args get their own line (args colored, dim description); simple commands flow together separated by •. help <section> shows one section (shell get net fun system fx look idle), help <cmd> opens its man page, help -a shows everything. ? is identical to help in every form: ?, ? fx, ? -a, ? <cmd>. Outside the prompt the ? key opens the keyboard help.', '?': 'see help — ? is an alias of help.', ls: 'ls [-la] [path] — without args lists every track; with a path lists the fake filesystem.', play: 'play <n|name> — play a track by number (see ls) or name.', get: 'get <n|name> — download a track. get album <name>, get --list.', cd: 'cd [dir] — change directory. try ~/albums, /etc, /var/log.', cat: 'cat <file> — print a file. try /etc/motd or readme.txt.', ping: 'ping <host> — send 4 ICMP echo requests (Ctrl+C stops).', top: 'top — live process list. q to quit.', theme: 'theme <name> — switch color theme: ' + THEMES.join(' ') + ' (cyan is the default). silicon, nightshift and neon are full-color palettes; Tab completes names.', screensaver: 'screensaver on|off|<seconds>|<effect>|random', apt: 'apt install <pkg> — needs sudo. you know how this ends.'};
+const MAN = {wrap: 'wrap [on|off] — terminal word wrap. on wraps long lines; off keeps them on one line and the terminal scrolls sideways. same as DISPLAY > TERMINAL WRAP; saved between visits.', smoke: 'smoke [on|off] — soft ambient smoke overlay. same as DISPLAY > SMOKE; saved between visits. off clears ambient smoke (track moods can still briefly enable it while they play).', grimamp: 'grimamp — GRIMAMP v1, the ascii audio terminal player: record + round scope, waveform (click/drag to seek; << / >> ±10s paddles), VIZ modes (spectrum / waterfall / vectorscope / VU / radial / terrain), FX knobs (filter/res/verb/crush), rep / shuf / 👁 auto-visuals toggles. keys: space play, n/p next/prev, r repeat, s shuffle, ←→ seek, +- volume. see also: play, ls, albums, get.', links: 'links — where to find tomGRIM: streaming, socials and downloads. type links to list them. see also: mail, feedback.', contact: 'contact — send tom a message with the mail form, or leave a note on the BBS. see also: mail, feedback.', weather: 'weather — GRIM/WX: a 90s "local on the 8s" weather screen for Allentown, Bethlehem and Easton with live data from open-meteo.com (current conditions, latest observations, extended and local forecast). It also takes over the screensaver while any Walking Green version plays. Any key or click exits. Alias: wx.', share: 'share — copies a link to the current track at the current time (thomasgrim.com/?t=<track>&at=<seconds>). Opening it selects the track; press play and it starts at that moment.', help: 'help [section|cmd|-a] — list commands grouped by section. Commands with flags or args get their own line (args colored, dim description); simple commands flow together separated by •. help <section> shows one section (shell get net fun system fx look idle), help <cmd> opens its man page, help -a shows everything. ? is identical to help in every form: ?, ? fx, ? -a, ? <cmd>. Outside the prompt the ? key opens the keyboard help.', '?': 'see help — ? is an alias of help.', ls: 'ls [-la] [path] — without args lists every track; with a path lists the fake filesystem.', play: 'play <n|name> — play a track by number (see ls) or name.', get: 'get <n|name> — download a track. get album <name>, get --list.', cd: 'cd [dir] — change directory. try ~/albums, /etc, /var/log.', cat: 'cat <file> — print a file. try /etc/motd or readme.txt.', ping: 'ping <host> — send 4 ICMP echo requests (Ctrl+C stops).', top: 'top — live process list. q to quit.', theme: 'theme <name> — switch color theme: ' + THEMES.join(' ') + ' (cyan is the default). silicon, nightshift and neon are full-color palettes; Tab completes names.', screensaver: 'screensaver on|off|<seconds>|<effect>|random', apt: 'apt install <pkg> — needs sudo. you know how this ends.'};
 Object.assign(CMDS, {
  ls: a => { a = (a || '').trim(); if (!a) return flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}${t.special ? ' ★' : ''}  [${t.single ? 'single' : t.al.title}]`)); lsPath(a); },
  ll: a => lsPath('-la ' + (a || '')), pwd: () => say(cwd),
@@ -1173,20 +1417,32 @@ cmd.addEventListener('keydown', e => { if (e.key === 'ArrowUp') { hp = Math.max(
 
 /* ---------- navigation ---------- */
 const SECTIONS = ['fetch', 'player', 'man', 'links', 'shell', 'photos']; // 1.3.26: grimamp is 2nd in the top bar
-function syncJumpPad() { const tb = document.getElementById('topbar'); const h = tb ? Math.ceil(tb.getBoundingClientRect().height) : 48; const pad = h + 28; /* topbar + breathing + typical .wt overhang */ document.documentElement.style.setProperty('--jump-pad', pad + 'px'); return pad; }
+/* 1.3.29: jump pad = topbar height + .wt overhang + 5px — never double-count overhang in jump(). */
+function syncJumpPad() {
+ const tb = document.getElementById('topbar');
+ const h = tb ? Math.ceil(tb.getBoundingClientRect().height) : 48;
+ let oh = 10;
+ const wt = document.querySelector('.win > .wt');
+ if (wt) {
+  const er = wt.parentElement.getBoundingClientRect(), wr = wt.getBoundingClientRect();
+  oh = Math.max(0, Math.round(er.top - wr.top));
+ }
+ const pad = h + oh + 5; // flush under topbar with ~5px clearance
+ document.documentElement.style.setProperty('--jump-pad', pad + 'px');
+ return pad;
+}
 function jump(id, nofocus) {
  if (id === 'photos') return openPhotos();
  const el = document.getElementById(id); if (!el) return;
- // scroll so the window's top border + overhanging title (.wt) sit fully below the sticky top bar
- const pad = syncJumpPad();
+ syncJumpPad();
+ const tb = document.getElementById('topbar');
+ const tbBottom = tb ? tb.getBoundingClientRect().bottom : 48;
  const wt = el.querySelector(':scope > .wt');
- let hang = 0;
- if (wt) {
-  const er = el.getBoundingClientRect(), wr = wt.getBoundingClientRect();
-  hang = Math.max(0, Math.round(er.top - wr.top)) + 10; // title sits above the border + breathing room
- }
- const y = el.getBoundingClientRect().top + window.scrollY - pad - hang;
- window.scrollTo({top: Math.max(0, y), behavior: RM ? 'auto' : 'smooth'});
+ // Aim the visual header (.wt top, else .win top) just under the sticky topbar (4–6px).
+ const target = wt || el;
+ const clearance = 5;
+ const y = window.scrollY + target.getBoundingClientRect().top - tbBottom - clearance;
+ window.scrollTo({ top: Math.max(0, y), behavior: (RM || window.__jumpInstant) ? 'auto' : 'smooth' });
  document.querySelectorAll('.win').forEach(w => w.classList.toggle('focus', w === el));
  document.querySelectorAll('#topbar nav button').forEach(b => { b.classList.toggle('on', b.dataset.jump === id); b.setAttribute('aria-current', b.dataset.jump === id); });
  if (nofocus) return; if (id === 'shell') cmd.focus({preventScroll: true}); else if (id === 'player') pl.focus({preventScroll: true}); else el.focus({preventScroll: true}); }
@@ -1591,7 +1847,7 @@ function openBBS(fromCmd) { jump('links'); if (fromCmd) say('feedback: ' + V('BB
 $('#bbsme').textContent = bbsMe;
 function showManPage(pg, go) { const L = pg === 'links'; $('#mp-links').hidden = !L; $('#mp-tomgrim').classList.toggle('mhide', L);
  $('#mtab-links').setAttribute('aria-pressed', L); $('#mtab-tomgrim').setAttribute('aria-pressed', !L); if (go) jump('man', true); }
-document.querySelectorAll('.mtab').forEach(b => b.addEventListener('click', () => showManPage(b.dataset.mp)));
+document.querySelectorAll('.mtab').forEach(b => b.addEventListener('click', () => { showManPage(b.dataset.mp); jump('man'); }));
 document.querySelectorAll('#mp-links a').forEach(a => a.addEventListener('click', () => window.tgTrack('link', a.textContent.trim())));
 bbsLoad(false); bbsPoll(true); document.addEventListener('visibilitychange', () => { if (!document.hidden) bbsLoad(false); });
 $('#bbsreroll').addEventListener('click', () => { bbsMe = localStorage.grimHandle = genHandle(); $('#bbsme').textContent = bbsMe; });

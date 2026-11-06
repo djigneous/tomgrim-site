@@ -3,6 +3,12 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.29 — 2026-11-05
+- Waveform: Option C recessed `<<` / `>>` rack paddles seek ±10s; Option B instructional header (`WAVEFORM · click to seek · << >> ±10s`); triple-tap seek removed — canvas is immediate click/drag position seek only.
+- Top-bar jumps: scroll so each window title sits flush under `#topbar` (~5px clearance) with zero bleed from the panel above (no more double-counted overhang). Hash `scroll-margin` / `--jump-pad` matched. `ls -la ~/links` tab also re-jumps `#man` cleanly.
+- Horizontal record scope (left): 24 dB/oct high-pass at ~42 Hz before the 2.5 kHz low-pass so kick/bass/mids punch without sub-bass heave crushing AGC.
+- Grimamp VIZ switcher: cycle Spectrum · Waterfall · Vectorscope · VU+Peak · Radial Burst · 3D Terrain in the same `.vb-spec` footprint (0px layout shift); persists in localStorage; shell `viz` / `viz next`. Radial Burst draws on `#ring` around the record.
+
 ## 1.3.28 — 2026-11-05
 - MIXES & SETS: DJ iGNEOUS - Summer Promo (2010) and DJ iGNEOUS - Open Format Set (2011) added as the 1st and 2nd sets (gain-only masters from Drive cuts; existing 01–04 paths kept).
 - Waveform triple-tap fix: single-tap position seek waits ~300ms (cancelled by tap 2+), so a double/triple never jumps to x/width·duration on long mixes. Comfortable ~520ms tap window; exactly one ±10s per triple with ~500ms cooldown (no 4th/5th chaining); pointerdown+click no longer double-count. Drag-to-scrub unchanged.

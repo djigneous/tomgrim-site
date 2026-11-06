@@ -48,7 +48,7 @@ kbd{font:inherit;color:var(--bg);background:var(--br);padding:0 .25em;margin-rig
 #tools select{cursor:pointer}#tools select option{background:#000;color:#fff}
 @media (hover:hover){#tools button:hover{background:var(--barfg);color:var(--bar)}}
 #clock{margin-left:.3em}
-#desk{flex:1;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.95fr) minmax(0,1fr);grid-template-areas:"fetch fetch man" "player tracks tracks" "links links links" "shell shell shell";grid-template-rows:auto;gap:14px;padding:16px 14px 10px;width:100%;max-width:2000px;margin:0 auto}
+#desk{flex:1;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.95fr) minmax(0,1fr);grid-template-areas:"fetch fetch man" "player tracks tracks" "links links links" "shell shell shell";grid-template-rows:auto;gap:14px;padding:16px 14px 10px;padding-bottom:max(10px, calc(55vh - var(--jump-pad, 5.5em)));width:100%;max-width:2000px;margin:0 auto}
 #tracks{grid-area:tracks;display:flex;flex-direction:column;min-height:0}#tracks .plhead{margin-top:0}#fetch{grid-area:fetch}#man{grid-area:man}#player{grid-area:player}#links{grid-area:links}#shell{grid-area:shell}
 .win{border:2px double var(--br);padding:1.1em .8em .7em;position:relative;background:rgba(0,0,0,.3);box-shadow:0 0 14px -6px var(--fg) inset,0 0 6px -2px var(--fg);min-width:0;scroll-margin-top:var(--jump-pad, 5.5em)}
 .win.focus{border-color:var(--hi);box-shadow:0 0 18px -4px var(--fg) inset,0 0 12px var(--fg)}
@@ -91,7 +91,28 @@ canvas{display:block;width:100%;background:rgba(0,0,0,.4)}
 .ringwrap{position:relative;flex:none;padding:22px;box-sizing:content-box;contain:layout}
 #ring{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .ringwrap .cover{position:relative;z-index:1}
-#wave{cursor:pointer;height:56px;touch-action:none}
+#wave{cursor:pointer;height:56px;touch-action:none;background:transparent}
+/* 1.3.29 Option C recessed rack paddles + Option B instructional header */
+.vb-wave{padding:2px 4px 6px}
+.wave-row{display:grid;grid-template-columns:22px 1fr 22px;gap:3px;align-items:stretch}
+@media (pointer:coarse){.wave-row{grid-template-columns:24px 1fr 24px}}
+.wave-mid{min-width:0;border:1px solid color-mix(in srgb,var(--fg) 40%,transparent);background:rgba(0,0,0,.4)}
+.wave-mid #wave{width:100%}
+.paddle{display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--dim) 35%,#000);border:1px solid var(--dim);color:var(--br);cursor:pointer;padding:0;min-height:56px;text-shadow:var(--glow);font:700 14px/1 "IBM Plex Mono",monospace;letter-spacing:-1px;user-select:none;-webkit-tap-highlight-color:transparent}
+.paddle .ch{transform:scaleY(1.15);pointer-events:none}
+.paddle:hover,.paddle:focus-visible,.paddle.active{background:var(--fg);border-color:var(--br);color:var(--bg);text-shadow:none;box-shadow:0 0 12px var(--fg),inset 0 0 8px rgba(255,255,255,.25);outline:none}
+.vb-wave.wskip .lbl,.vb-wave .lbl.flash{background:var(--br);color:var(--bg);letter-spacing:.04em}
+/* VIZ switcher + canvas overlay — 0px layout resize vs #spec footprint */
+.vb-spec{position:relative}
+.spechead{display:flex;align-items:center;justify-content:space-between;gap:.4em;margin:0}
+.spechead .lbl{margin:4px 0 4px}
+.vizbtn{flex:none;margin:4px 0;padding:0 .45em;font:700 .75em/1.5 "IBM Plex Mono",monospace;color:var(--bg);background:var(--fg);border:1px solid var(--br);cursor:pointer;text-shadow:none;letter-spacing:.04em}
+.vizbtn:hover,.vizbtn:focus-visible{background:var(--br);outline:none}
+.spec-stage{position:relative;width:100%;min-height:110px}
+.spec-stage #spec{position:relative;z-index:0}
+#spec-viz{position:absolute;inset:0;width:100%;height:100%;display:block;background:rgba(0,0,0,.4);z-index:1;pointer-events:none;visibility:hidden}
+.vb-spec.viz-canvas #spec{visibility:hidden}
+.vb-spec.viz-canvas #spec-viz{visibility:visible}
 .plhead{display:flex;gap:.4em;margin-top:10px;align-items:center}
 .plhead label{color:var(--br)}
 input{font:inherit;color:var(--hi);background:transparent;border:none;border-bottom:1px solid var(--fg);flex:1;outline:none;caret-color:var(--br);text-shadow:inherit;min-width:0}
@@ -138,7 +159,7 @@ input{font:inherit;color:var(--hi);background:transparent;border:none;border-bot
 }
 @media (max-width:1099px){#desk{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"fetch man" "player tracks" "links links" "shell shell";grid-template-rows:auto}}
 @media (max-width:960px){
- #desk{grid-template-columns:1fr;grid-template-areas:"fetch" "player" "tracks" "links" "man" "shell";padding:12px 6px}
+ #desk{grid-template-columns:1fr;grid-template-areas:"fetch" "player" "tracks" "links" "man" "shell";padding:12px 6px;padding-bottom:calc(70vh - var(--jump-pad, 5.5em))}
  html,body{font-size:18px}
  .logo{font-size:7.5px}
  .viz{grid-template-columns:1fr;grid-template-areas:"wave" "spec"}
