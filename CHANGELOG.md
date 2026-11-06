@@ -4,6 +4,7 @@ thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = rede
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
 ## 1.3.26 — 2026-11-05
+- Shuffle: Previous (#bprev / p / prev / MediaSession) walks back through played tracks instead of picking a new random one (restarts current if >3s in).
 - Top-bar jumps scroll so each window's top border and title sit fully below the sticky header (dynamic offset for mobile wrap).
 - Top-bar man jumps back to the man pages tab (no longer stuck on Links after visiting it).
 - Grimamp is the 2nd item in the top menu bar ([2], key 2); section keys updated to match.

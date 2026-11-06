@@ -169,6 +169,11 @@ function play(i) {
  secret = null; intent = 'play';
  if (i == null || !flat[i]) i = sel >= 0 && flat[sel] ? sel : 0;
  ensureCtx();
+ if (i !== cur && cur >= 0 && !shufFromHist) {
+  if (shufHist[shufHist.length - 1] !== cur) shufHist.push(cur);
+  if (shufHist.length > 200) shufHist.splice(0, shufHist.length - 200);
+ }
+ shufFromHist = false;
  if (i !== cur || !playedOnce[i]) { playedOnce[i] = 1; window.tgTrack('play', flat[i].title); if (window.grimVisitPlay) window.grimVisitPlay(flat[i].file); }
  if (lazySrc) { if (i === cur) audio.src = lazySrc; lazySrc = null; audio.preload = 'metadata'; }
  if (i !== cur) { switching = 1; clearTimeout(switchTO); switchTO = setTimeout(() => { switching = 0; msState(); }, 8000); setMediaMeta(flat[i]); cur = i; audio.src = flat[i].file; setRecord(flat[i]); loadWave(flat[i]); }
@@ -191,13 +196,29 @@ audio.addEventListener('pause', () => { if (!switching) { sawStarve = false; sta
 setInterval(() => { if (intent !== 'play' || audio.paused || audio.ended || !audio.src || userPaused || document.hidden || !sawStarve) { stallN = 0; return; } if (audio.currentTime !== stallT) { stallT = audio.currentTime; stallN = 0; return; }
  if (++stallN < 3 || audio.readyState >= 3 || stallTries >= 3) return; stallN = 0; stallTries++; const t = audio.currentTime;
  audio.load(); audio.addEventListener('loadedmetadata', () => { try { audio.currentTime = t; } catch {} }, {once: true}); if (intent === 'play' && !userPaused && !document.hidden) audio.play().catch(() => {}); }, 3000);
+const shufHist = []; // shuffle playback history (oldest→newest indices); prev walks back through it
+let shufFromHist = false; // next play() is a hist pop — do not re-push onto history
 function next(d = 1) {
  if (!flat.length) return;
+ // standard player UX: early in a track, Previous steps back; deeper in, it restarts the current track
+ if (d < 0 && cur >= 0 && (audio.currentTime || 0) > 3) {
+  try { audio.currentTime = 0; } catch (e) {}
+  if (intent === 'play') audio.play().catch(() => {});
+  updateNP();
+  return;
+ }
  let i;
- if (shuffle) { const inLoops = isLoopAlbum(flat[cur]), pool = flat.map((t, k) => k).filter(k => k !== cur && !noShuf(flat[k]) && (inLoops || !isLoopAlbum(flat[k]))); i = pool.length ? pool[Math.floor(Math.random() * pool.length)] : (cur + 1) % flat.length; }
- else i = ((cur < 0 ? sel : cur) + d + flat.length) % flat.length;
+ if (d < 0 && shuffle) {
+  if (shufHist.length) { i = shufHist.pop(); shufFromHist = true; }
+  else if (cur >= 0) { try { audio.currentTime = 0; } catch (e) {} if (intent === 'play') audio.play().catch(() => {}); updateNP(); return; }
+  else i = 0;
+ } else if (shuffle) {
+  const inLoops = isLoopAlbum(flat[cur]), pool = flat.map((t, k) => k).filter(k => k !== cur && !noShuf(flat[k]) && (inLoops || !isLoopAlbum(flat[k])));
+  i = pool.length ? pool[Math.floor(Math.random() * pool.length)] : (cur + 1) % flat.length;
+ } else i = ((cur < 0 ? sel : cur) + d + flat.length) % flat.length;
  play(i);
 }
+window.__shufHist = () => ({hist: shufHist.slice(), cur, shuffle, fromHist: shufFromHist});
 function onEnded() { trackMood(null); if (secret) { secret = null; return next(1); } const r = effRepeat(); if (r === 'one') { audio.currentTime = 0; if (intent === 'play') audio.play(); } else if (r === 'all' || shuffle || cur < flat.length - 1) next(1); else { endIdle = true; msState(); } }
 audio.addEventListener('ended', onEnded);
 audio.addEventListener('play', updateNP); audio.addEventListener('pause', updateNP);
