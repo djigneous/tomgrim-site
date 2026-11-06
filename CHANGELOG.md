@@ -3,6 +3,13 @@
 thomasgrim.com / GRIM/OS. Versions follow semver from 1.3.0 on: **major** = redesign, **minor** = new features, **patch** = fixes.
 Versions before 1.3.0 were assigned retroactively from the git history, so their grouping is approximate.
 
+## 1.3.26 — 2026-11-05
+- Top-bar jumps scroll so each window's top border and title sit fully below the sticky header (dynamic offset for mobile wrap).
+- Top-bar man jumps back to the man pages tab (no longer stuck on Links after visiting it).
+- Grimamp is the 2nd item in the top menu bar ([2], key 2); section keys updated to match.
+- DISPLAY menu: SMOKE: ON/OFF (persisted; also `smoke on|off` in the shell).
+- Grim fetch label: Links: → External Links:.
+
 ## 1.3.25 — 2026-11-05
 - Photos: 19 new framed shots (IMG_0015–IMG_0033), gallery is now 33 frames in a fixed mixed order (no shuffle on open). Added tools/add_photos.py for future adds with a near-duplicate check.
 - DISPLAY menu: WRAP renamed to TERMINAL WRAP.

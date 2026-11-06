@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SITE_VERSION = '1.3.25', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
+const SITE_VERSION = '1.3.26', SITE_UPDATED = '2026-11-05'; // site release (semver, see CHANGELOG.md) — the 'Updated' line reads this
 const IRC_ENABLED = false; // IRC chat retired in 1.3.0; flip to true (and restore the modal + irc.js tag from git history) to bring it back
 const GRIMOS_VERSION = SITE_VERSION; // one version everywhere (titlebar, banner, uname, motd, os-release); the titlebar is set from it at load
 const $ = s => document.querySelector(s);
@@ -554,7 +554,7 @@ function sayCmd(v) { say(promptHtml() + ' ' + hl(v), true); }
 function colorHelp(s) { return s.split('\n').map(l => { const m = l.match(/^(\w+:)(\s+)(.*)$/); const head = m ? A('1;35', m[1]) + m[2] : '', body = m ? m[3] : l;
  return head + body.split(/(\s+)/).map(w => /^\s+$/.test(w) || !w ? w : /^<.*>$|^\[.*\]$/.test(w) ? A('2', w) : /^--?\w/.test(w) ? A('35', w) : /^\(|\)$|^·$|^\(.*\)$/.test(w) ? A('2', w) : /^[a-z][\w-]*[,]?$/i.test(w) && (typeof CMDS !== 'undefined' && CMDS[w.replace(/,$/, '')]) ? A('1;33', w) : /\|/.test(w) && !/[<>]/.test(w) ? w.split('|').map(x => typeof CMDS !== 'undefined' && CMDS[x] ? A('1;33', x) : x).join(A('2', '|')) : w).join(''); }).join('\n'); }
 const HELP = () => [
- ['shell', 'help ls albums pause stop next prev bio links mail changelog clear themes repeat shuffle wrap whoami fetch', [['help', '[section|cmd|-a]', 'this help (? works the same)'], ['share', '', 'copy a link to this track at this moment'], ['play', '<n|name>', 'play a track by number or name'], ['theme', '<' + THEMES.join('|') + '>', 'switch color theme'], ['crt', 'on|off', 'CRT filter'], ['vol', '<0-100>', 'set volume'], ['man', '<cmd>', 'manual page for a command']]],
+ ['shell', 'help ls albums pause stop next prev bio links mail changelog clear themes repeat shuffle wrap smoke whoami fetch', [['help', '[section|cmd|-a]', 'this help (? works the same)'], ['share', '', 'copy a link to this track at this moment'], ['play', '<n|name>', 'play a track by number or name'], ['theme', '<' + THEMES.join('|') + '>', 'switch color theme'], ['crt', 'on|off', 'CRT filter'], ['vol', '<0-100>', 'set volume'], ['man', '<cmd>', 'manual page for a command']]],
  ['get', '', [['get', '<n|name>', 'download a track'], ['get album', '<name>', 'download a whole album'], ['get', '--list', 'list everything downloadable']], 'aliases: wget, curl -O'],
  ['net', 'mail feedback like install spotify privacy', [], 'mail = contact form · feedback = the BBS · spotify = tomGRIM on Spotify · privacy = what the anonymous stats collect'],
  ['fun', 'random weather matrix glitch fire hack starfield plasma tunnel rain dvd life cube torus donut snow pipes', [['cowsay', '<text>', 'a cow says it']], 'any key or click exits an effect'],
@@ -843,9 +843,10 @@ const CMDS = {
  albums: () => data.albums.forEach((a, i) => say(`[${String.fromCharCode(65 + (flat.find(t => t.al === a)?.ai ?? i))}] ${a.title}${a.year ? ' (' + a.year + ')' : ''} — ${a.type || 'album'}, ${a.tracks.length} tracks${a.blurb ? ' · ' + a.blurb : ''}`)),
  play: a => { if (!a) return toggle(); const ai = flat.findIndex(t => (t.aliases || []).includes(a.toLowerCase())); if (ai >= 0) { play(ai); return say('playing ' + flat[ai].title); } const n = parseInt(a, 10); if (n >= 1 && n <= flat.length) { play(n - 1); say('playing ' + flat[n - 1].title); } else { const i = flat.findIndex(t => t.title.toLowerCase().includes(a.toLowerCase())); i >= 0 ? (play(i), say('playing ' + flat[i].title)) : say('no such track: ' + a); } },
  wrap: a => { const v = (a || '').trim().toLowerCase(), on = v === 'on' ? true : v === 'off' ? false : document.body.classList.contains('nowrap'); setWrap(on); say('word wrap: ' + V(on ? 'on' : 'off') + (on ? '' : ' (long lines scroll sideways)'), true); },
+ smoke: a => { const v = (a || '').trim().toLowerCase(), on = v === 'on' ? true : v === 'off' ? false : !smokePref; setSmokePref(on); say('smoke: ' + V(on ? 'on' : 'off'), true); },
  pause: () => outPause(), next: () => next(1), prev: () => next(-1), repeat: cycleRepeat, shuffle: () => { shuffle = !shuffle; updateModes(); say('shuffle: ' + V(shuffle ? 'on' : 'off') + quip(shuffle ? 'shufon' : 'shufoff'), true); },
  vol: a => { setVol((+a || 0) / 100); say('volume ' + V(Math.round(vol * 100) + '%'), true); },
- bio: () => { say(manBio(), true); jump('man'); },
+ bio: () => { say(manBio(), true); showManPage('tomgrim'); jump('man'); },
  man: a => CMDS.bio(), whoami: () => say('tomGRIM — formerly dj ign3ous. Lehigh Valley, PA.'), fetch: () => jump('fetch'), weather: () => weatherFx(true), wx: () => weatherFx(true), grimfetch: () => jump('fetch'),
  links: () => (showManPage('links', true), LINKS.concat([['mail', 'contact.html']]).forEach(([n, u]) => say(`${n.padEnd(12)} <a href="${u}" target="_blank" rel="noopener">${u}</a>`, true))),
  contact: () => { say('opening mail client…'); openModal('mail'); }, mail: () => CMDS.contact(), ...(IRC_ENABLED ? {irc: () => { say('opening irc #tomgrim on irc.unrealircd.org…'); openModal('irc'); }} : {}), changelog: () => openChangelog(), spotify: () => { say('opening ' + V('tomGRIM on Spotify') + '…', true); window.open('https://open.spotify.com/artist/1tBp2oza76uuM5bC3fx8Vg', '_blank', 'noopener'); }, fullscreen: () => toggleFull(),
@@ -1006,7 +1007,7 @@ const aptCmd = (a, su) => { const m = (a || '').match(/^(install|update|upgrade|
   if (p >= 100) { clearInterval(iv); job = null; say(`Unpacking ${pkg} (${GRIMOS_VERSION}) ...\nSetting up ${pkg} (${GRIMOS_VERSION}) ...\nProcessing triggers for vinyl-spin (1.0) ...\n${pkg}: installed. (it was always there, deep in the mix.)`); } }, 120);
  startJob(() => { clearInterval(iv); say('^C\nE: Sub-process /usr/bin/dpkg received signal 2.'); }, 'apt'); };
 const NEO = ['████████╗ ██████╗ ', '╚══██╔══╝██╔════╝ ', '   ██║   ██║  ███╗', '   ██║   ██║   ██║', '   ██║   ╚██████╔╝', '   ╚═╝    ╚═════╝ ', '  >_ tomGRIM       ', '                  '];
-const MAN = {wrap: 'wrap [on|off] — terminal word wrap. on wraps long lines; off keeps them on one line and the terminal scrolls sideways. same as DISPLAY > TERMINAL WRAP; saved between visits.', grimamp: 'grimamp — GRIMAMP v1, the ascii audio terminal player: record + round scope, waveform (click to seek), spectrum, FX knobs (filter/res/verb/crush), rep / shuf / 👁 auto-visuals toggles. keys: space play, n/p next/prev, r repeat, s shuffle, ←→ seek, +- volume. see also: play, ls, albums, get.', links: 'links — where to find tomGRIM: streaming, socials and downloads. type links to list them. see also: mail, feedback.', contact: 'contact — send tom a message with the mail form, or leave a note on the BBS. see also: mail, feedback.', weather: 'weather — GRIM/WX: a 90s "local on the 8s" weather screen for Allentown, Bethlehem and Easton with live data from open-meteo.com (current conditions, latest observations, extended and local forecast). It also takes over the screensaver while any Walking Green version plays. Any key or click exits. Alias: wx.', share: 'share — copies a link to the current track at the current time (thomasgrim.com/?t=<track>&at=<seconds>). Opening it selects the track; press play and it starts at that moment.', help: 'help [section|cmd|-a] — list commands grouped by section. Commands with flags or args get their own line (args colored, dim description); simple commands flow together separated by •. help <section> shows one section (shell get net fun system fx look idle), help <cmd> opens its man page, help -a shows everything. ? is identical to help in every form: ?, ? fx, ? -a, ? <cmd>. Outside the prompt the ? key opens the keyboard help.', '?': 'see help — ? is an alias of help.', ls: 'ls [-la] [path] — without args lists every track; with a path lists the fake filesystem.', play: 'play <n|name> — play a track by number (see ls) or name.', get: 'get <n|name> — download a track. get album <name>, get --list.', cd: 'cd [dir] — change directory. try ~/albums, /etc, /var/log.', cat: 'cat <file> — print a file. try /etc/motd or readme.txt.', ping: 'ping <host> — send 4 ICMP echo requests (Ctrl+C stops).', top: 'top — live process list. q to quit.', theme: 'theme <name> — switch color theme: ' + THEMES.join(' ') + ' (cyan is the default). silicon, nightshift and neon are full-color palettes; Tab completes names.', screensaver: 'screensaver on|off|<seconds>|<effect>|random', apt: 'apt install <pkg> — needs sudo. you know how this ends.'};
+const MAN = {wrap: 'wrap [on|off] — terminal word wrap. on wraps long lines; off keeps them on one line and the terminal scrolls sideways. same as DISPLAY > TERMINAL WRAP; saved between visits.', smoke: 'smoke [on|off] — soft ambient smoke overlay. same as DISPLAY > SMOKE; saved between visits. off clears ambient smoke (track moods can still briefly enable it while they play).', grimamp: 'grimamp — GRIMAMP v1, the ascii audio terminal player: record + round scope, waveform (click to seek), spectrum, FX knobs (filter/res/verb/crush), rep / shuf / 👁 auto-visuals toggles. keys: space play, n/p next/prev, r repeat, s shuffle, ←→ seek, +- volume. see also: play, ls, albums, get.', links: 'links — where to find tomGRIM: streaming, socials and downloads. type links to list them. see also: mail, feedback.', contact: 'contact — send tom a message with the mail form, or leave a note on the BBS. see also: mail, feedback.', weather: 'weather — GRIM/WX: a 90s "local on the 8s" weather screen for Allentown, Bethlehem and Easton with live data from open-meteo.com (current conditions, latest observations, extended and local forecast). It also takes over the screensaver while any Walking Green version plays. Any key or click exits. Alias: wx.', share: 'share — copies a link to the current track at the current time (thomasgrim.com/?t=<track>&at=<seconds>). Opening it selects the track; press play and it starts at that moment.', help: 'help [section|cmd|-a] — list commands grouped by section. Commands with flags or args get their own line (args colored, dim description); simple commands flow together separated by •. help <section> shows one section (shell get net fun system fx look idle), help <cmd> opens its man page, help -a shows everything. ? is identical to help in every form: ?, ? fx, ? -a, ? <cmd>. Outside the prompt the ? key opens the keyboard help.', '?': 'see help — ? is an alias of help.', ls: 'ls [-la] [path] — without args lists every track; with a path lists the fake filesystem.', play: 'play <n|name> — play a track by number (see ls) or name.', get: 'get <n|name> — download a track. get album <name>, get --list.', cd: 'cd [dir] — change directory. try ~/albums, /etc, /var/log.', cat: 'cat <file> — print a file. try /etc/motd or readme.txt.', ping: 'ping <host> — send 4 ICMP echo requests (Ctrl+C stops).', top: 'top — live process list. q to quit.', theme: 'theme <name> — switch color theme: ' + THEMES.join(' ') + ' (cyan is the default). silicon, nightshift and neon are full-color palettes; Tab completes names.', screensaver: 'screensaver on|off|<seconds>|<effect>|random', apt: 'apt install <pkg> — needs sudo. you know how this ends.'};
 Object.assign(CMDS, {
  ls: a => { a = (a || '').trim(); if (!a) return flat.forEach((t, i) => say(`${String(i + 1).padStart(3)}  ${t.title}${t.special ? ' ★' : ''}  [${t.single ? 'single' : t.al.title}]`)); lsPath(a); },
  ll: a => lsPath('-la ' + (a || '')), pwd: () => say(cwd),
@@ -1058,11 +1059,25 @@ cmd.addEventListener('keydown', e => { if (e.key === 'ArrowUp') { hp = Math.max(
   if (m.length === 1) cmd.value = v.slice(0, sp + 1) + dirP + m[0] + (n.c[m[0]].d ? '/' : ' '); else if (m.length > 1) say(m.join('  ')); } });
 
 /* ---------- navigation ---------- */
-const SECTIONS = ['fetch', 'man', 'player', 'links', 'shell', 'photos'];
-function jump(id, nofocus) { if (id === 'photos') return openPhotos(); const el = document.getElementById(id); if (!el) return; el.scrollIntoView({behavior: RM ? 'auto' : 'smooth', block: 'start'}); document.querySelectorAll('.win').forEach(w => w.classList.toggle('focus', w === el));
+const SECTIONS = ['fetch', 'player', 'man', 'links', 'shell', 'photos']; // 1.3.26: grimamp is 2nd in the top bar
+function syncJumpPad() { const tb = document.getElementById('topbar'); const h = tb ? Math.ceil(tb.getBoundingClientRect().height) : 48; const pad = h + 28; /* topbar + breathing + typical .wt overhang */ document.documentElement.style.setProperty('--jump-pad', pad + 'px'); return pad; }
+function jump(id, nofocus) {
+ if (id === 'photos') return openPhotos();
+ const el = document.getElementById(id); if (!el) return;
+ // scroll so the window's top border + overhanging title (.wt) sit fully below the sticky top bar
+ const pad = syncJumpPad();
+ const wt = el.querySelector(':scope > .wt');
+ let hang = 0;
+ if (wt) {
+  const er = el.getBoundingClientRect(), wr = wt.getBoundingClientRect();
+  hang = Math.max(0, Math.round(er.top - wr.top)) + 10; // title sits above the border + breathing room
+ }
+ const y = el.getBoundingClientRect().top + window.scrollY - pad - hang;
+ window.scrollTo({top: Math.max(0, y), behavior: RM ? 'auto' : 'smooth'});
+ document.querySelectorAll('.win').forEach(w => w.classList.toggle('focus', w === el));
  document.querySelectorAll('#topbar nav button').forEach(b => { b.classList.toggle('on', b.dataset.jump === id); b.setAttribute('aria-current', b.dataset.jump === id); });
  if (nofocus) return; if (id === 'shell') cmd.focus({preventScroll: true}); else if (id === 'player') pl.focus({preventScroll: true}); else el.focus({preventScroll: true}); }
-document.querySelectorAll('[data-jump]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); jump(b.dataset.jump); }));
+document.querySelectorAll('[data-jump]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); if (b.dataset.jump === 'man') showManPage('tomgrim'); jump(b.dataset.jump); }));
 const ICONS = { // 8x8 pixel glyphs
  fetch: ['11111111','10000001','10110101','10000001','10111101','10000001','11111111','00111100'],
  man: ['01111100','01000110','01011111','01000001','01011101','01000001','01011101','01111111'],
@@ -1111,7 +1126,7 @@ document.addEventListener('keydown', e => {
  else if (k === 't') setTheme(THEMES[(THEMES.indexOf(curTheme()) + 1) % THEMES.length]);
  else if (k === 'f') setCrt(document.body.classList.contains('nocrt'));
  else if (k === 'c') { document.body.classList.toggle('flicker'); localStorage.grimFlicker = document.body.classList.contains('flicker') ? 1 : ''; }
- else if (/^[1-6]$/.test(k)) jump(SECTIONS[+k - 1]);
+ else if (/^[1-6]$/.test(k)) { const sid = SECTIONS[+k - 1]; if (sid === 'man') showManPage('tomgrim'); jump(sid); }
  else if (k === '7') openModal('mail'); else if (k === '8') weatherFx(true);
  else if (k === 'g') jump('photos');
  else if (/^[A-Z]$/.test(k)) { const ai = k.charCodeAt(0) - 65, i = flat.findIndex(t => t.ai === ai); if (i >= 0) { if (search.value) { search.value = ''; renderList(); } select(i); jump('player'); document.getElementById('al-' + ai)?.scrollIntoView({block: 'nearest'}); } }
@@ -1202,10 +1217,12 @@ function trackMood(t) {
  if (!wg && wxMood && fxs && fxs.name === 'weather' && fxs.auto) fxs.stop();
  if (wg !== wxMood) { wxMood = wg; if (saver.active && fxs && fxs.saver && (wg ? fxs.name !== 'weather' : fxs.name === 'weather')) { saverStop(); if (wg) { saverMode = true; try { weatherFx(); } finally { saverMode = false; } if (fxs) { saver.active = true; saver.started = Date.now(); } } } if (wg) setTimeout(wxAutoCheck, 0); }
  const want = t && MOODS.find(m => m.re.test(t.title));
- if (mood && (!want || want.key !== mood.key)) { const p = mood.prev; mood = null; setTheme(p, 'mood'); smoke(false); cueClear(); }
+ if (mood && (!want || want.key !== mood.key)) { const p = mood.prev; mood = null; setTheme(p, 'mood'); smoke(false); if (smokePref) smoke(true); cueClear(); }
  if (want && !mood) { mood = {prev: curTheme(), key: want.key}; if (THEMES.includes(want.theme)) setTheme(want.theme, 'mood'); smoke(true); }
 }
 let smk = null;
+let smokePref = localStorage.grimSmoke === '1'; // DISPLAY > SMOKE; default off; moods honor this toggle
+function smokeWanted() { return !!smokePref && !RM; }
 function smoke(on) {
  if (!on) { if (smk) { cancelAnimationFrame(smk.raf); smk.c.remove(); smk = null; } return; }
  if (smk || RM) return;
@@ -1492,6 +1509,11 @@ const bwrap = document.getElementById('bwrap');
 const setWrap = (on, quiet) => { document.body.classList.toggle('nowrap', !on); try { localStorage.grimWrap = on ? '' : 'off'; } catch (e) {} bwrap.textContent = 'TERMINAL WRAP: ' + (on ? 'ON' : 'OFF'); bwrap.setAttribute('aria-checked', on); bwrap.setAttribute('aria-pressed', on); };
 setWrap(localStorage.grimWrap !== 'off');
 bwrap.addEventListener('click', () => setWrap(document.body.classList.contains('nowrap')));
+const bsmoke = document.getElementById('bsmoke');
+const setSmokePref = (on, quiet) => { smokePref = !!on; try { localStorage.grimSmoke = on ? '1' : ''; } catch (e) {} if (bsmoke) { bsmoke.textContent = 'SMOKE: ' + (on ? 'ON' : 'OFF'); bsmoke.setAttribute('aria-checked', on); bsmoke.setAttribute('aria-pressed', on); } if (on) smoke(true); else smoke(false); if (!quiet) {/* menu click is enough feedback */} };
+if (bsmoke) { setSmokePref(smokePref, true); bsmoke.addEventListener('click', () => setSmokePref(!smokePref)); }
+// keep jump pad in sync when the sticky top bar wraps (mobile)
+{ const tb = document.getElementById('topbar'); if (tb && typeof ResizeObserver !== 'undefined') new ResizeObserver(() => syncJumpPad()).observe(tb); addEventListener('resize', syncJumpPad); syncJumpPad(); }
 bflick.addEventListener('click', () => { document.body.classList.toggle('flicker'); localStorage.grimFlicker = document.body.classList.contains('flicker') ? 1 : ''; });
 ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { const on = !!fsEl(); [bfull, bfull2].forEach(b => { b.setAttribute('aria-pressed', on); b.title = on ? 'Exit fullscreen (Esc)' : 'Fullscreen: best viewed in fullscreen (F11). Click to enter or exit fullscreen'; }); }));
 if (!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)) bfull.hidden = bfull2.hidden = true; // iPhone Safari: no Fullscreen API

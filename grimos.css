@@ -50,7 +50,7 @@ kbd{font:inherit;color:var(--bg);background:var(--br);padding:0 .25em;margin-rig
 #clock{margin-left:.3em}
 #desk{flex:1;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.95fr) minmax(0,1fr);grid-template-areas:"fetch fetch man" "player tracks tracks" "links links links" "shell shell shell";grid-template-rows:auto;gap:14px;padding:16px 14px 10px;width:100%;max-width:2000px;margin:0 auto}
 #tracks{grid-area:tracks;display:flex;flex-direction:column;min-height:0}#tracks .plhead{margin-top:0}#fetch{grid-area:fetch}#man{grid-area:man}#player{grid-area:player}#links{grid-area:links}#shell{grid-area:shell}
-.win{border:2px double var(--br);padding:1.1em .8em .7em;position:relative;background:rgba(0,0,0,.3);box-shadow:0 0 14px -6px var(--fg) inset,0 0 6px -2px var(--fg);min-width:0;scroll-margin-top:3em}
+.win{border:2px double var(--br);padding:1.1em .8em .7em;position:relative;background:rgba(0,0,0,.3);box-shadow:0 0 14px -6px var(--fg) inset,0 0 6px -2px var(--fg);min-width:0;scroll-margin-top:var(--jump-pad, 5.5em)}
 .win.focus{border-color:var(--hi);box-shadow:0 0 18px -4px var(--fg) inset,0 0 12px var(--fg)}
 .wt{position:absolute;top:-.62em;left:.8em;margin:0;font-size:1em;font-weight:normal;color:var(--br)}
 .wt span{background:var(--bg);padding:0 .2em}
@@ -166,7 +166,7 @@ input{font:inherit;color:var(--hi);background:transparent;border:none;border-bot
 @media (min-width:1100px) and (max-width:1499px){.logo{font-size:9px}}
 
 /* photos */
-#photos{margin:14px;scroll-margin-top:3em}
+#photos{margin:14px;scroll-margin-top:var(--jump-pad, 5.5em)}
 .gal{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
 .ph{border:1px solid var(--br);background:#000;box-shadow:0 0 10px -3px var(--fg);cursor:pointer;display:flex;flex-direction:column}
 .ph .bar{display:flex;justify-content:space-between;gap:.5em;padding:0 .4em;background:var(--fg);color:var(--bg);text-shadow:none;font-size:.8em;white-space:nowrap;overflow:hidden}
